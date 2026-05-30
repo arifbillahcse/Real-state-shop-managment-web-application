@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Default admin (password: admin123)
 INSERT INTO users (name, username, password, role)
-VALUES ('Administrator', 'admin', '$2y$12$yZQDhvfj3dJa1R.kWuF4MeR5bNQmdZhN9JPTZ5bC7E4qiuF6fI.jW', 'admin');
+VALUES ('Administrator', 'admin', '$2y$12$wgUtvV291cMFFRxEd3gKYuz0EjZECg1RqywX49pKfTkkEFpHV/WEe', 'admin');
 
 -- --------------------------------------------
 -- 2. SUPPLIERS TABLE
