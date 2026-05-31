@@ -336,104 +336,173 @@ function showInvoice(saleId) {
                     `<div class="alert alert-danger">${esc(res.message)}</div>`;
                 return;
             }
+            window._lastInvoiceRes = res;
             renderInvoice(res);
         })
         .catch(() => showToast('ইনভয়েস লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
-function renderInvoice(res) {
+function buildInvoiceHTML(res, forPrint = false) {
     const s = res.data;
     const payLabel = { cash: 'নগদ', credit: 'বাকি', mobile_banking: 'মোবাইল ব্যাংকিং', cheque: 'চেক' };
+    const due      = parseFloat(s.due_amount);
+    const isPaid   = due <= 0;
+    const isCancelled = s.status === 'cancelled';
 
-    const itemRows = s.items.map(item => `
+    const itemRows = s.items.map((item, i) => `
+        <tr style="background:${i%2===0?'#fff':'#fafafa'}">
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:600;color:#222">${esc(item.product_name)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:center;color:#555">${parseFloat(item.quantity)} ${esc(item.unit)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;color:#555">${fmt(item.unit_price)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#c0392b">${fmt(item.total_price)}</td>
+        </tr>`).join('');
+
+    const discountRow = parseFloat(s.discount) > 0 ? `
         <tr>
-            <td>${esc(item.product_name)}</td>
-            <td class="text-center">${parseFloat(item.quantity)} ${esc(item.unit)}</td>
-            <td class="text-end">${fmt(item.unit_price)}</td>
-            <td class="text-end fw-semibold">${fmt(item.total_price)}</td>
-        </tr>
-    `).join('');
+            <td colspan="2" style="padding:6px 14px;text-align:right;color:#888;font-size:13px">ছাড়</td>
+            <td style="padding:6px 14px;text-align:right;color:#e74c3c;font-size:13px">− ${fmt(s.discount)}</td>
+        </tr>` : '';
 
-    document.getElementById('invoiceContent').innerHTML = `
-    <div id="printArea">
-        <div class="text-center mb-3">
-            <h5 class="fw-bold mb-1">${esc(res.shop_name)}</h5>
-            ${res.shop_address ? `<div class="small text-muted">${esc(res.shop_address)}</div>` : ''}
-            ${res.shop_phone   ? `<div class="small text-muted"><i class="bi bi-telephone"></i> ${esc(res.shop_phone)}</div>` : ''}
+    const stampColor = isCancelled ? '#95a5a6' : isPaid ? '#27ae60' : '#e74c3c';
+    const stampText  = isCancelled ? 'বাতিল' : isPaid ? 'পরিশোধিত' : 'বাকি আছে';
+    const stampHTML  = `
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
+                    font-size:52px;font-weight:900;color:${stampColor};opacity:0.08;
+                    white-space:nowrap;pointer-events:none;letter-spacing:2px;z-index:0">
+            ${stampText}
+        </div>`;
+
+    return `
+    <div id="printArea" style="font-family:'Hind Siliguri','Segoe UI',sans-serif;max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:${forPrint?'none':'0 4px 24px rgba(0,0,0,0.13)'}">
+
+        <!-- Header gradient -->
+        <div style="background:linear-gradient(135deg,#c0392b 0%,#8e1a0e 100%);padding:28px 32px 22px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.06)"></div>
+            <div style="position:absolute;bottom:-50px;left:-20px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+            <div style="position:relative;z-index:1;text-align:center">
+                <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${esc(res.shop_name)}</div>
+                ${res.shop_address ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:4px">${esc(res.shop_address)}</div>` : ''}
+                ${res.shop_phone   ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:2px">&#9990; ${esc(res.shop_phone)}</div>` : ''}
+            </div>
         </div>
-        <hr>
-        <div class="row mb-3">
-            <div class="col-6">
-                <table class="table table-sm table-borderless mb-0 small">
-                    <tr><th>ইনভয়েস নং:</th><td class="fw-semibold">${esc(s.invoice_number)}</td></tr>
-                    <tr><th>তারিখ:</th><td>${s.sale_date}</td></tr>
-                    ${s.branch_name ? `<tr><th>ব্রাঞ্চ:</th><td>${esc(s.branch_name)}</td></tr>` : ''}
-                    <tr><th>পেমেন্ট:</th><td>${payLabel[s.payment_method] || s.payment_method}</td></tr>
-                    <tr><th>স্ট্যাটাস:</th>
-                        <td><span class="badge bg-${s.status==='cancelled'?'secondary':'success'}">
-                            ${s.status==='cancelled'?'বাতিল':'সম্পন্ন'}
-                        </span></td>
-                    </tr>
+
+        <!-- Tear-line divider -->
+        <div style="display:flex;align-items:center;background:#f8f8f8;border-top:2px dashed #ddd;border-bottom:2px dashed #ddd;padding:0 12px">
+            <div style="width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #ddd;flex-shrink:0;margin-left:-22px"></div>
+            <div style="flex:1;text-align:center;padding:6px 0;font-size:11px;font-weight:700;letter-spacing:3px;color:#aaa;text-transform:uppercase">ইনভয়েস</div>
+            <div style="width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #ddd;flex-shrink:0;margin-right:-22px"></div>
+        </div>
+
+        <!-- Invoice meta + customer -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:20px 32px 12px;gap:16px">
+            <div style="flex:1">
+                <div style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">ইনভয়েস তথ্য</div>
+                <table style="border-collapse:collapse;font-size:13px">
+                    <tr><td style="color:#888;padding:2px 12px 2px 0;white-space:nowrap">ইনভয়েস নং</td>
+                        <td style="font-weight:700;color:#c0392b">${esc(s.invoice_number)}</td></tr>
+                    <tr><td style="color:#888;padding:2px 12px 2px 0">তারিখ</td>
+                        <td style="color:#333">${s.sale_date}</td></tr>
+                    ${s.branch_name ? `<tr><td style="color:#888;padding:2px 12px 2px 0">ব্রাঞ্চ</td>
+                        <td style="color:#333">${esc(s.branch_name)}</td></tr>` : ''}
+                    <tr><td style="color:#888;padding:2px 12px 2px 0">পেমেন্ট</td>
+                        <td style="color:#333">${payLabel[s.payment_method] || s.payment_method}</td></tr>
                 </table>
             </div>
-            <div class="col-6 text-end">
-                <div class="fw-semibold">${esc(s.customer_name)}</div>
-                ${s.customer_phone ? `<div class="text-muted small">${esc(s.customer_phone)}</div>` : ''}
+            <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">কাস্টমার</div>
+                <div style="font-weight:700;font-size:15px;color:#222">${esc(s.customer_name)}</div>
+                ${s.customer_phone ? `<div style="color:#888;font-size:13px;margin-top:2px">&#9990; ${esc(s.customer_phone)}</div>` : ''}
+                <div style="margin-top:8px">
+                    <span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;
+                        background:${isCancelled?'#ecf0f1':isPaid?'#e8f8f0':'#fff3f3'};
+                        color:${isCancelled?'#7f8c8d':isPaid?'#27ae60':'#c0392b'};
+                        border:1.5px solid ${isCancelled?'#bdc3c7':isPaid?'#a9dfbf':'#f5b7b1'}">
+                        ${isCancelled?'বাতিল':isPaid?'✓ পরিশোধিত':'● বাকি আছে'}
+                    </span>
+                </div>
             </div>
         </div>
 
-        <table class="table table-sm table-bordered">
-            <thead class="table-light">
+        <!-- Items table -->
+        <div style="padding:0 32px 8px;position:relative">
+            ${stampHTML}
+            <table style="width:100%;border-collapse:collapse;position:relative;z-index:1">
+                <thead>
+                    <tr style="background:linear-gradient(90deg,#c0392b,#e74c3c)">
+                        <th style="padding:10px 14px;text-align:left;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:6px 0 0 0">পণ্য</th>
+                        <th style="padding:10px 14px;text-align:center;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px">পরিমাণ</th>
+                        <th style="padding:10px 14px;text-align:right;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px">একক মূল্য</th>
+                        <th style="padding:10px 14px;text-align:right;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:0 6px 0 0">মোট</th>
+                    </tr>
+                </thead>
+                <tbody>${itemRows}</tbody>
+            </table>
+        </div>
+
+        <!-- Totals -->
+        <div style="display:flex;justify-content:flex-end;padding:8px 32px 20px">
+            <table style="min-width:260px;border-collapse:collapse;font-size:14px">
                 <tr>
-                    <th>পণ্য</th>
-                    <th class="text-center">পরিমাণ</th>
-                    <th class="text-end">একক মূল্য</th>
-                    <th class="text-end">মোট</th>
+                    <td style="padding:5px 16px 5px 0;color:#888">সাবটোটাল</td>
+                    <td style="padding:5px 0;text-align:right;color:#333">${fmt(s.subtotal)}</td>
                 </tr>
-            </thead>
-            <tbody>${itemRows}</tbody>
-        </table>
-
-        <div class="row justify-content-end">
-            <div class="col-md-6">
-                <table class="table table-sm">
-                    <tr><td class="text-muted">সাবটোটাল</td>
-                        <td class="text-end">${fmt(s.subtotal)}</td></tr>
-                    ${parseFloat(s.discount) > 0 ? `
-                    <tr><td class="text-muted">ছাড়</td>
-                        <td class="text-end text-danger">- ${fmt(s.discount)}</td></tr>` : ''}
-                    <tr class="table-dark">
-                        <td class="fw-bold">মোট</td>
-                        <td class="text-end fw-bold">${fmt(s.total_amount)}</td>
-                    </tr>
-                    <tr><td class="text-muted">পরিশোধ</td>
-                        <td class="text-end">${fmt(s.paid_amount)}</td></tr>
-                    <tr class="table-warning">
-                        <td class="fw-semibold">বাকি</td>
-                        <td class="text-end fw-bold text-danger">${fmt(s.due_amount)}</td>
-                    </tr>
-                </table>
-            </div>
+                ${discountRow}
+                <tr style="border-top:2px solid #eee">
+                    <td style="padding:8px 16px 8px 0;font-weight:800;font-size:15px;color:#222">মোট</td>
+                    <td style="padding:8px 0;text-align:right;font-weight:800;font-size:15px;color:#222">${fmt(s.total_amount)}</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px 16px 5px 0;color:#27ae60;font-weight:600">পরিশোধ</td>
+                    <td style="padding:5px 0;text-align:right;color:#27ae60;font-weight:600">${fmt(s.paid_amount)}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding:4px 0">
+                        <div style="background:${due>0?'linear-gradient(90deg,#c0392b,#e74c3c)':'linear-gradient(90deg,#27ae60,#2ecc71)'};
+                                    border-radius:8px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+                            <span style="color:#fff;font-weight:700;font-size:14px">${due>0?'বাকি':'সম্পূর্ণ পরিশোধ'}</span>
+                            <span style="color:#fff;font-weight:900;font-size:18px">${due>0?fmt(due):'✓'}</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
-        ${s.note ? `<div class="text-muted small mt-2 border-top pt-2">নোট: ${esc(s.note)}</div>` : ''}
+
+        ${s.note ? `
+        <div style="margin:0 32px 16px;padding:10px 14px;background:#fffbf0;border-left:3px solid #f39c12;border-radius:0 6px 6px 0;font-size:13px;color:#7f6a00">
+            <strong>নোট:</strong> ${esc(s.note)}
+        </div>` : ''}
+
+        <!-- Footer -->
+        <div style="background:#1a1a1a;padding:14px 32px;text-align:center">
+            <div style="color:#888;font-size:12px;letter-spacing:1px">ধন্যবাদ আপনার কেনাকাটার জন্য</div>
+            ${res.shop_phone ? `<div style="color:#aaa;font-size:12px;margin-top:3px">&#9990; ${esc(res.shop_phone)}</div>` : ''}
+        </div>
+
     </div>`;
 }
 
+function renderInvoice(res) {
+    document.getElementById('invoiceContent').innerHTML = buildInvoiceHTML(res, false);
+}
+
 function printInvoice() {
-    const el = document.getElementById('printArea');
-    if (!el) return;
-    const win = window.open('', '_blank', 'width=700,height=800');
+    const res = window._lastInvoiceRes;
+    if (!res) return;
+    const win = window.open('', '_blank', 'width=780,height=900');
     win.document.write(`<!DOCTYPE html>
     <html><head>
     <meta charset="UTF-8">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>Invoice</title>
+    <title>Invoice — ${esc(res.data.invoice_number)}</title>
     <style>
-        body { padding: 20px; font-size: 13px; font-family: sans-serif; }
-        @media print { body { padding: 5px; } .badge { border: 1px solid #666; } }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #f0f0f0; padding: 24px; font-family: 'Hind Siliguri','Segoe UI',sans-serif; }
+        @media print {
+            body { background: #fff; padding: 0; }
+            #printArea { box-shadow: none !important; border-radius: 0 !important; }
+        }
     </style>
     </head><body>
-    ${el.innerHTML}
+    ${buildInvoiceHTML(res, true)}
     <script>window.onload = function(){ window.print(); window.close(); };<\/script>
     </body></html>`);
     win.document.close();
