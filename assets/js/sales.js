@@ -446,11 +446,10 @@ document.getElementById('historyTabBtn')?.addEventListener('click', () => {
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
-    if (IS_STAFF) {
-        // Staff: immediately load their branch history
-        loadSalesHistory();
-    } else {
+    if (!IS_STAFF) {
         addItemRow();
         calcGrandTotal();
     }
+    // History tab is always default — load on page load
+    loadSalesHistory();
 });

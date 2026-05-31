@@ -28,13 +28,13 @@ include __DIR__ . '/../includes/sidebar.php';
   <ul class="nav nav-pills mb-4" id="salesTabs" role="tablist">
     <?php if (!$_isStaff): ?>
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#newSaleTab" type="button">
+      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#newSaleTab" type="button">
         <i class="bi bi-plus-circle me-1"></i>নতুন বিক্রয়
       </button>
     </li>
     <?php endif; ?>
     <li class="nav-item" role="presentation">
-      <button class="nav-link <?= $_isStaff ? 'active' : '' ?>" data-bs-toggle="pill" data-bs-target="#historyTab" type="button"
+      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#historyTab" type="button"
               id="historyTabBtn">
         <i class="bi bi-list-ul me-1"></i>বিক্রয় ইতিহাস
       </button>
@@ -45,7 +45,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
     <!-- ===== NEW SALE TAB ===== -->
     <?php if (!$_isStaff): ?>
-    <div class="tab-pane fade show active" id="newSaleTab">
+    <div class="tab-pane fade" id="newSaleTab">
       <form id="saleForm" onsubmit="submitSale(event)">
 
         <!-- Header row -->
@@ -168,7 +168,7 @@ include __DIR__ . '/../includes/sidebar.php';
     <?php endif; ?>
 
     <!-- ===== HISTORY TAB ===== -->
-    <div class="tab-pane fade <?= $_isStaff ? 'show active' : '' ?>" id="historyTab">
+    <div class="tab-pane fade show active" id="historyTab">
 
       <!-- Filters -->
       <div class="card shadow-sm mb-3">
