@@ -178,11 +178,42 @@ function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function deleteCategoryHandler(e) {
-    const btn  = e.currentTarget;
-    const id   = btn.dataset.id;
-    const name = btn.dataset.name;
-    if (!confirm(`"${name}" ক্যাটাগরিটি ডিলিট করবেন?`)) return;
+// Typed-confirmation delete: user must type the exact category name.
+const delCatModal   = new bootstrap.Modal(document.getElementById('delCatModal'));
+const delCatInput   = document.getElementById('delCatConfirmInput');
+const delCatError   = document.getElementById('delCatError');
+const btnConfirmDel = document.getElementById('btnConfirmDelCat');
+let   delCatTarget  = { id: null, name: '', li: null };
+
+function deleteCategoryHandler(e) {
+    const btn = e.currentTarget;
+    delCatTarget = { id: btn.dataset.id, name: btn.dataset.name, li: btn.closest('li') };
+
+    document.getElementById('delCatName').textContent = delCatTarget.name;
+    document.getElementById('delCatId').value          = delCatTarget.id;
+    delCatInput.value = '';
+    delCatError.classList.add('d-none');
+    btnConfirmDel.disabled = true;
+    delCatModal.show();
+    setTimeout(() => delCatInput.focus(), 300);
+}
+
+// Enable the confirm button only when the typed name matches exactly.
+delCatInput.addEventListener('input', () => {
+    btnConfirmDel.disabled = delCatInput.value.trim() !== delCatTarget.name;
+});
+delCatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !btnConfirmDel.disabled) { e.preventDefault(); btnConfirmDel.click(); }
+});
+
+btnConfirmDel.addEventListener('click', async () => {
+    if (delCatInput.value.trim() !== delCatTarget.name) {
+        delCatError.textContent = 'নাম মিলছে না। হুবহু একই নাম লিখুন।';
+        delCatError.classList.remove('d-none');
+        return;
+    }
+    const { id, li } = delCatTarget;
+    btnConfirmDel.disabled = true;
 
     try {
         const res  = await fetch(`${BASE}/api/delete_category.php`, {
@@ -191,19 +222,23 @@ async function deleteCategoryHandler(e) {
         });
         const data = await res.json();
         if (data.success) {
-            btn.closest('li').remove();
+            if (li) li.remove();
             showToast(data.message, 'success');
-            // Remove from product modal select
             const opt = catSelect.querySelector(`option[value="${id}"]`);
             if (opt) opt.remove();
             if (catSelect.tomselect) catSelect.tomselect.removeOption(String(id));
+            delCatModal.hide();
         } else {
-            showToast(data.message, 'danger');
+            delCatError.textContent = data.message;
+            delCatError.classList.remove('d-none');
+            btnConfirmDel.disabled = false;
         }
     } catch {
-        showToast('ডিলিট করা যায়নি।', 'danger');
+        delCatError.textContent = 'ডিলিট করা যায়নি।';
+        delCatError.classList.remove('d-none');
+        btnConfirmDel.disabled = false;
     }
-}
+});
 
 document.querySelectorAll('.btn-del-cat').forEach(btn => {
     btn.addEventListener('click', deleteCategoryHandler);

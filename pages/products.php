@@ -244,6 +244,39 @@ function renderProductTable(array $items): void { ?>
     </div>
 </div>
 
+<!-- ============ DELETE CATEGORY CONFIRM MODAL ============ -->
+<div class="modal fade" id="delCatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-1"></i> ক্যাটাগরি ডিলিট
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2 small">
+                    আপনি <strong class="text-danger" id="delCatName"></strong> ক্যাটাগরিটি
+                    ডিলিট করতে চাচ্ছেন। এটি স্থায়ীভাবে মুছে যাবে।
+                </p>
+                <p class="mb-2 small text-muted">
+                    নিশ্চিত করতে নিচে ক্যাটাগরির নাম <strong>হুবহু</strong> লিখুন:
+                </p>
+                <input type="text" class="form-control" id="delCatConfirmInput"
+                       placeholder="ক্যাটাগরির নাম লিখুন" autocomplete="off">
+                <input type="hidden" id="delCatId">
+                <div class="alert alert-danger py-2 mt-2 d-none" id="delCatError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">বাতিল</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelCat" disabled>
+                    <i class="bi bi-trash me-1"></i> ডিলিট নিশ্চিত করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 const BASE       = '<?= BASE_URL ?>';
 const CATEGORIES = <?= json_encode(array_values($categories)) ?>;
