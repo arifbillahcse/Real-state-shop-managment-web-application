@@ -226,6 +226,11 @@ include __DIR__ . '/../includes/sidebar.php';
                           title="পেমেন্ট নিন">
                     <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
                   </button>
+                  <button class="btn btn-sm btn-outline-info me-1"
+                          onclick="openNotes(<?= $c['id'] ?>, '<?= e(addslashes($c['name'])) ?>')"
+                          title="নোট">
+                    <i class="bi bi-sticky"></i>
+                  </button>
                   <button class="btn btn-sm btn-outline-secondary"
                           onclick="goToLedger(<?= $c['id'] ?>)"
                           title="খাতা দেখুন">
@@ -338,6 +343,37 @@ include __DIR__ . '/../includes/sidebar.php';
 
   </div><!-- /tab-content -->
 </div>
+</div>
+
+<!-- ===== CUSTOMER NOTES MODAL ===== -->
+<div class="modal fade" id="notesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-sticky me-2"></i>নোট — <span id="notesCustomerName"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (User::isAdminOrManager()): ?>
+        <form id="noteForm" class="mb-3" onsubmit="submitNote(event)">
+          <input type="hidden" id="noteCustomerId">
+          <label class="form-label fw-semibold">নতুন নোট যোগ করুন</label>
+          <textarea class="form-control mb-2" id="noteText" rows="2"
+                    maxlength="500" placeholder="যেমন: আগামী মাসে পরিশোধ করবে" required></textarea>
+          <button type="submit" class="btn btn-primary btn-sm" id="noteSaveBtn">
+            <i class="bi bi-plus-circle me-1"></i>নোট যোগ করুন
+          </button>
+        </form>
+        <hr>
+        <?php endif; ?>
+        <div id="notesList">
+          <div class="text-center text-muted py-3">লোড হচ্ছে...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
