@@ -43,9 +43,7 @@ if (HAS_BRANCHES) {
         const branchId = this.value;
         // Reset all product selects
         document.querySelectorAll('.product-select').forEach(sel => {
-            const cur = sel.value;
-            sel.innerHTML = '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml;
-            sel.value = cur;
+            tsRebuild(sel, '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml, sel.value);
         });
 
         if (!branchId) return;
@@ -57,9 +55,7 @@ if (HAS_BRANCHES) {
 
             productOptsHtml = buildProductOpts(data.stock);
             document.querySelectorAll('.product-select').forEach(sel => {
-                const cur = sel.value;
-                sel.innerHTML = '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml;
-                sel.value = cur;
+                tsRebuild(sel, '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml, sel.value);
             });
         } catch { /* keep global stock on error */ }
     });
@@ -208,6 +204,7 @@ function submitSale(e) {
 
 function resetSaleForm() {
     document.getElementById('saleForm').reset();
+    tsSyncForm('saleForm');
     document.getElementById('saleDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('itemsBody').innerHTML = '';
     rowCounter = 0;

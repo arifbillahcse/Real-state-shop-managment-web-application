@@ -28,6 +28,7 @@ typeSelect.addEventListener('change', syncTypeFields);
 // --- Open modal for ADD ---
 document.getElementById('btnAddProduct').addEventListener('click', () => {
     form.reset();
+    tsSyncForm(form);
     document.getElementById('productId').value = '';
     document.getElementById('minStock').value  = '0';
     modalTitle.innerHTML = '<i class="bi bi-box-seam me-1 text-danger"></i> নতুন পণ্য';
@@ -48,10 +49,10 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
 
             const p = data.product;
             document.getElementById('productId').value   = p.id;
-            typeSelect.value                             = p.type;
+            tsSet(typeSelect, p.type, true);
             document.getElementById('productName').value = p.name;
             sizeBrandInp.value                           = p.size_brand || '';
-            unitSelect.value                             = p.unit;
+            tsSet(unitSelect, p.unit, true);
             document.getElementById('buyPrice').value    = p.buy_price;
             document.getElementById('sellPrice').value   = p.sell_price;
             document.getElementById('minStock').value    = p.min_stock;

@@ -33,6 +33,7 @@ if (qtyInput && priceInput) [qtyInput, priceInput].forEach(el => el.addEventList
 // ── Stock In modal ────────────────────────────────────────────────────────
 document.getElementById('btnAddInbound')?.addEventListener('click', () => {
     form.reset();
+    tsSyncForm(form);
     document.getElementById('inboundId').value   = '';
     document.getElementById('inboundDate').value = new Date().toISOString().slice(0, 10);
     modalTitle.innerHTML = '<i class="bi bi-arrow-down-circle me-1 text-danger"></i>পণ্য কেনা (Stock In)';
@@ -50,14 +51,14 @@ document.querySelectorAll('.btn-edit-inbound').forEach(btn => {
             if (!data.success) { showToast(data.message, 'danger'); return; }
             const r = data.record;
             document.getElementById('inboundId').value       = r.id;
-            document.getElementById('inboundProduct').value  = r.product_id;
+            tsSet('inboundProduct', r.product_id, true);
             qtyInput.value                                   = r.quantity;
             priceInput.value                                 = r.buy_price;
-            document.getElementById('inboundSupplier').value = r.supplier_id || '';
+            tsSet('inboundSupplier', r.supplier_id || '', true);
             document.getElementById('inboundDate').value     = r.inbound_date;
             document.getElementById('inboundNote').value     = r.note || '';
             const branchSel = document.getElementById('inboundBranch');
-            if (branchSel) branchSel.value = r.branch_id || '';
+            if (branchSel) tsSet(branchSel, r.branch_id || '', true);
             modalTitle.innerHTML = '<i class="bi bi-pencil me-1 text-danger"></i>স্টক সম্পাদনা';
             updatePreview();
             inboundModal.show();
@@ -95,9 +96,9 @@ document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
 
 // ── Adjustment modal ──────────────────────────────────────────────────────
 document.getElementById('btnAdjustStock')?.addEventListener('click', () => {
-    document.getElementById('adjProduct').value = '';
+    tsSet('adjProduct', '', true);
     const adjBranch = document.getElementById('adjBranch');
-    if (adjBranch) adjBranch.value = '';
+    if (adjBranch) tsSet(adjBranch, '', true);
     document.getElementById('adjQty').value     = '';
     document.getElementById('adjNote').value    = '';
     document.getElementById('adjAdd').checked   = true;
@@ -150,9 +151,9 @@ document.getElementById('btnSaveAdj')?.addEventListener('click', async () => {
 
 // ── Transfer modal ────────────────────────────────────────────────────────
 document.getElementById('btnTransferStock')?.addEventListener('click', () => {
-    document.getElementById('trfProduct').value = '';
-    document.getElementById('trfFrom').value    = '';
-    document.getElementById('trfTo').value      = '';
+    tsSet('trfProduct', '', true);
+    tsSet('trfFrom', '', true);
+    tsSet('trfTo', '', true);
     document.getElementById('trfQty').value     = '';
     document.getElementById('trfNote').value    = '';
     document.getElementById('trfFromStock').textContent = '';

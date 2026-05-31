@@ -111,6 +111,7 @@ function submitPayment(e) {
         if (res.success) {
             showToast(res.message, 'success');
             document.getElementById('paymentForm').reset();
+            tsSyncForm('paymentForm');
             document.getElementById('payDate').value = new Date().toISOString().slice(0, 10);
             document.getElementById('outstandingSection').classList.add('d-none');
             document.getElementById('selectedSaleId').value = '';
@@ -126,14 +127,14 @@ function goToPayment(customerId) {
     const payTabBtn = document.querySelector('[data-bs-target="#payTab"]');
     bootstrap.Tab.getOrCreateInstance(payTabBtn).show();
     const sel = document.getElementById('payCustomerId');
-    sel.value = customerId;
+    tsSet(sel, customerId, true);
     onCustomerChange(sel);
 }
 
 function goToLedger(customerId) {
     const tabBtn = document.getElementById('ledgerTabBtn');
     bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-    document.getElementById('ledgerCustomer').value = customerId;
+    tsSet('ledgerCustomer', customerId, true);
     loadLedger();
 }
 

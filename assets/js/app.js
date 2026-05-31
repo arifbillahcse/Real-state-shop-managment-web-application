@@ -35,6 +35,79 @@ function ajaxPost(url, data, callback) {
     .catch(err => console.error('AJAX error:', err));
 }
 
+// ============================================
+// Searchable dropdowns (Tom Select)
+// ============================================
+
+// Initialize a single <select> as a searchable Tom Select.
+function initTomSelect(el) {
+    if (!el || el.tomselect) return;                 // already done
+    if (el.dataset.noSearch === '1') return;         // opt-out hook
+    if (typeof TomSelect === 'undefined') return;    // library not loaded
+
+    // Use the empty/placeholder option text as the placeholder
+    let placeholder = el.getAttribute('placeholder') || '';
+    const emptyOpt  = el.querySelector('option[value=""]');
+    if (!placeholder && emptyOpt) placeholder = emptyOpt.textContent.trim();
+
+    new TomSelect(el, {
+        create: false,
+        allowEmptyOption: true,
+        maxOptions: 1000,                            // search through long lists
+        placeholder: placeholder || 'খুঁজুন...',
+        // keep original option order (don't re-sort alphabetically)
+        sortField: [{ field: '$order' }, { field: '$score' }],
+    });
+}
+
+// Initialize every <select> under a root element.
+function initAllTomSelects(root = document) {
+    root.querySelectorAll('select').forEach(initTomSelect);
+}
+
+// Set a select's value and update the Tom Select widget display.
+// silent = true skips firing the 'change' event.
+function tsSet(el, val, silent = false) {
+    if (typeof el === 'string') el = document.getElementById(el);
+    if (!el) return;
+    val = (val ?? '') + '';
+    if (el.tomselect) el.tomselect.setValue(val, silent);
+    else el.value = val;
+}
+
+// After form.reset(), re-sync all Tom Select widgets in the form to the
+// underlying select values (reset changes the <select> but not the widget).
+function tsSyncForm(form) {
+    if (typeof form === 'string') form = document.getElementById(form);
+    if (!form) return;
+    form.querySelectorAll('select').forEach(s => {
+        if (s.tomselect) s.tomselect.setValue(s.value || '', true);
+    });
+}
+
+// Replace a select's <option> list (new HTML) and keep it searchable.
+function tsRebuild(el, html, val) {
+    if (!el) return;
+    const hadTs = !!el.tomselect;
+    if (hadTs) el.tomselect.destroy();
+    el.innerHTML = html;
+    if (val !== undefined && val !== null) el.value = val;
+    if (hadTs) initTomSelect(el);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAllTomSelects();
+    // Auto-upgrade any <select> added later (e.g. dynamic sales item rows)
+    const obs = new MutationObserver(muts => {
+        muts.forEach(m => m.addedNodes.forEach(node => {
+            if (node.nodeType !== 1) return;
+            if (node.tagName === 'SELECT') initTomSelect(node);
+            else if (node.querySelectorAll) node.querySelectorAll('select').forEach(initTomSelect);
+        }));
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+});
+
 // Toast notification
 function showToast(message, type = 'success') {
     const bg   = { success: '#198754', danger: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };

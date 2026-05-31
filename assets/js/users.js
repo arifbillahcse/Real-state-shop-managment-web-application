@@ -24,6 +24,7 @@ function toggleBranchField() {
 function openAddModal() {
     document.getElementById('userModalTitle').textContent = 'নতুন ব্যবহারকারী';
     document.getElementById('userForm').reset();
+    tsSyncForm('userForm');
     document.getElementById('userId').value = '';
     document.getElementById('usernameGroup').classList.remove('d-none');
     document.getElementById('passwordGroup').classList.remove('d-none');
@@ -36,12 +37,13 @@ function openAddModal() {
 function openEditModal(id, name, username, role, branchId) {
     document.getElementById('userModalTitle').textContent = 'ব্যবহারকারী সম্পাদনা';
     document.getElementById('userForm').reset();
+    tsSyncForm('userForm');
     document.getElementById('userId').value       = id;
     document.getElementById('userName').value      = name;
     document.getElementById('userUsername').value  = username;
-    document.getElementById('userRole').value      = role;
+    tsSet('userRole', role, true);
     const branchSel = document.getElementById('userBranch');
-    if (branchSel) branchSel.value = branchId || '';
+    if (branchSel) tsSet(branchSel, branchId || '', true);
     // Username & password not editable here
     document.getElementById('usernameGroup').classList.add('d-none');
     document.getElementById('passwordGroup').classList.add('d-none');
