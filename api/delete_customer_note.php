@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../classes/Customer.php';
 
 requireMethod('POST');
 requireAdminApi();   // admin + manager only

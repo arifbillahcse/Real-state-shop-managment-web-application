@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../classes/Customer.php';
 
 $customerId = (int)($_GET['customer_id'] ?? 0);
 if ($customerId <= 0) {

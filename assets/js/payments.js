@@ -314,3 +314,83 @@ document.getElementById('historyTabBtn')?.addEventListener('click', () => {
 });
 
 // Keep due list fresh if revisited (it's server-rendered, but just in case)
+
+// ============================================
+// Customer account notes
+// ============================================
+
+const notesModal = new bootstrap.Modal(document.getElementById('notesModal'));
+
+function openNotes(customerId, name) {
+    document.getElementById('notesCustomerName').textContent = name;
+    const idField = document.getElementById('noteCustomerId');
+    if (idField) idField.value = customerId;
+    const form = document.getElementById('noteForm');
+    if (form) form.reset();
+    notesModal.show();
+    loadNotes(customerId);
+}
+
+function loadNotes(customerId) {
+    const list = document.getElementById('notesList');
+    list.innerHTML = '<div class="text-center text-muted py-3">লোড হচ্ছে...</div>';
+    fetch(`${BASE_URL}/api/get_customer_notes.php?customer_id=${customerId}`)
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) { list.innerHTML = `<div class="text-danger small">${esc(res.message)}</div>`; return; }
+            renderNotes(res.notes || (res.data && res.data.notes) || []);
+        })
+        .catch(() => { list.innerHTML = '<div class="text-danger small">লোড করা যায়নি।</div>'; });
+}
+
+function renderNotes(notes) {
+    const list = document.getElementById('notesList');
+    if (!notes.length) {
+        list.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-inbox d-block fs-4 mb-1"></i>কোনো নোট নেই</div>';
+        return;
+    }
+    list.innerHTML = notes.map(n => `
+        <div class="border-start border-3 border-info ps-3 py-2 mb-2 bg-light rounded">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="small text-muted">
+                    <i class="bi bi-person-circle me-1"></i>${esc(n.author || 'অজানা')}
+                    <span class="ms-2"><i class="bi bi-clock me-1"></i>${esc(n.created_at)}</span>
+                </div>
+                ${IS_ADMIN ? `<button class="btn btn-sm btn-link text-danger p-0" onclick="deleteNote(${n.id})" title="মুছুন"><i class="bi bi-trash"></i></button>` : ''}
+            </div>
+            <div class="mt-1">${esc(n.note).replace(/\n/g, '<br>')}</div>
+        </div>
+    `).join('');
+}
+
+function submitNote(e) {
+    e.preventDefault();
+    const customerId = document.getElementById('noteCustomerId').value;
+    const note       = document.getElementById('noteText').value.trim();
+    if (!note) { showToast('নোট লিখুন', 'warning'); return; }
+
+    const btn = document.getElementById('noteSaveBtn');
+    btn.disabled = true;
+    ajaxPost(BASE_URL + '/api/add_customer_note.php', { customer_id: customerId, note }, res => {
+        btn.disabled = false;
+        if (res.success) {
+            document.getElementById('noteText').value = '';
+            showToast(res.message, 'success');
+            loadNotes(customerId);
+        } else {
+            showToast(res.message, 'danger');
+        }
+    });
+}
+
+function deleteNote(id) {
+    if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
+    ajaxPost(BASE_URL + '/api/delete_customer_note.php', { id }, res => {
+        if (res.success) {
+            showToast(res.message, 'success');
+            loadNotes(document.getElementById('noteCustomerId').value);
+        } else {
+            showToast(res.message, 'danger');
+        }
+    });
+}

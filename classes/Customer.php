@@ -82,6 +82,43 @@ class Customer extends BaseModel
             'NOT_FOUND'     => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
             'HAS_SALES'     => 'এই কাস্টমারের বিক্রয় রেকর্ড আছে, ডিলিট করা যাবে না।',
             'PROTECTED'     => 'ডিফল্ট কাস্টমার ডিলিট করা যাবে না।',
+            'NOTE_REQUIRED' => 'নোট লিখুন।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
+    }
+
+    // ── Customer account notes ──────────────────────────────────────────────
+
+    public static function getNotes(int $customerId): array
+    {
+        return Database::fetchAll(
+            'SELECT cn.id, cn.note, cn.created_at, u.name AS author
+             FROM customer_notes cn
+             LEFT JOIN users u ON u.id = cn.created_by
+             WHERE cn.customer_id = ?
+             ORDER BY cn.created_at DESC',
+            [$customerId]
+        );
+    }
+
+    public static function addNote(int $customerId, string $note, ?int $userId): int|string
+    {
+        $note = trim($note);
+        if ($note === '') return 'NOTE_REQUIRED';
+
+        $customer = self::getCustomerById($customerId);
+        if (!$customer) return 'NOT_FOUND';
+
+        $id = Database::insert(
+            'INSERT INTO customer_notes (customer_id, note, created_by) VALUES (?, ?, ?)',
+            [$customerId, $note, $userId]
+        );
+        self::log('add_customer_note', 'customers', $customerId, "Added note for customer #$customerId");
+        return (int)$id;
+    }
+
+    public static function deleteNote(int $noteId): bool
+    {
+        Database::execute('DELETE FROM customer_notes WHERE id = ?', [$noteId]);
+        return true;
     }
 }
