@@ -107,6 +107,18 @@ body {
 .btn-primary:hover { opacity: .9; }
 
 /* ==============================
+   Tabs / Pills — brand color (override Bootstrap blue)
+============================== */
+.nav-pills .nav-link {
+    color: #c1121f;
+}
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+    background: linear-gradient(135deg, #e63946, #c1121f);
+    color: #fff;
+}
+
+/* ==============================
    Page Header
 ============================== */
 .page-header {
