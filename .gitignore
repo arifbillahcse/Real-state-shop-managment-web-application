@@ -1,0 +1,17 @@
+# Ignore sensitive config
+config/db_credentials.php
+
+# Ignore uploaded files
+uploads/*
+!uploads/.gitkeep
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore logs
+*.log

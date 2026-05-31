@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * Common guard for all API endpoints.
+ * - boots the app
+ * - requires login
+ * - requires POST for write actions (caller may relax for GET reads)
+ */
+
+require_once __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../classes/User.php';
+
+header('Content-Type: application/json; charset=utf-8');
+
+if (!isLoggedIn()) {
+    jsonResponse(false, 'অনুমতি নেই। আবার লগইন করুন।');
+}
+
+/**
+ * Ensure the request method matches. Otherwise return error JSON.
+ */
+function requireMethod(string $method): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== strtoupper($method)) {
+        jsonResponse(false, 'ভুল রিকোয়েস্ট মেথড।');
+    }
+}
+
+/**
+ * Ensure current user is admin (product management is admin-only).
+ */
+function requireAdminApi(): void
+{
+    if (!User::isAdmin()) {
+        jsonResponse(false, 'এই কাজের অনুমতি শুধু অ্যাডমিনের আছে।');
+    }
+}

@@ -1,0 +1,22 @@
+<?php
+require_once __DIR__ . '/_guard.php';
+
+requireMethod('POST');
+requireAdminApi();
+
+$name     = trim($_POST['name']     ?? '');
+$username = trim($_POST['username'] ?? '');
+$password = (string)($_POST['password'] ?? '');
+$role     = trim($_POST['role']     ?? 'staff');
+
+if ($name === '')              jsonResponse(false, 'নাম দিন।');
+if ($username === '')          jsonResponse(false, 'ইউজারনেম দিন।');
+if (strlen($password) < 4)     jsonResponse(false, 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।');
+if (!in_array($role, ['admin', 'staff'], true)) jsonResponse(false, 'সঠিক রোল নির্বাচন করুন।');
+
+$result = User::create($name, $username, $password, $role);
+if (is_int($result)) {
+    jsonResponse(true, 'ব্যবহারকারী যোগ করা হয়েছে।', ['id' => $result]);
+} else {
+    jsonResponse(false, User::errorMessage($result));
+}
