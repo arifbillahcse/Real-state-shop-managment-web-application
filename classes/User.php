@@ -23,6 +23,7 @@ class User extends BaseModel
         $_SESSION['user_name']          = $user['name'];
         $_SESSION['user_role']          = $user['role'];
         $_SESSION['user_username']      = $user['username'];
+        $_SESSION['user_branch_id']     = $user['branch_id'] ?? null;
         $_SESSION['last_regeneration']  = time();
         $_SESSION['login_time']         = time();
 
@@ -67,21 +68,32 @@ class User extends BaseModel
     public static function getAll(): array
     {
         return Database::fetchAll(
-            'SELECT id, name, username, role, is_active, created_at FROM users ORDER BY id'
+            'SELECT u.id, u.name, u.username, u.role, u.is_active, u.created_at,
+                    u.branch_id, b.name AS branch_name
+             FROM users u
+             LEFT JOIN branches b ON b.id = u.branch_id
+             ORDER BY u.id'
         );
     }
 
-    public static function create(string $name, string $username, string $password, string $role): int|string
-    {
+    public static function create(
+        string $name,
+        string $username,
+        string $password,
+        string $role,
+        ?int   $branchId = null
+    ): int|string {
         $exists = Database::fetchOne(
             'SELECT id FROM users WHERE username = ? LIMIT 1', [trim($username)]
         );
         if ($exists) return 'USERNAME_TAKEN';
 
+        $branchId = ($role === 'staff' && $branchId > 0) ? $branchId : null;
+
         $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $id = Database::insert(
-            'INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)',
-            [trim($name), trim($username), $hashed, $role]
+            'INSERT INTO users (name, username, password, role, branch_id) VALUES (?, ?, ?, ?, ?)',
+            [trim($name), trim($username), $hashed, $role, $branchId]
         );
         self::log('create_user', 'users', (int)$id, "Created user: $username");
         return (int)$id;
@@ -100,13 +112,13 @@ class User extends BaseModel
     public static function getById(int $id): array|false
     {
         return Database::fetchOne(
-            'SELECT id, name, username, role, is_active FROM users WHERE id = ? LIMIT 1',
+            'SELECT id, name, username, role, is_active, branch_id FROM users WHERE id = ? LIMIT 1',
             [$id]
         );
     }
 
-    /** Update a user's name and role (username is immutable). */
-    public static function updateUser(int $id, string $name, string $role): bool|string
+    /** Update a user's name, role, and branch (username is immutable). */
+    public static function updateUser(int $id, string $name, string $role, ?int $branchId = null): bool|string
     {
         $user = self::getById($id);
         if (!$user) return 'NOT_FOUND';
@@ -120,9 +132,11 @@ class User extends BaseModel
             return 'LAST_ADMIN';
         }
 
+        $branchId = ($role === 'staff' && $branchId > 0) ? $branchId : null;
+
         Database::execute(
-            'UPDATE users SET name = ?, role = ? WHERE id = ?',
-            [$name, $role, $id]
+            'UPDATE users SET name = ?, role = ?, branch_id = ? WHERE id = ?',
+            [$name, $role, $branchId, $id]
         );
         self::log('update_user', 'users', $id, "Updated user: {$user['username']}");
         return true;

@@ -55,6 +55,19 @@ function requireAdmin(): void
     }
 }
 
+// Helper: is current user a staff member?
+function isStaff(): bool
+{
+    return ($_SESSION['user_role'] ?? '') === 'staff';
+}
+
+// Helper: get current user's assigned branch id (null for admin)
+function getSessionBranchId(): ?int
+{
+    $bid = $_SESSION['user_branch_id'] ?? null;
+    return $bid !== null ? (int)$bid : null;
+}
+
 // Helper: return JSON and exit (for API files)
 function jsonResponse(bool $success, string $message, array $data = []): void
 {

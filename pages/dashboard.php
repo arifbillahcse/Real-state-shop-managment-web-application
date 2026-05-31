@@ -3,7 +3,13 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 requireLogin();
 
-$pageTitle = 'ড্যাশবোর্ড';
+$pageTitle   = 'ড্যাশবোর্ড';
+$branchId    = getSessionBranchId();   // null for admin
+$_isStaff    = isStaff();
+
+// Branch clause helpers
+$branchWhere = $branchId ? ' AND branch_id = ' . (int)$branchId : '';
+$branchParam = $branchId ? [$branchId] : [];
 
 // --- Quick stats ---
 $todaySales = Database::fetchOne(
@@ -11,36 +17,50 @@ $todaySales = Database::fetchOne(
             COALESCE(SUM(paid_amount),0)  AS paid,
             COUNT(*) AS count
      FROM sales
-     WHERE sale_date = CURDATE() AND status = 'completed'"
+     WHERE sale_date = CURDATE() AND status = 'completed'" . $branchWhere,
+    $branchParam
 );
 
-$todayPayments = Database::fetchOne(
-    "SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
-     FROM payments
-     WHERE payment_date = CURDATE()"
-);
+if (!$_isStaff) {
+    $todayPayments = Database::fetchOne(
+        "SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
+         FROM payments
+         WHERE payment_date = CURDATE()"
+    );
+    $totalDue = Database::fetchOne(
+        "SELECT COALESCE(SUM(due_amount),0) AS total
+         FROM sales WHERE status = 'completed'"
+    );
+}
 
-$totalDue = Database::fetchOne(
-    "SELECT COALESCE(SUM(due_amount),0) AS total
-     FROM sales WHERE status = 'completed'"
-);
-
-$stockValue = Database::fetchOne(
-    "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total FROM vw_current_stock"
-);
-
-$lowStockItems = Database::fetchAll(
-    'SELECT * FROM vw_current_stock WHERE current_stock <= min_stock AND min_stock > 0'
-);
+if ($branchId) {
+    $stockValue = Database::fetchOne(
+        "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total
+         FROM vw_branch_stock WHERE branch_id = ?",
+        [$branchId]
+    );
+    $lowStockItems = Database::fetchAll(
+        'SELECT * FROM vw_branch_stock WHERE branch_id = ? AND current_stock <= min_stock AND min_stock > 0',
+        [$branchId]
+    );
+} else {
+    $stockValue = Database::fetchOne(
+        "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total FROM vw_current_stock"
+    );
+    $lowStockItems = Database::fetchAll(
+        'SELECT * FROM vw_current_stock WHERE current_stock <= min_stock AND min_stock > 0'
+    );
+}
 
 // Last 7 days sales for chart
 $chartData = Database::fetchAll(
     "SELECT sale_date, COALESCE(SUM(total_amount),0) AS total
      FROM sales
      WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-       AND status = 'completed'
+       AND status = 'completed'" . $branchWhere . "
      GROUP BY sale_date
-     ORDER BY sale_date"
+     ORDER BY sale_date",
+    $branchParam
 );
 
 // Recent 5 sales
@@ -51,9 +71,10 @@ $recentSales = Database::fetchAll(
             s.payment_method
      FROM sales s
      LEFT JOIN customers c ON c.id = s.customer_id
-     WHERE s.status = 'completed'
+     WHERE s.status = 'completed'" . $branchWhere . "
      ORDER BY s.created_at DESC
-     LIMIT 5"
+     LIMIT 5",
+    $branchParam
 );
 
 require_once __DIR__ . '/../includes/header.php';
@@ -102,6 +123,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
             </div>
         </div>
 
+        <?php if (!$_isStaff): ?>
         <div class="col-6 col-md-3">
             <div class="card stat-card p-3 h-100">
                 <div class="d-flex justify-content-between align-items-start">
@@ -131,6 +153,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <div class="col-6 col-md-3">
             <div class="card stat-card p-3 h-100">
@@ -138,7 +161,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                     <div>
                         <p class="text-muted small mb-1">স্টক মূল্য</p>
                         <h5 class="fw-bold mb-0"><?= money((float)$stockValue['total']) ?></h5>
-                        <small class="text-muted">বর্তমান স্টক</small>
+                        <small class="text-muted"><?= $_isStaff ? 'ব্রাঞ্চ স্টক' : 'বর্তমান স্টক' ?></small>
                     </div>
                     <div class="stat-icon bg-info bg-opacity-10 text-info">
                         <i class="bi bi-boxes"></i>

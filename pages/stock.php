@@ -7,12 +7,14 @@ require_once __DIR__ . '/../classes/Product.php';
 require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
-$pageTitle  = 'স্টক ম্যানেজমেন্ট';
-$allStock   = Stock::getAllStock();
-$history    = Stock::getStockInbound();
-$suppliers  = Supplier::getSuppliers();
-$products   = Product::getProducts();
-$branches   = Branch::getBranches();
+$pageTitle    = 'স্টক ম্যানেজমেন্ট';
+$_isStaff     = isStaff();
+$staffBranch  = getSessionBranchId();
+$allStock     = Stock::getAllStock();
+$history      = Stock::getStockInbound(null, $_isStaff ? $staffBranch : null);
+$suppliers    = Supplier::getSuppliers();
+$products     = Product::getProducts();
+$branches     = Branch::getBranches();
 
 $lowStock   = array_filter($allStock, fn($r) => $r['min_stock'] > 0 && $r['current_stock'] <= $r['min_stock']);
 
@@ -25,9 +27,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
     <!-- Page Header -->
     <div class="page-header">
         <h5><i class="bi bi-stack me-2 text-danger"></i>স্টক ম্যানেজমেন্ট</h5>
+        <?php if (!$_isStaff): ?>
         <button class="btn btn-primary btn-sm" id="btnAddInbound">
             <i class="bi bi-plus-lg me-1"></i>পণ্য কেনা (Stock In)
         </button>
+        <?php endif; ?>
     </div>
 
     <!-- Low stock banner -->
@@ -46,25 +50,29 @@ require_once __DIR__ . '/../includes/sidebar.php';
 
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-3">
+        <?php if (!$_isStaff): ?>
         <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#currentStockTab">
+            <button class="nav-link <?= $staffBranch ? '' : 'active' ?>" data-bs-toggle="tab" data-bs-target="#currentStockTab">
                 <i class="bi bi-boxes me-1"></i>বর্তমান স্টক
                 <span class="badge bg-secondary ms-1"><?= count($allStock) ?></span>
             </button>
         </li>
+        <?php endif; ?>
         <?php if (!empty($branches)): ?>
         <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#branchStockTab" id="btnBranchStockTab">
+            <button class="nav-link <?= $_isStaff ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#branchStockTab" id="btnBranchStockTab">
                 <i class="bi bi-shop me-1"></i>ব্রাঞ্চ স্টক
             </button>
         </li>
         <?php endif; ?>
+        <?php if (!$_isStaff): ?>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#inboundTab">
                 <i class="bi bi-arrow-down-circle me-1"></i>ক্রয় ইতিহাস
                 <span class="badge bg-secondary ms-1"><?= count($history) ?></span>
             </button>
         </li>
+        <?php endif; ?>
     </ul>
 
     <div class="tab-content">
@@ -142,9 +150,10 @@ require_once __DIR__ . '/../includes/sidebar.php';
 
         <!-- ===== BRANCH STOCK TAB ===== -->
         <?php if (!empty($branches)): ?>
-        <div class="tab-pane fade" id="branchStockTab">
+        <div class="tab-pane fade <?= $_isStaff ? 'show active' : '' ?>" id="branchStockTab">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
+                    <?php if (!$_isStaff): ?>
                     <div class="row g-2 align-items-center mb-3">
                         <div class="col-auto">
                             <label class="form-label fw-semibold mb-0">ব্রাঞ্চ নির্বাচন করুন:</label>
@@ -158,6 +167,12 @@ require_once __DIR__ . '/../includes/sidebar.php';
                             </select>
                         </div>
                     </div>
+                    <?php else: ?>
+                    <div class="mb-3">
+                        <?php $myBranch = array_filter($branches, fn($b) => $b['id'] == $staffBranch); $myBranch = reset($myBranch); ?>
+                        <span class="badge bg-secondary fs-6"><i class="bi bi-shop me-1"></i><?= $myBranch ? e($myBranch['name']) : 'আমার ব্রাঞ্চ' ?></span>
+                    </div>
+                    <?php endif; ?>
                     <div id="branchStockTableWrap" class="table-responsive" style="display:none">
                         <table class="table table-hover align-middle mb-0">
                             <thead>
@@ -255,6 +270,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
     </div>
 </div>
 
+<?php if (!$_isStaff): ?>
 <!-- ===== STOCK INBOUND MODAL ===== -->
 <div class="modal fade" id="inboundModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -358,6 +374,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
         </div>
     </div>
 </div>
+<?php endif; ?>
 
+<script>
+const STAFF_BRANCH_ID = <?= $staffBranch ?? 'null' ?>;
+const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
+</script>
 <script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

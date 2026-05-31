@@ -14,6 +14,12 @@ function jsEsc(str) {
     return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+function toggleBranchField() {
+    const role  = document.getElementById('userRole')?.value;
+    const group = document.getElementById('branchFieldGroup');
+    if (group) group.style.display = role === 'staff' ? '' : 'none';
+}
+
 // ---- Add / Edit Modal ----
 function openAddModal() {
     document.getElementById('userModalTitle').textContent = 'নতুন ব্যবহারকারী';
@@ -23,21 +29,25 @@ function openAddModal() {
     document.getElementById('passwordGroup').classList.remove('d-none');
     document.getElementById('userUsername').required = true;
     document.getElementById('userPassword').required = true;
+    toggleBranchField();
     uModal.show();
 }
 
-function openEditModal(id, name, username, role) {
+function openEditModal(id, name, username, role, branchId) {
     document.getElementById('userModalTitle').textContent = 'ব্যবহারকারী সম্পাদনা';
     document.getElementById('userForm').reset();
     document.getElementById('userId').value       = id;
     document.getElementById('userName').value      = name;
     document.getElementById('userUsername').value  = username;
     document.getElementById('userRole').value      = role;
+    const branchSel = document.getElementById('userBranch');
+    if (branchSel) branchSel.value = branchId || '';
     // Username & password not editable here
     document.getElementById('usernameGroup').classList.add('d-none');
     document.getElementById('passwordGroup').classList.add('d-none');
     document.getElementById('userUsername').required = false;
     document.getElementById('userPassword').required = false;
+    toggleBranchField();
     uModal.show();
 }
 
@@ -48,10 +58,12 @@ function submitUser(e) {
         ? BASE_URL + '/api/update_user.php'
         : BASE_URL + '/api/add_user.php';
 
+    const role = document.getElementById('userRole').value;
     const data = {
-        id:       id,
-        name:     document.getElementById('userName').value,
-        role:     document.getElementById('userRole').value,
+        id:        id,
+        name:      document.getElementById('userName').value,
+        role:      role,
+        branch_id: role === 'staff' ? (document.getElementById('userBranch')?.value || '') : '',
     };
     if (!id) {
         data.username = document.getElementById('userUsername').value;
@@ -118,15 +130,19 @@ function loadUsers() {
 }
 
 function renderUsers(list) {
-    const tbody = document.getElementById('usersBody');
+    const tbody   = document.getElementById('usersBody');
+    const colSpan = HAS_BRANCHES ? 7 : 6;
     if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">কোনো ব্যবহারকারী নেই</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-5 text-muted">কোনো ব্যবহারকারী নেই</td></tr>`;
         return;
     }
     tbody.innerHTML = list.map((u, i) => {
-        const active  = parseInt(u.is_active) === 1;
-        const isAdmin = u.role === 'admin';
-        const isSelf  = parseInt(u.id) === CURRENT_UID;
+        const active    = parseInt(u.is_active) === 1;
+        const isAdmin   = u.role === 'admin';
+        const isSelf    = parseInt(u.id) === CURRENT_UID;
+        const branchCell = HAS_BRANCHES
+            ? `<td>${u.branch_name && !isAdmin ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(u.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
+            : '';
         return `
         <tr class="${active ? '' : 'text-muted'}">
             <td class="text-muted">${i + 1}</td>
@@ -139,6 +155,7 @@ function renderUsers(list) {
                     ${isAdmin ? 'অ্যাডমিন' : 'স্টাফ'}
                 </span>
             </td>
+            ${branchCell}
             <td class="text-center">
                 <span class="badge bg-${active ? 'success' : 'secondary'}">
                     ${active ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
@@ -146,7 +163,7 @@ function renderUsers(list) {
             </td>
             <td class="text-center text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1"
-                    onclick="openEditModal(${u.id}, '${jsEsc(u.name)}', '${jsEsc(u.username)}', '${u.role}')"
+                    onclick="openEditModal(${u.id}, '${jsEsc(u.name)}', '${jsEsc(u.username)}', '${u.role}', '${u.branch_id || ''}')"
                     title="সম্পাদনা">
                     <i class="bi bi-pencil"></i>
                 </button>

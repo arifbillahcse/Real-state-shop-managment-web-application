@@ -224,8 +224,9 @@ function loadSalesHistory() {
     const dateFrom   = document.getElementById('filterDateFrom').value;
     const dateTo     = document.getElementById('filterDateTo').value;
     const customerId = document.getElementById('filterCustomer').value;
-    const branchId   = document.getElementById('filterBranch')?.value;
-    const status     = document.getElementById('filterStatus').value;
+    const branchId   = document.getElementById('filterBranch')?.value
+                       || (IS_STAFF && STAFF_BRANCH ? String(STAFF_BRANCH) : '');
+    const status     = document.getElementById('filterStatus')?.value || '';
     if (dateFrom)   params.set('date_from',   dateFrom);
     if (dateTo)     params.set('date_to',     dateTo);
     if (customerId) params.set('customer_id', customerId);
@@ -288,7 +289,7 @@ function renderSalesTable(sales) {
                         onclick="showInvoice(${s.id})" title="ইনভয়েস দেখুন">
                     <i class="bi bi-file-text"></i>
                 </button>
-                ${IS_ADMIN && !cancelled ? `
+                ${IS_ADMIN && !IS_STAFF && !cancelled ? `
                 <button class="btn btn-sm btn-outline-danger"
                         onclick="cancelSale(${s.id}, '${esc(s.invoice_number)}')"
                         title="বাতিল করুন">
@@ -445,6 +446,11 @@ document.getElementById('historyTabBtn')?.addEventListener('click', () => {
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
-    addItemRow();
-    calcGrandTotal();
+    if (IS_STAFF) {
+        // Staff: immediately load their branch history
+        loadSalesHistory();
+    } else {
+        addItemRow();
+        calcGrandTotal();
+    }
 });

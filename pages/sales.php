@@ -5,7 +5,9 @@ require_once __DIR__ . '/../classes/Customer.php';
 require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
-$pageTitle = 'বিক্রয়';
+$pageTitle    = 'বিক্রয়';
+$_isStaff     = isStaff();
+$staffBranch  = getSessionBranchId();
 
 $customers = Customer::getCustomers();
 $branches  = Branch::getBranches();
@@ -24,13 +26,15 @@ include __DIR__ . '/../includes/sidebar.php';
   <h4 class="mb-4"><i class="bi bi-cart-check me-2"></i>বিক্রয়</h4>
 
   <ul class="nav nav-pills mb-4" id="salesTabs" role="tablist">
+    <?php if (!$_isStaff): ?>
     <li class="nav-item" role="presentation">
       <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#newSaleTab" type="button">
         <i class="bi bi-plus-circle me-1"></i>নতুন বিক্রয়
       </button>
     </li>
+    <?php endif; ?>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#historyTab" type="button"
+      <button class="nav-link <?= $_isStaff ? 'active' : '' ?>" data-bs-toggle="pill" data-bs-target="#historyTab" type="button"
               id="historyTabBtn">
         <i class="bi bi-list-ul me-1"></i>বিক্রয় ইতিহাস
       </button>
@@ -40,6 +44,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="tab-content">
 
     <!-- ===== NEW SALE TAB ===== -->
+    <?php if (!$_isStaff): ?>
     <div class="tab-pane fade show active" id="newSaleTab">
       <form id="saleForm" onsubmit="submitSale(event)">
 
@@ -160,9 +165,10 @@ include __DIR__ . '/../includes/sidebar.php';
 
       </form>
     </div><!-- /newSaleTab -->
+    <?php endif; ?>
 
     <!-- ===== HISTORY TAB ===== -->
-    <div class="tab-pane fade" id="historyTab">
+    <div class="tab-pane fade <?= $_isStaff ? 'show active' : '' ?>" id="historyTab">
 
       <!-- Filters -->
       <div class="card shadow-sm mb-3">
@@ -274,11 +280,13 @@ include __DIR__ . '/../includes/sidebar.php';
 </div>
 
 <script>
-const BASE_URL  = '<?= BASE_URL ?>';
-const IS_ADMIN  = <?= User::isAdmin() ? 'true' : 'false' ?>;
-const PRODUCTS  = <?= json_encode(array_values($products)) ?>;
-const BRANCHES  = <?= json_encode(array_values($branches)) ?>;
-const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
+const BASE_URL      = '<?= BASE_URL ?>';
+const IS_ADMIN      = <?= User::isAdmin() ? 'true' : 'false' ?>;
+const IS_STAFF      = <?= $_isStaff ? 'true' : 'false' ?>;
+const STAFF_BRANCH  = <?= $staffBranch ?? 'null' ?>;
+const PRODUCTS      = <?= json_encode(array_values($products)) ?>;
+const BRANCHES      = <?= json_encode(array_values($branches)) ?>;
+const HAS_BRANCHES  = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/sales.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -4,7 +4,9 @@
 
 const BASE = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
 
-const inboundModal = new bootstrap.Modal(document.getElementById('inboundModal'));
+// Staff view has no modal elements
+const inboundModal = document.getElementById('inboundModal')
+    ? new bootstrap.Modal(document.getElementById('inboundModal')) : null;
 const form         = document.getElementById('inboundForm');
 const formError    = document.getElementById('inboundError');
 const modalTitle   = document.getElementById('inboundModalTitle');
@@ -13,8 +15,9 @@ const priceInput   = document.getElementById('inboundPrice');
 const totalPreview = document.getElementById('totalPreview');
 const totalAmt     = document.getElementById('totalPreviewAmt');
 
-// --- Live total cost preview ---
+// --- Live total cost preview --- (admin only)
 function updatePreview() {
+    if (!qtyInput || !priceInput) return;
     const qty   = parseFloat(qtyInput.value)   || 0;
     const price = parseFloat(priceInput.value) || 0;
     if (qty > 0 && price > 0) {
@@ -22,13 +25,15 @@ function updatePreview() {
         totalAmt.textContent = (qty * price).toLocaleString('bn-BD',
             { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ৳';
     } else {
-        totalPreview.style.display = 'none';
+        if (totalPreview) totalPreview.style.display = 'none';
     }
 }
-[qtyInput, priceInput].forEach(el => el.addEventListener('input', updatePreview));
+if (qtyInput && priceInput) {
+    [qtyInput, priceInput].forEach(el => el.addEventListener('input', updatePreview));
+}
 
 // --- Open modal for ADD ---
-document.getElementById('btnAddInbound').addEventListener('click', () => {
+document.getElementById('btnAddInbound')?.addEventListener('click', () => {
     form.reset();
     document.getElementById('inboundId').value   = '';
     document.getElementById('inboundDate').value = new Date().toISOString().slice(0, 10);
@@ -69,7 +74,7 @@ document.querySelectorAll('.btn-edit-inbound').forEach(btn => {
 });
 
 // --- Submit (Add or Update) ---
-form.addEventListener('submit', async (e) => {
+form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     formError.classList.add('d-none');
 
@@ -134,61 +139,74 @@ document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
     });
 });
 
+// Auto-load branch stock for staff on page load
+if (typeof IS_STAFF_VIEW !== 'undefined' && IS_STAFF_VIEW && STAFF_BRANCH_ID) {
+    window.addEventListener('DOMContentLoaded', () => loadBranchStockById(STAFF_BRANCH_ID));
+}
+
+async function loadBranchStockById(branchId) {
+    const wrap     = document.getElementById('branchStockTableWrap');
+    const emptyMsg = document.getElementById('branchStockEmpty');
+    const prompt   = document.getElementById('branchStockPrompt');
+    const tbody    = document.getElementById('branchStockBody');
+    if (!wrap) return;
+
+    if (prompt) prompt.style.display = 'none';
+    emptyMsg.style.display = 'none';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...</td></tr>';
+    wrap.style.display = '';
+
+    try {
+        const res  = await fetch(`${BASE}/api/get_branch_stock.php?branch_id=${branchId}`);
+        const data = await res.json();
+        if (!data.success) { showToast(data.message, 'danger'); return; }
+
+        const rows = (data.stock || []).filter(r => parseFloat(r.current_stock) > 0 || parseFloat(r.total_inbound) > 0);
+
+        if (!rows.length) {
+            wrap.style.display   = 'none';
+            emptyMsg.style.display = '';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(r => {
+            const stock = parseFloat(r.current_stock);
+            const low   = parseFloat(r.min_stock) > 0 && stock <= parseFloat(r.min_stock);
+            const typeBadge = r.product_type === 'rod'
+                ? '<span class="badge bg-primary">রড</span>'
+                : '<span class="badge bg-warning text-dark">সিমেন্ট</span>';
+            const statusBadge = low
+                ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>কম</span>'
+                : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>';
+            return `<tr class="${low ? 'table-danger' : ''}">
+                <td class="fw-semibold">${r.product_name}</td>
+                <td>${typeBadge}</td>
+                <td>${r.size_brand || '—'}</td>
+                <td class="text-end">${parseFloat(r.total_inbound).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
+                <td class="text-end">${parseFloat(r.total_sold).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
+                <td class="text-end ${low ? 'low-stock' : ''}">${stock.toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
+                <td class="text-center">${statusBadge}</td>
+            </tr>`;
+        }).join('');
+    } catch {
+        showToast('ডাটা লোড হয়নি।', 'danger');
+    }
+}
+
 // --- Branch Stock Tab ---
 const branchSelector = document.getElementById('branchStockSelector');
 if (branchSelector) {
     branchSelector.addEventListener('change', async () => {
         const branchId = branchSelector.value;
-        const wrap     = document.getElementById('branchStockTableWrap');
-        const emptyMsg = document.getElementById('branchStockEmpty');
-        const prompt   = document.getElementById('branchStockPrompt');
-        const tbody    = document.getElementById('branchStockBody');
-
-        wrap.style.display   = 'none';
-        emptyMsg.style.display = 'none';
-        prompt.style.display = 'none';
-
-        if (!branchId) { prompt.style.display = ''; return; }
-
-        tbody.innerHTML = '<tr><td colspan=”7” class=”text-center py-3”><span class=”spinner-border spinner-border-sm me-2”></span>লোড হচ্ছে...</td></tr>';
-        wrap.style.display = '';
-
-        try {
-            const res  = await fetch(`${BASE}/api/get_branch_stock.php?branch_id=${branchId}`);
-            const data = await res.json();
-            if (!data.success) { showToast(data.message, 'danger'); return; }
-
-            const rows = data.stock || [];
-            const active = rows.filter(r => parseFloat(r.current_stock) > 0 || parseFloat(r.total_inbound) > 0);
-
-            if (!active.length) {
-                wrap.style.display   = 'none';
-                emptyMsg.style.display = '';
-                return;
-            }
-
-            tbody.innerHTML = active.map(r => {
-                const stock = parseFloat(r.current_stock);
-                const low   = parseFloat(r.min_stock) > 0 && stock <= parseFloat(r.min_stock);
-                const qty   = stock.toLocaleString('bn-BD', { maximumFractionDigits: 2 });
-                const typeBadge = r.product_type === 'rod'
-                    ? '<span class=”badge bg-primary”>রড</span>'
-                    : '<span class=”badge bg-warning text-dark”>সিমেন্ট</span>';
-                const statusBadge = low
-                    ? '<span class=”badge bg-danger”><i class=”bi bi-exclamation-triangle me-1”></i>কম</span>'
-                    : '<span class=”badge bg-success”><i class=”bi bi-check me-1”></i>ঠিক আছে</span>';
-                return `<tr class=”${low ? 'table-danger' : ''}”>
-                    <td class=”fw-semibold”>${r.product_name}</td>
-                    <td>${typeBadge}</td>
-                    <td>${r.size_brand || '—'}</td>
-                    <td class=”text-end”>${parseFloat(r.total_inbound).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
-                    <td class=”text-end”>${parseFloat(r.total_sold).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
-                    <td class=”text-end ${low ? 'low-stock' : ''}”>${qty} ${r.unit}</td>
-                    <td class=”text-center”>${statusBadge}</td>
-                </tr>`;
-            }).join('');
-        } catch {
-            showToast('ডাটা লোড হয়নি।', 'danger');
+        const wrap   = document.getElementById('branchStockTableWrap');
+        const prompt = document.getElementById('branchStockPrompt');
+        if (!branchId) {
+            wrap.style.display   = 'none';
+            document.getElementById('branchStockEmpty').style.display = 'none';
+            if (prompt) prompt.style.display = '';
+            return;
         }
+        if (prompt) prompt.style.display = 'none';
+        await loadBranchStockById(branchId);
     });
 }
