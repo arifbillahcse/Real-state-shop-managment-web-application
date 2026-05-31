@@ -2,11 +2,13 @@
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Customer.php';
+require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
 $pageTitle = 'বিক্রয়';
 
 $customers = Customer::getCustomers();
+$branches  = Branch::getBranches();
 $products  = Database::fetchAll(
     'SELECT product_id, product_name, product_type, unit, sell_price, current_stock
      FROM vw_current_stock
@@ -43,7 +45,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
         <!-- Header row -->
         <div class="row g-3 mb-3">
-          <div class="col-md-5">
+          <div class="col-md-<?= !empty($branches) ? '4' : '5' ?>">
             <label class="form-label fw-semibold">কাস্টমার</label>
             <select class="form-select" id="saleCustomerId" name="customer_id">
               <option value="">Walk-in Customer (নাম নেই)</option>
@@ -54,12 +56,23 @@ include __DIR__ . '/../includes/sidebar.php';
               <?php endforeach; ?>
             </select>
           </div>
+          <?php if (!empty($branches)): ?>
           <div class="col-md-3">
+            <label class="form-label fw-semibold">ব্রাঞ্চ <span class="text-danger">*</span></label>
+            <select class="form-select" id="saleBranchId" name="branch_id" required>
+              <option value="">— ব্রাঞ্চ নির্বাচন করুন —</option>
+              <?php foreach ($branches as $b): ?>
+              <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <?php endif; ?>
+          <div class="col-md-<?= !empty($branches) ? '2' : '3' ?>">
             <label class="form-label fw-semibold">তারিখ <span class="text-danger">*</span></label>
             <input type="date" class="form-control" id="saleDate" name="sale_date"
                    value="<?= today() ?>" required>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label fw-semibold">পেমেন্ট পদ্ধতি</label>
             <select class="form-select" id="paymentMethod" name="payment_method">
               <option value="cash">নগদ (Cash)</option>
@@ -163,7 +176,7 @@ include __DIR__ . '/../includes/sidebar.php';
               <label class="form-label small text-muted mb-1">তারিখ পর্যন্ত</label>
               <input type="date" class="form-control form-control-sm" id="filterDateTo">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label small text-muted mb-1">কাস্টমার</label>
               <select class="form-select form-select-sm" id="filterCustomer">
                 <option value="">সকল কাস্টমার</option>
@@ -172,6 +185,17 @@ include __DIR__ . '/../includes/sidebar.php';
                 <?php endforeach; ?>
               </select>
             </div>
+            <?php if (!empty($branches)): ?>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">ব্রাঞ্চ</label>
+              <select class="form-select form-select-sm" id="filterBranch">
+                <option value="">সকল ব্রাঞ্চ</option>
+                <?php foreach ($branches as $b): ?>
+                <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <?php endif; ?>
             <div class="col-md-2">
               <label class="form-label small text-muted mb-1">স্ট্যাটাস</label>
               <select class="form-select form-select-sm" id="filterStatus">
@@ -198,6 +222,9 @@ include __DIR__ . '/../includes/sidebar.php';
                 <th>ইনভয়েস</th>
                 <th>তারিখ</th>
                 <th>কাস্টমার</th>
+                <?php if (!empty($branches)): ?>
+                <th>ব্রাঞ্চ</th>
+                <?php endif; ?>
                 <th class="text-center">পণ্য</th>
                 <th class="text-end">মোট</th>
                 <th class="text-end">পরিশোধ</th>
@@ -247,9 +274,11 @@ include __DIR__ . '/../includes/sidebar.php';
 </div>
 
 <script>
-const BASE_URL = '<?= BASE_URL ?>';
-const IS_ADMIN = <?= User::isAdmin() ? 'true' : 'false' ?>;
-const PRODUCTS = <?= json_encode(array_values($products)) ?>;
+const BASE_URL  = '<?= BASE_URL ?>';
+const IS_ADMIN  = <?= User::isAdmin() ? 'true' : 'false' ?>;
+const PRODUCTS  = <?= json_encode(array_values($products)) ?>;
+const BRANCHES  = <?= json_encode(array_values($branches)) ?>;
+const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/sales.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

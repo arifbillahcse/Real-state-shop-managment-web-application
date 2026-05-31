@@ -17,16 +17,53 @@ function fmt(n) {
     }) + ' ৳';
 }
 
-// Pre-build product <option> HTML once
-const productOptsHtml = PRODUCTS.map(p =>
-    `<option value="${p.product_id}"
-             data-price="${p.sell_price}"
-             data-stock="${p.current_stock}"
-             data-unit="${esc(p.unit)}">
-        ${esc(p.product_name)}
-        (স্টক: ${p.current_stock} ${esc(p.unit)})
-     </option>`
-).join('');
+// Build product <option> HTML from a stock list
+function buildProductOpts(stockList) {
+    return stockList.map(p => {
+        const pid   = p.product_id  ?? p.product_id;
+        const name  = p.product_name;
+        const price = p.sell_price;
+        const stock = parseFloat(p.current_stock ?? 0);
+        const unit  = p.unit;
+        const disabled = stock <= 0 ? 'disabled' : '';
+        return `<option value="${pid}" ${disabled}
+                     data-price="${price}"
+                     data-stock="${stock}"
+                     data-unit="${esc(unit)}">
+            ${esc(name)} (স্টক: ${stock} ${esc(unit)})
+         </option>`;
+    }).join('');
+}
+
+let productOptsHtml = buildProductOpts(PRODUCTS);
+
+// When branch changes, reload product stock from that branch
+if (HAS_BRANCHES) {
+    document.getElementById('saleBranchId')?.addEventListener('change', async function () {
+        const branchId = this.value;
+        // Reset all product selects
+        document.querySelectorAll('.product-select').forEach(sel => {
+            const cur = sel.value;
+            sel.innerHTML = '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml;
+            sel.value = cur;
+        });
+
+        if (!branchId) return;
+
+        try {
+            const res  = await fetch(`${BASE_URL}/api/get_branch_stock.php?branch_id=${branchId}`);
+            const data = await res.json();
+            if (!data.success) return;
+
+            productOptsHtml = buildProductOpts(data.stock);
+            document.querySelectorAll('.product-select').forEach(sel => {
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">-- পণ্য নির্বাচন করুন --</option>' + productOptsHtml;
+                sel.value = cur;
+            });
+        } catch { /* keep global stock on error */ }
+    });
+}
 
 // ---- Item Rows ----
 function addItemRow() {
@@ -146,6 +183,7 @@ function submitSale(e) {
 
     const data = {
         customer_id:    document.getElementById('saleCustomerId').value,
+        branch_id:      document.getElementById('saleBranchId')?.value || '',
         sale_date:      document.getElementById('saleDate').value,
         discount:       document.getElementById('discount').value,
         paid_amount:    document.getElementById('paidAmount').value,
@@ -173,6 +211,8 @@ function resetSaleForm() {
     document.getElementById('saleDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('itemsBody').innerHTML = '';
     rowCounter = 0;
+    // Reset product opts to global stock after form reset
+    productOptsHtml = buildProductOpts(PRODUCTS);
     checkEmptyState();
     calcGrandTotal();
     addItemRow(); // start with one empty row
@@ -184,10 +224,12 @@ function loadSalesHistory() {
     const dateFrom   = document.getElementById('filterDateFrom').value;
     const dateTo     = document.getElementById('filterDateTo').value;
     const customerId = document.getElementById('filterCustomer').value;
+    const branchId   = document.getElementById('filterBranch')?.value;
     const status     = document.getElementById('filterStatus').value;
     if (dateFrom)   params.set('date_from',   dateFrom);
     if (dateTo)     params.set('date_to',     dateTo);
     if (customerId) params.set('customer_id', customerId);
+    if (branchId)   params.set('branch_id',   branchId);
     if (status)     params.set('status',      status);
 
     document.getElementById('salesBody').innerHTML =
@@ -204,25 +246,30 @@ function renderSalesTable(sales) {
     const tbody = document.getElementById('salesBody');
     const tfoot = document.getElementById('salesFooter');
 
+    const cols = HAS_BRANCHES ? 10 : 9;
+
     if (!sales.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted">কোনো বিক্রয় রেকর্ড নেই</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${cols}" class="text-center py-5 text-muted">কোনো বিক্রয় রেকর্ড নেই</td></tr>`;
         tfoot.innerHTML = '';
         return;
     }
 
     let totTotal = 0, totPaid = 0, totDue = 0;
-    const payLabel = { cash: 'নগদ', credit: 'বাকি', mobile_banking: 'মো.ব্যাং', cheque: 'চেক' };
 
     tbody.innerHTML = sales.map(s => {
         const cancelled = s.status === 'cancelled';
         totTotal += parseFloat(s.total_amount);
         totPaid  += parseFloat(s.paid_amount);
         totDue   += parseFloat(s.due_amount);
+        const branchCell = HAS_BRANCHES
+            ? `<td>${s.branch_name ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(s.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
+            : '';
         return `
         <tr class="${cancelled ? 'text-muted' : ''}">
             <td class="fw-semibold">${esc(s.invoice_number)}</td>
             <td>${s.sale_date}</td>
             <td>${esc(s.customer_name)}</td>
+            ${branchCell}
             <td class="text-center">
                 <span class="badge bg-secondary">${s.item_count}</span>
             </td>
@@ -251,9 +298,10 @@ function renderSalesTable(sales) {
         </tr>`;
     }).join('');
 
+    const footCols = HAS_BRANCHES ? 5 : 4;
     tfoot.innerHTML = `
         <tr class="table-dark fw-bold">
-            <td colspan="4">সর্বমোট (${sales.length} টি বিক্রয়)</td>
+            <td colspan="${footCols}">সর্বমোট (${sales.length} টি বিক্রয়)</td>
             <td class="text-end">${fmt(totTotal)}</td>
             <td class="text-end">${fmt(totPaid)}</td>
             <td class="text-end text-warning">${fmt(totDue)}</td>
@@ -318,6 +366,7 @@ function renderInvoice(res) {
                 <table class="table table-sm table-borderless mb-0 small">
                     <tr><th>ইনভয়েস নং:</th><td class="fw-semibold">${esc(s.invoice_number)}</td></tr>
                     <tr><th>তারিখ:</th><td>${s.sale_date}</td></tr>
+                    ${s.branch_name ? `<tr><th>ব্রাঞ্চ:</th><td>${esc(s.branch_name)}</td></tr>` : ''}
                     <tr><th>পেমেন্ট:</th><td>${payLabel[s.payment_method] || s.payment_method}</td></tr>
                     <tr><th>স্ট্যাটাস:</th>
                         <td><span class="badge bg-${s.status==='cancelled'?'secondary':'success'}">

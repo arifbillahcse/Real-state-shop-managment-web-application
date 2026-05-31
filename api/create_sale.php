@@ -6,6 +6,8 @@ requireMethod('POST');
 
 $customerId    = (isset($_POST['customer_id']) && $_POST['customer_id'] !== '')
                  ? (int)$_POST['customer_id'] : null;
+$branchId      = (isset($_POST['branch_id']) && $_POST['branch_id'] !== '')
+                 ? (int)$_POST['branch_id'] : null;
 $itemsJson     = $_POST['items']          ?? '[]';
 $discount      = (float)($_POST['discount']      ?? 0);
 $paidAmount    = (float)($_POST['paid_amount']   ?? 0);
@@ -18,7 +20,7 @@ if (!is_array($items)) {
     jsonResponse(false, 'পণ্যের তালিকা সঠিক নয়।');
 }
 
-$result = Sale::createSale($customerId, $items, $discount, $paidAmount, $paymentMethod, $saleDate, $note);
+$result = Sale::createSale($customerId, $items, $discount, $paidAmount, $paymentMethod, $saleDate, $note, $branchId);
 
 if (is_int($result)) {
     $sale = Sale::getSaleById($result);

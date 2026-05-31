@@ -31,7 +31,8 @@ class Sale extends BaseModel
         float  $paidAmount    = 0,
         string $paymentMethod = 'cash',
         string $saleDate      = '',
-        string $note          = ''
+        string $note          = '',
+        ?int   $branchId      = null
     ): int|string {
         if (empty($items)) return 'NO_ITEMS';
 
@@ -39,6 +40,15 @@ class Sale extends BaseModel
             if (!Customer::getCustomerById($customerId)) return 'CUSTOMER_NOT_FOUND';
         } else {
             $customerId = null;
+        }
+
+        if ($branchId !== null && $branchId > 0) {
+            $br = Database::fetchOne(
+                'SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]
+            );
+            if (!$br) return 'BRANCH_NOT_FOUND';
+        } else {
+            $branchId = null;
         }
 
         $subtotal   = 0;
@@ -53,7 +63,9 @@ class Sale extends BaseModel
             if ($price <= 0)     return 'INVALID_PRICE';
             if (!Product::getProductById($productId)) return 'PRODUCT_NOT_FOUND';
 
-            $currentStock = Stock::getCurrentStock($productId);
+            $currentStock = $branchId !== null
+                ? Stock::getCurrentBranchStock($productId, $branchId)
+                : Stock::getCurrentStock($productId);
             if ($currentStock < $qty) return 'INSUFFICIENT_STOCK:' . $productId;
 
             $validItems[] = [
@@ -76,10 +88,10 @@ class Sale extends BaseModel
         try {
             $saleId = Database::insert(
                 'INSERT INTO sales
-                 (invoice_number, customer_id, sale_date, subtotal, discount,
+                 (invoice_number, customer_id, branch_id, sale_date, subtotal, discount,
                   total_amount, paid_amount, due_amount, payment_method, note, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$invoiceNo, $customerId, $saleDate, $subtotal, $discount,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$invoiceNo, $customerId, $branchId, $saleDate, $subtotal, $discount,
                  $totalAmount, $paidAmount, $dueAmount, $paymentMethod, trim($note), $userId]
             );
 
@@ -104,10 +116,12 @@ class Sale extends BaseModel
     {
         $sql    = 'SELECT s.*, COALESCE(c.name, \'Walk-in\') AS customer_name,
                           u.name AS created_by_name,
+                          b.name AS branch_name,
                           (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS item_count
                    FROM sales s
                    LEFT JOIN customers c ON c.id = s.customer_id
                    LEFT JOIN users     u ON u.id = s.created_by
+                   LEFT JOIN branches  b ON b.id = s.branch_id
                    WHERE 1=1';
         $params = [];
 
@@ -123,6 +137,9 @@ class Sale extends BaseModel
         if (!empty($filters['status'])) {
             $sql .= ' AND s.status = ?'; $params[] = $filters['status'];
         }
+        if (!empty($filters['branch_id'])) {
+            $sql .= ' AND s.branch_id = ?'; $params[] = (int)$filters['branch_id'];
+        }
 
         $sql .= ' ORDER BY s.sale_date DESC, s.id DESC';
         if (!empty($filters['limit'])) {
@@ -135,10 +152,12 @@ class Sale extends BaseModel
     {
         $sale = Database::fetchOne(
             'SELECT s.*, COALESCE(c.name, \'Walk-in\') AS customer_name,
-                    c.phone AS customer_phone, u.name AS created_by_name
+                    c.phone AS customer_phone, u.name AS created_by_name,
+                    b.name AS branch_name
              FROM sales s
              LEFT JOIN customers c ON c.id = s.customer_id
              LEFT JOIN users     u ON u.id = s.created_by
+             LEFT JOIN branches  b ON b.id = s.branch_id
              WHERE s.id = ? LIMIT 1',
             [$id]
         );
@@ -178,6 +197,7 @@ class Sale extends BaseModel
         return [
             'NO_ITEMS'           => 'কমপক্ষে একটি পণ্য যোগ করুন।',
             'CUSTOMER_NOT_FOUND' => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
+            'BRANCH_NOT_FOUND'   => 'ব্রাঞ্চটি খুঁজে পাওয়া যায়নি।',
             'INVALID_PRODUCT'    => 'সঠিক পণ্য নির্বাচন করুন।',
             'PRODUCT_NOT_FOUND'  => 'পণ্যটি খুঁজে পাওয়া যায়নি।',
             'INVALID_QUANTITY'   => 'পরিমাণ ০ এর বেশি হতে হবে।',
