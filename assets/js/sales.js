@@ -505,10 +505,27 @@ function printInvoice() {
     win.document.close();
 }
 
-// ---- History tab trigger ----
-document.getElementById('historyTabBtn')?.addEventListener('click', () => {
-    setTimeout(loadSalesHistory, 50);
-});
+// ---- Toggle between New Sale form and Sales History ----
+function toggleSaleView() {
+    const newPane  = document.getElementById('newSaleTab');
+    const histPane = document.getElementById('historyTab');
+    const btn      = document.getElementById('btnToggleSaleView');
+    if (!newPane || !histPane || !btn) return;
+
+    const showingNew = newPane.classList.contains('active');
+    if (showingNew) {
+        // Switch to history
+        newPane.classList.remove('show', 'active');
+        histPane.classList.add('show', 'active');
+        btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>নতুন বিক্রয়';
+        loadSalesHistory();
+    } else {
+        // Switch to new sale form
+        histPane.classList.remove('show', 'active');
+        newPane.classList.add('show', 'active');
+        btn.innerHTML = '<i class="bi bi-list-ul me-1"></i>বিক্রয় ইতিহাস';
+    }
+}
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {

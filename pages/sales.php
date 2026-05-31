@@ -23,23 +23,14 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <h4 class="mb-4"><i class="bi bi-cart-check me-2"></i>বিক্রয়</h4>
-
-  <ul class="nav nav-pills mb-4" id="salesTabs" role="tablist">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-cart-check me-2"></i>বিক্রয়</h4>
     <?php if (!$_isStaff): ?>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#newSaleTab" type="button">
-        <i class="bi bi-plus-circle me-1"></i>নতুন বিক্রয়
-      </button>
-    </li>
+    <button class="btn btn-primary" id="btnToggleSaleView" type="button" onclick="toggleSaleView()">
+      <i class="bi bi-plus-circle me-1"></i>নতুন বিক্রয়
+    </button>
     <?php endif; ?>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#historyTab" type="button"
-              id="historyTabBtn">
-        <i class="bi bi-list-ul me-1"></i>বিক্রয় ইতিহাস
-      </button>
-    </li>
-  </ul>
+  </div>
 
   <div class="tab-content">
 
