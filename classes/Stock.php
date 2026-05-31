@@ -214,4 +214,129 @@ class Stock extends BaseModel
             'WOULD_GO_NEGATIVE'  => 'এই রেকর্ড ডিলিট করলে স্টক ঋণাত্মক হয়ে যাবে।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
+
+    // ===== ADJUSTMENTS =====
+
+    public static function addAdjustment(
+        int    $productId,
+        float  $quantity,
+        string $reason,
+        string $note     = '',
+        ?int   $branchId = null
+    ): int|string {
+        if ($productId <= 0 || !Product::getProductById($productId)) return 'PRODUCT_NOT_FOUND';
+        if ($quantity == 0) return 'INVALID_QUANTITY';
+
+        if ($branchId !== null && $branchId > 0) {
+            $br = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]);
+            if (!$br) return 'BRANCH_NOT_FOUND';
+            $current = self::getCurrentBranchStock($productId, $branchId);
+        } else {
+            $branchId = null;
+            $current  = self::getCurrentStock($productId);
+        }
+        if ($current + $quantity < 0) return 'WOULD_GO_NEGATIVE';
+
+        $userId = $_SESSION['user_id'] ?? null;
+        $id = Database::insert(
+            'INSERT INTO stock_adjustments (product_id, branch_id, quantity, reason, note, created_by)
+             VALUES (?, ?, ?, ?, ?, ?)',
+            [$productId, $branchId, $quantity, trim($reason), trim($note), $userId]
+        );
+        self::log('adjust_stock', 'stock', (int)$id,
+            "Adjusted product #$productId by $quantity" . ($branchId ? " (branch #$branchId)" : ''));
+        return (int)$id;
+    }
+
+    public static function getAdjustments(?int $branchId = null): array
+    {
+        $sql = 'SELECT sa.*, p.name AS product_name, p.unit,
+                       b.name AS branch_name, u.name AS created_by_name
+                FROM stock_adjustments sa
+                JOIN products p ON p.id = sa.product_id
+                LEFT JOIN branches b ON b.id = sa.branch_id
+                LEFT JOIN users u ON u.id = sa.created_by
+                WHERE 1=1';
+        $params = [];
+        if ($branchId !== null && $branchId > 0) {
+            $sql .= ' AND sa.branch_id = ?';
+            $params[] = $branchId;
+        }
+        $sql .= ' ORDER BY sa.created_at DESC';
+        return Database::fetchAll($sql, $params);
+    }
+
+    // ===== TRANSFERS =====
+
+    public static function addTransfer(
+        int    $productId,
+        int    $fromBranchId,
+        int    $toBranchId,
+        float  $quantity,
+        string $note = ''
+    ): int|string {
+        if ($productId <= 0 || !Product::getProductById($productId)) return 'PRODUCT_NOT_FOUND';
+        if ($quantity <= 0)                return 'INVALID_QUANTITY';
+        if ($fromBranchId === $toBranchId) return 'SAME_BRANCH';
+
+        $fromBr = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$fromBranchId]);
+        if (!$fromBr) return 'FROM_BRANCH_NOT_FOUND';
+        $toBr = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$toBranchId]);
+        if (!$toBr) return 'TO_BRANCH_NOT_FOUND';
+
+        $fromStock = self::getCurrentBranchStock($productId, $fromBranchId);
+        if ($fromStock < $quantity) return 'INSUFFICIENT_STOCK';
+
+        $userId = $_SESSION['user_id'] ?? null;
+        $id = Database::insert(
+            'INSERT INTO stock_transfers (product_id, from_branch_id, to_branch_id, quantity, note, created_by)
+             VALUES (?, ?, ?, ?, ?, ?)',
+            [$productId, $fromBranchId, $toBranchId, $quantity, trim($note), $userId]
+        );
+        self::log('transfer_stock', 'stock', (int)$id,
+            "Transferred $quantity of #$productId from branch #$fromBranchId to #$toBranchId");
+        return (int)$id;
+    }
+
+    public static function getTransfers(?int $branchId = null): array
+    {
+        $sql = 'SELECT st.*, p.name AS product_name, p.unit,
+                       fb.name AS from_branch_name, tb.name AS to_branch_name,
+                       u.name AS created_by_name
+                FROM stock_transfers st
+                JOIN products p ON p.id = st.product_id
+                JOIN branches fb ON fb.id = st.from_branch_id
+                JOIN branches tb ON tb.id = st.to_branch_id
+                LEFT JOIN users u ON u.id = st.created_by
+                WHERE 1=1';
+        $params = [];
+        if ($branchId !== null && $branchId > 0) {
+            $sql .= ' AND (st.from_branch_id = ? OR st.to_branch_id = ?)';
+            $params[] = $branchId;
+            $params[] = $branchId;
+        }
+        $sql .= ' ORDER BY st.created_at DESC';
+        return Database::fetchAll($sql, $params);
+    }
+
+    public static function getAllBranchStock(): array
+    {
+        return Database::fetchAll(
+            'SELECT * FROM vw_branch_stock ORDER BY product_type, product_name, branch_name'
+        );
+    }
+
+    public static function adjustmentErrorMessage(string $code): string
+    {
+        return [
+            'PRODUCT_NOT_FOUND'    => 'পণ্যটি খুঁজে পাওয়া যায়নি।',
+            'INVALID_QUANTITY'     => 'পরিমাণ ০ হতে পারবে না।',
+            'BRANCH_NOT_FOUND'     => 'ব্রাঞ্চটি খুঁজে পাওয়া যায়নি।',
+            'WOULD_GO_NEGATIVE'    => 'এই পরিমাণ কমালে স্টক ঋণাত্মক হয়ে যাবে।',
+            'SAME_BRANCH'          => 'উৎস ও গন্তব্য ব্রাঞ্চ একই হতে পারবে না।',
+            'FROM_BRANCH_NOT_FOUND'=> 'উৎস ব্রাঞ্চ পাওয়া যায়নি।',
+            'TO_BRANCH_NOT_FOUND'  => 'গন্তব্য ব্রাঞ্চ পাওয়া যায়নি।',
+            'INSUFFICIENT_STOCK'   => 'উৎস ব্রাঞ্চে পর্যাপ্ত স্টক নেই।',
+        ][$code] ?? 'একটি সমস্যা হয়েছে।';
+    }
 }
