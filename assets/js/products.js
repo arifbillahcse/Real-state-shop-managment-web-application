@@ -194,8 +194,20 @@ function deleteCategoryHandler(e) {
     delCatInput.value = '';
     delCatError.classList.add('d-none');
     btnConfirmDel.disabled = true;
-    delCatModal.show();
-    setTimeout(() => delCatInput.focus(), 300);
+
+    // Bootstrap 5 doesn't support stacked modals — close the parent first.
+    const catModalEl   = document.getElementById('categoryModal');
+    const catModalInst = bootstrap.Modal.getInstance(catModalEl);
+    if (catModalInst) {
+        catModalEl.addEventListener('hidden.bs.modal', () => {
+            delCatModal.show();
+            setTimeout(() => delCatInput.focus(), 300);
+        }, { once: true });
+        catModalInst.hide();
+    } else {
+        delCatModal.show();
+        setTimeout(() => delCatInput.focus(), 300);
+    }
 }
 
 // Enable the confirm button only when the typed name matches exactly.
