@@ -8,13 +8,17 @@ requireMethod('POST');
 $supplierId = isset($_POST['supplier_id']) && $_POST['supplier_id'] !== ''
     ? (int)$_POST['supplier_id'] : null;
 
+$branchId = isset($_POST['branch_id']) && $_POST['branch_id'] !== ''
+    ? (int)$_POST['branch_id'] : null;
+
 $result = Stock::addStockInbound(
     (int)($_POST['product_id'] ?? 0),
     (float)($_POST['quantity']  ?? 0),
     (float)($_POST['buy_price'] ?? 0),
     $supplierId,
     $_POST['inbound_date'] ?? '',
-    $_POST['note'] ?? ''
+    $_POST['note'] ?? '',
+    $branchId
 );
 
 if (is_int($result)) {

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Stock.php';
 require_once __DIR__ . '/../classes/Supplier.php';
 require_once __DIR__ . '/../classes/Product.php';
+require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
 $pageTitle  = 'স্টক ম্যানেজমেন্ট';
@@ -11,6 +12,7 @@ $allStock   = Stock::getAllStock();
 $history    = Stock::getStockInbound();
 $suppliers  = Supplier::getSuppliers();
 $products   = Product::getProducts();
+$branches   = Branch::getBranches();
 
 $lowStock   = array_filter($allStock, fn($r) => $r['min_stock'] > 0 && $r['current_stock'] <= $r['min_stock']);
 
@@ -50,6 +52,13 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 <span class="badge bg-secondary ms-1"><?= count($allStock) ?></span>
             </button>
         </li>
+        <?php if (!empty($branches)): ?>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#branchStockTab" id="btnBranchStockTab">
+                <i class="bi bi-shop me-1"></i>ব্রাঞ্চ স্টক
+            </button>
+        </li>
+        <?php endif; ?>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#inboundTab">
                 <i class="bi bi-arrow-down-circle me-1"></i>ক্রয় ইতিহাস
@@ -131,6 +140,53 @@ require_once __DIR__ . '/../includes/sidebar.php';
             </div>
         </div>
 
+        <!-- ===== BRANCH STOCK TAB ===== -->
+        <?php if (!empty($branches)): ?>
+        <div class="tab-pane fade" id="branchStockTab">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row g-2 align-items-center mb-3">
+                        <div class="col-auto">
+                            <label class="form-label fw-semibold mb-0">ব্রাঞ্চ নির্বাচন করুন:</label>
+                        </div>
+                        <div class="col-sm-4">
+                            <select class="form-select" id="branchStockSelector">
+                                <option value="">— ব্রাঞ্চ বেছে নিন —</option>
+                                <?php foreach ($branches as $b): ?>
+                                <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="branchStockTableWrap" class="table-responsive" style="display:none">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>পণ্যের নাম</th>
+                                    <th>ধরন</th>
+                                    <th>সাইজ/ব্র্যান্ড</th>
+                                    <th class="text-end">মোট আনা</th>
+                                    <th class="text-end">মোট বিক্রি</th>
+                                    <th class="text-end">বর্তমান স্টক</th>
+                                    <th class="text-center">অবস্থা</th>
+                                </tr>
+                            </thead>
+                            <tbody id="branchStockBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="branchStockEmpty" class="text-center text-muted py-5" style="display:none">
+                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                        এই ব্রাঞ্চে কোনো স্টক নেই।
+                    </div>
+                    <div id="branchStockPrompt" class="text-center text-muted py-5">
+                        <i class="bi bi-shop fs-1 d-block mb-2 opacity-25"></i>
+                        উপরে থেকে একটি ব্রাঞ্চ নির্বাচন করুন।
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- ===== INBOUND HISTORY TAB ===== -->
         <div class="tab-pane fade" id="inboundTab">
             <div class="card border-0 shadow-sm">
@@ -141,6 +197,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                 <tr>
                                     <th>তারিখ</th>
                                     <th>পণ্য</th>
+                                    <th>ব্রাঞ্চ</th>
                                     <th>সাপ্লাইয়ার</th>
                                     <th class="text-end">পরিমাণ</th>
                                     <th class="text-end">ক্রয় দাম</th>
@@ -151,7 +208,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                             </thead>
                             <tbody>
                             <?php if (empty($history)): ?>
-                                <tr><td colspan="8" class="text-center text-muted py-4">
+                                <tr><td colspan="9" class="text-center text-muted py-4">
                                     এখনো কোনো ক্রয় রেকর্ড নেই।
                                 </td></tr>
                             <?php else: ?>
@@ -161,6 +218,13 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <td>
                                         <div class="fw-semibold"><?= e($h['product_name']) ?></div>
                                         <small class="text-muted"><?= $h['product_type']==='rod' ? 'রড' : 'সিমেন্ট' ?></small>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($h['branch_name'])): ?>
+                                            <span class="badge bg-secondary"><i class="bi bi-shop me-1"></i><?= e($h['branch_name']) ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= e($h['supplier_name'] ?? '—') ?></td>
                                     <td class="text-end"><?= rtrim(rtrim($h['quantity'],'0'),'.') ?> <?= e($h['unit']) ?></td>
@@ -241,6 +305,18 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                    id="inboundPrice" class="form-control" required placeholder="0.00">
                         </div>
                     </div>
+
+                    <?php if (!empty($branches)): ?>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">ব্রাঞ্চ <span class="text-danger">*</span></label>
+                        <select name="branch_id" id="inboundBranch" class="form-select" required>
+                            <option value="">— ব্রাঞ্চ নির্বাচন করুন —</option>
+                            <?php foreach ($branches as $b): ?>
+                            <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
 
                     <div class="row g-2">
                         <div class="col-7 mb-3">

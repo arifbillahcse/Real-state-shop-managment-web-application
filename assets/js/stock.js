@@ -56,6 +56,8 @@ document.querySelectorAll('.btn-edit-inbound').forEach(btn => {
             document.getElementById('inboundSupplier').value = r.supplier_id || '';
             document.getElementById('inboundDate').value     = r.inbound_date;
             document.getElementById('inboundNote').value     = r.note || '';
+            const branchSel = document.getElementById('inboundBranch');
+            if (branchSel) branchSel.value = r.branch_id || '';
 
             modalTitle.innerHTML = '<i class="bi bi-pencil me-1 text-danger"></i>স্টক সম্পাদনা';
             updatePreview();
@@ -112,7 +114,7 @@ form.addEventListener('submit', async (e) => {
 // --- Delete ---
 document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
     btn.addEventListener('click', async () => {
-        if (!confirm(`“${btn.dataset.name}” এর এই ক্রয় রেকর্ডটি কি ডিলিট করতে চান?`)) return;
+        if (!confirm(`”${btn.dataset.name}” এর এই ক্রয় রেকর্ডটি কি ডিলিট করতে চান?`)) return;
         try {
             const res  = await fetch(`${BASE}/api/delete_stock_inbound.php`, {
                 method:  'POST',
@@ -131,3 +133,62 @@ document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
         }
     });
 });
+
+// --- Branch Stock Tab ---
+const branchSelector = document.getElementById('branchStockSelector');
+if (branchSelector) {
+    branchSelector.addEventListener('change', async () => {
+        const branchId = branchSelector.value;
+        const wrap     = document.getElementById('branchStockTableWrap');
+        const emptyMsg = document.getElementById('branchStockEmpty');
+        const prompt   = document.getElementById('branchStockPrompt');
+        const tbody    = document.getElementById('branchStockBody');
+
+        wrap.style.display   = 'none';
+        emptyMsg.style.display = 'none';
+        prompt.style.display = 'none';
+
+        if (!branchId) { prompt.style.display = ''; return; }
+
+        tbody.innerHTML = '<tr><td colspan=”7” class=”text-center py-3”><span class=”spinner-border spinner-border-sm me-2”></span>লোড হচ্ছে...</td></tr>';
+        wrap.style.display = '';
+
+        try {
+            const res  = await fetch(`${BASE}/api/get_branch_stock.php?branch_id=${branchId}`);
+            const data = await res.json();
+            if (!data.success) { showToast(data.message, 'danger'); return; }
+
+            const rows = data.stock || [];
+            const active = rows.filter(r => parseFloat(r.current_stock) > 0 || parseFloat(r.total_inbound) > 0);
+
+            if (!active.length) {
+                wrap.style.display   = 'none';
+                emptyMsg.style.display = '';
+                return;
+            }
+
+            tbody.innerHTML = active.map(r => {
+                const stock = parseFloat(r.current_stock);
+                const low   = parseFloat(r.min_stock) > 0 && stock <= parseFloat(r.min_stock);
+                const qty   = stock.toLocaleString('bn-BD', { maximumFractionDigits: 2 });
+                const typeBadge = r.product_type === 'rod'
+                    ? '<span class=”badge bg-primary”>রড</span>'
+                    : '<span class=”badge bg-warning text-dark”>সিমেন্ট</span>';
+                const statusBadge = low
+                    ? '<span class=”badge bg-danger”><i class=”bi bi-exclamation-triangle me-1”></i>কম</span>'
+                    : '<span class=”badge bg-success”><i class=”bi bi-check me-1”></i>ঠিক আছে</span>';
+                return `<tr class=”${low ? 'table-danger' : ''}”>
+                    <td class=”fw-semibold”>${r.product_name}</td>
+                    <td>${typeBadge}</td>
+                    <td>${r.size_brand || '—'}</td>
+                    <td class=”text-end”>${parseFloat(r.total_inbound).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
+                    <td class=”text-end”>${parseFloat(r.total_sold).toLocaleString('bn-BD', {maximumFractionDigits:2})} ${r.unit}</td>
+                    <td class=”text-end ${low ? 'low-stock' : ''}”>${qty} ${r.unit}</td>
+                    <td class=”text-center”>${statusBadge}</td>
+                </tr>`;
+            }).join('');
+        } catch {
+            showToast('ডাটা লোড হয়নি।', 'danger');
+        }
+    });
+}

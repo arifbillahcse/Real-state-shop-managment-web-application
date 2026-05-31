@@ -14,6 +14,7 @@ $result = Stock::updateStockInbound($id, [
     'supplier_id'  => $_POST['supplier_id']  ?? null,
     'inbound_date' => $_POST['inbound_date'] ?? null,
     'note'         => $_POST['note']         ?? null,
+    'branch_id'    => $_POST['branch_id']    ?? null,
 ]);
 
 if ($result === true) {

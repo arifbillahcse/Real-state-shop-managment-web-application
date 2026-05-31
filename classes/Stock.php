@@ -16,11 +16,11 @@ class Stock extends BaseModel
         int    $productId,
         float  $quantity,
         float  $buyPrice,
-        ?int   $supplierId = null,
+        ?int   $supplierId  = null,
         string $inboundDate = '',
-        string $note = ''
+        string $note        = '',
+        ?int   $branchId    = null
     ): int|string {
-        // --- Validation ---
         if ($productId <= 0)                       return 'INVALID_PRODUCT';
         if (!Product::getProductById($productId))  return 'PRODUCT_NOT_FOUND';
         if ($quantity <= 0)                        return 'INVALID_QUANTITY';
@@ -32,37 +32,51 @@ class Stock extends BaseModel
             $supplierId = null;
         }
 
+        if ($branchId !== null && $branchId > 0) {
+            $br = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]);
+            if (!$br) return 'BRANCH_NOT_FOUND';
+        } else {
+            $branchId = null;
+        }
+
         $inboundDate = $inboundDate !== '' ? $inboundDate : today();
         $userId      = $_SESSION['user_id'] ?? null;
 
         $id = Database::insert(
             'INSERT INTO stock_inbound
-             (product_id, supplier_id, quantity, buy_price, inbound_date, note, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$productId, $supplierId, $quantity, $buyPrice, $inboundDate, trim($note), $userId]
+             (product_id, supplier_id, branch_id, quantity, buy_price, inbound_date, note, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$productId, $supplierId, $branchId, $quantity, $buyPrice, $inboundDate, trim($note), $userId]
         );
 
         self::log('add_stock', 'stock', (int)$id,
-            "Stock inbound: product #$productId, qty $quantity");
+            "Stock inbound: product #$productId, qty $quantity, branch #$branchId");
         return (int)$id;
     }
 
     /**
      * Get stock inbound history (optionally filter by product).
      */
-    public static function getStockInbound(?int $productId = null): array
+    public static function getStockInbound(?int $productId = null, ?int $branchId = null): array
     {
         $sql = 'SELECT si.*, p.name AS product_name, p.type AS product_type, p.unit,
                        s.name AS supplier_name,
+                       b.name AS branch_name,
                        u.name AS created_by_name
                 FROM stock_inbound si
-                JOIN products p   ON p.id = si.product_id
+                JOIN  products  p  ON p.id = si.product_id
                 LEFT JOIN suppliers s ON s.id = si.supplier_id
-                LEFT JOIN users u     ON u.id = si.created_by';
+                LEFT JOIN branches  b ON b.id = si.branch_id
+                LEFT JOIN users     u ON u.id = si.created_by
+                WHERE 1=1';
         $params = [];
         if ($productId !== null && $productId > 0) {
-            $sql .= ' WHERE si.product_id = ?';
+            $sql .= ' AND si.product_id = ?';
             $params[] = $productId;
+        }
+        if ($branchId !== null && $branchId > 0) {
+            $sql .= ' AND si.branch_id = ?';
+            $params[] = $branchId;
         }
         $sql .= ' ORDER BY si.inbound_date DESC, si.id DESC';
         return Database::fetchAll($sql, $params);
@@ -84,10 +98,14 @@ class Stock extends BaseModel
         if (!$row) return 'NOT_FOUND';
 
         $quantity    = (float)($data['quantity']     ?? $row['quantity']);
-        $buyPrice    = (float)($data['buy_price']     ?? $row['buy_price']);
+        $buyPrice    = (float)($data['buy_price']    ?? $row['buy_price']);
         $supplierId  = $data['supplier_id'] ?? $row['supplier_id'];
         $inboundDate = trim($data['inbound_date'] ?? $row['inbound_date']);
         $note        = trim($data['note']         ?? $row['note']);
+        // branch_id: keep existing if not provided
+        $branchId    = array_key_exists('branch_id', $data)
+                       ? ($data['branch_id'] !== '' && $data['branch_id'] !== null ? (int)$data['branch_id'] : null)
+                       : ($row['branch_id'] !== null ? (int)$row['branch_id'] : null);
 
         if ($quantity <= 0) return 'INVALID_QUANTITY';
         if ($buyPrice <= 0) return 'INVALID_PRICE';
@@ -99,11 +117,16 @@ class Stock extends BaseModel
             $supplierId = null;
         }
 
+        if ($branchId !== null) {
+            $br = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]);
+            if (!$br) return 'BRANCH_NOT_FOUND';
+        }
+
         Database::execute(
             'UPDATE stock_inbound SET
-                quantity = ?, buy_price = ?, supplier_id = ?, inbound_date = ?, note = ?
+                quantity = ?, buy_price = ?, supplier_id = ?, branch_id = ?, inbound_date = ?, note = ?
              WHERE id = ?',
-            [$quantity, $buyPrice, $supplierId, $inboundDate, $note, $id]
+            [$quantity, $buyPrice, $supplierId, $branchId, $inboundDate, $note, $id]
         );
         self::log('update_stock', 'stock', $id, "Updated stock inbound #$id");
         return true;
@@ -118,7 +141,12 @@ class Stock extends BaseModel
         $row = self::getStockInboundById($id);
         if (!$row) return 'NOT_FOUND';
 
-        $current = self::getCurrentStock((int)$row['product_id']);
+        // Check stock won't go negative — per-branch if branch is set
+        if ($row['branch_id'] !== null) {
+            $current = self::getCurrentBranchStock((int)$row['product_id'], (int)$row['branch_id']);
+        } else {
+            $current = self::getCurrentStock((int)$row['product_id']);
+        }
         if ($current - (float)$row['quantity'] < 0) {
             return 'WOULD_GO_NEGATIVE';
         }
@@ -129,7 +157,7 @@ class Stock extends BaseModel
     }
 
     /**
-     * Current stock for a single product (inbound - sold).
+     * Current stock for a single product across all branches (global).
      */
     public static function getCurrentStock(int $productId): float
     {
@@ -141,7 +169,30 @@ class Stock extends BaseModel
     }
 
     /**
-     * Current stock for all products (uses the view).
+     * Current stock for a single product in a specific branch.
+     */
+    public static function getCurrentBranchStock(int $productId, int $branchId): float
+    {
+        $row = Database::fetchOne(
+            'SELECT current_stock FROM vw_branch_stock WHERE product_id = ? AND branch_id = ?',
+            [$productId, $branchId]
+        );
+        return (float)($row['current_stock'] ?? 0);
+    }
+
+    /**
+     * All products stock for a specific branch.
+     */
+    public static function getBranchStock(int $branchId): array
+    {
+        return Database::fetchAll(
+            'SELECT * FROM vw_branch_stock WHERE branch_id = ? ORDER BY product_type, product_name',
+            [$branchId]
+        );
+    }
+
+    /**
+     * Current stock for all products — global (uses vw_current_stock).
      */
     public static function getAllStock(): array
     {
@@ -158,6 +209,7 @@ class Stock extends BaseModel
             'INVALID_QUANTITY'   => 'পরিমাণ ০ এর বেশি হতে হবে।',
             'INVALID_PRICE'      => 'ক্রয় দাম ০ এর বেশি হতে হবে।',
             'SUPPLIER_NOT_FOUND' => 'সাপ্লাইয়ার খুঁজে পাওয়া যায়নি।',
+            'BRANCH_NOT_FOUND'   => 'ব্রাঞ্চটি খুঁজে পাওয়া যায়নি।',
             'NOT_FOUND'          => 'রেকর্ডটি খুঁজে পাওয়া যায়নি।',
             'WOULD_GO_NEGATIVE'  => 'এই রেকর্ড ডিলিট করলে স্টক ঋণাত্মক হয়ে যাবে।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
