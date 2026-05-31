@@ -32,7 +32,7 @@ class Payment extends BaseModel
                 'SELECT * FROM sales WHERE id = ? AND customer_id = ? AND status = ? LIMIT 1',
                 [$saleId, $customerId, 'completed']
             );
-            if (!$sale)                        return 'SALE_NOT_FOUND';
+            if (!$sale)                          return 'SALE_NOT_FOUND';
             if ((float)$sale['due_amount'] <= 0) return 'NO_DUE';
             if ($amount > (float)$sale['due_amount']) return 'EXCEEDS_DUE';
 
@@ -43,7 +43,26 @@ class Payment extends BaseModel
                 [$newPaid, $newDue, $saleId]
             );
         } else {
-            $saleId = null;
+            // No specific sale — apply to oldest outstanding sales (FIFO)
+            $saleId    = null;
+            $remaining = $amount;
+            $pending   = Database::fetchAll(
+                'SELECT id, paid_amount, due_amount, total_amount FROM sales
+                 WHERE customer_id = ? AND status = ? AND due_amount > 0
+                 ORDER BY sale_date ASC, id ASC',
+                [$customerId, 'completed']
+            );
+            foreach ($pending as $sale) {
+                if ($remaining <= 0) break;
+                $apply   = min($remaining, (float)$sale['due_amount']);
+                $newPaid = (float)$sale['paid_amount'] + $apply;
+                $newDue  = max(0, (float)$sale['total_amount'] - $newPaid);
+                Database::execute(
+                    'UPDATE sales SET paid_amount = ?, due_amount = ? WHERE id = ?',
+                    [$newPaid, $newDue, $sale['id']]
+                );
+                $remaining -= $apply;
+            }
         }
 
         $id = Database::insert(
