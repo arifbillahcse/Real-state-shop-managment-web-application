@@ -9,7 +9,7 @@ if (sidebarToggle) {
             sidebar.classList.toggle('mobile-open');
         } else {
             sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
+            if (mainContent) mainContent.classList.toggle('expanded');
         }
     });
 }
@@ -37,11 +37,12 @@ function ajaxPost(url, data, callback) {
 
 // Toast notification
 function showToast(message, type = 'success') {
-    const colors = { success: '#198754', danger: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };
-    const toast  = document.createElement('div');
+    const bg   = { success: '#198754', danger: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };
+    const fg   = { success: '#fff',    danger: '#fff',    warning: '#212529', info: '#212529' };
+    const toast = document.createElement('div');
     toast.style.cssText = `
         position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
-        background:${colors[type] || colors.success}; color:#fff;
+        background:${bg[type] || bg.success}; color:${fg[type] || '#fff'};
         padding:.75rem 1.25rem; border-radius:10px;
         box-shadow:0 4px 16px rgba(0,0,0,.25); font-size:.9rem;
         animation: slideIn .3s ease;

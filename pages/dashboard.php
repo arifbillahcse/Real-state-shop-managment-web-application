@@ -14,8 +14,15 @@ $todaySales = Database::fetchOne(
      WHERE sale_date = CURDATE() AND status = 'completed'"
 );
 
+$todayPayments = Database::fetchOne(
+    "SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
+     FROM payments
+     WHERE payment_date = CURDATE()"
+);
+
 $totalDue = Database::fetchOne(
-    "SELECT COALESCE(SUM(due_amount),0) AS total FROM sales WHERE status = 'completed'"
+    "SELECT COALESCE(SUM(due_amount),0) AS total
+     FROM sales WHERE status = 'completed'"
 );
 
 $stockValue = Database::fetchOne(
@@ -36,8 +43,23 @@ $chartData = Database::fetchAll(
      ORDER BY sale_date"
 );
 
+// Recent 5 sales
+$recentSales = Database::fetchAll(
+    "SELECT s.id, s.invoice_number, s.sale_date,
+            COALESCE(c.name, 'Walk-in') AS customer_name,
+            s.total_amount, s.paid_amount, s.due_amount,
+            s.payment_method
+     FROM sales s
+     LEFT JOIN customers c ON c.id = s.customer_id
+     WHERE s.status = 'completed'
+     ORDER BY s.created_at DESC
+     LIMIT 5"
+);
+
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/sidebar.php';
+
+$payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking' => 'মো.ব্যাং', 'cheque' => 'চেক'];
 ?>
 
 <div class="main-content" id="mainContent">
@@ -84,9 +106,9 @@ require_once __DIR__ . '/../includes/sidebar.php';
             <div class="card stat-card p-3 h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small mb-1">আজকের নগদ</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$todaySales['paid']) ?></h5>
-                        <small class="text-muted">প্রদত্ত</small>
+                        <p class="text-muted small mb-1">আজকের পেমেন্ট আদায়</p>
+                        <h5 class="fw-bold mb-0 text-success"><?= money((float)$todayPayments['total']) ?></h5>
+                        <small class="text-muted"><?= $todayPayments['count'] ?>টি পেমেন্ট</small>
                     </div>
                     <div class="stat-icon bg-success bg-opacity-10 text-success">
                         <i class="bi bi-cash-stack"></i>
@@ -128,7 +150,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
     </div>
 
     <!-- Sales Chart + Low Stock Table -->
-    <div class="row g-3">
+    <div class="row g-3 mb-4">
 
         <div class="col-md-7">
             <div class="card border-0 shadow-sm">
@@ -168,6 +190,51 @@ require_once __DIR__ . '/../includes/sidebar.php';
         </div>
 
     </div>
+
+    <!-- Recent Sales -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-clock-history me-1 text-danger"></i> সাম্প্রতিক বিক্রয়</span>
+            <a href="<?= BASE_URL ?>/pages/sales.php" class="btn btn-sm btn-outline-secondary">
+                সব দেখুন <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="table-responsive">
+            <?php if (empty($recentSales)): ?>
+            <p class="text-center text-muted py-4 small">এখনো কোনো বিক্রয় নেই।</p>
+            <?php else: ?>
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ইনভয়েস</th>
+                        <th>তারিখ</th>
+                        <th>কাস্টমার</th>
+                        <th>পেমেন্ট</th>
+                        <th class="text-end">মোট</th>
+                        <th class="text-end">পরিশোধ</th>
+                        <th class="text-end">বাকি</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($recentSales as $s): ?>
+                <tr>
+                    <td class="fw-semibold"><?= e($s['invoice_number']) ?></td>
+                    <td><?= e($s['sale_date']) ?></td>
+                    <td><?= e($s['customer_name']) ?></td>
+                    <td><span class="badge bg-secondary"><?= e($payLabel[$s['payment_method']] ?? $s['payment_method']) ?></span></td>
+                    <td class="text-end"><?= money((float)$s['total_amount']) ?></td>
+                    <td class="text-end text-success"><?= money((float)$s['paid_amount']) ?></td>
+                    <td class="text-end <?= (float)$s['due_amount'] > 0 ? 'text-danger fw-semibold' : '' ?>">
+                        <?= money((float)$s['due_amount']) ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
 </div>
 
 <script>
