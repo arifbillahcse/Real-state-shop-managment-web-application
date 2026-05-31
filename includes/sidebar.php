@@ -9,6 +9,7 @@ $menuItems = [
     ['icon' => 'bi-cart-check',    'label' => 'বিক্রয়',              'href' => 'sales.php',      'admin' => false],
     ['icon' => 'bi-people',        'label' => 'কাস্টমার',            'href' => 'customers.php',  'admin' => false],
     ['icon' => 'bi-wallet2',       'label' => 'বাকি / পেমেন্ট',     'href' => 'payments.php',   'admin' => false],
+    ['icon' => 'bi-shop',          'label' => 'ব্রাঞ্চ',             'href' => 'branches.php',   'admin' => true],
     ['icon' => 'bi-truck',         'label' => 'সাপ্লাইয়ার',          'href' => 'suppliers.php',  'admin' => true],
     ['icon' => 'bi-bar-chart-line','label' => 'রিপোর্ট',             'href' => 'reports.php',    'admin' => true],
     ['icon' => 'bi-people-fill',   'label' => 'ব্যবহারকারী',         'href' => 'users.php',      'admin' => true],
