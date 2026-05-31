@@ -6,14 +6,8 @@ class Product extends BaseModel
 {
     protected static string $table = 'products';
 
-    public const TYPES = ['rod', 'cement'];
-
-    /**
-     * Add a new product.
-     * Returns new ID (int) or an error code string.
-     */
     public static function addProduct(
-        string $type,
+        int    $categoryId,
         string $name,
         string $sizeBrand,
         string $unit,
@@ -21,114 +15,113 @@ class Product extends BaseModel
         float  $sellPrice,
         float  $minStock
     ): int|string {
-        $type = strtolower(trim($type));
         $name = trim($name);
 
-        // --- Validation ---
-        if (!in_array($type, self::TYPES, true)) return 'INVALID_TYPE';
-        if ($name === '')        return 'NAME_REQUIRED';
-        if ($buyPrice  <= 0)     return 'INVALID_BUY_PRICE';
-        if ($sellPrice <= 0)     return 'INVALID_SELL_PRICE';
-        if ($minStock  <  0)     return 'INVALID_MIN_STOCK';
+        if ($categoryId <= 0)  return 'INVALID_CATEGORY';
+        if ($name === '')      return 'NAME_REQUIRED';
+        if ($buyPrice  <= 0)   return 'INVALID_BUY_PRICE';
+        if ($sellPrice <= 0)   return 'INVALID_SELL_PRICE';
+        if ($minStock  <  0)   return 'INVALID_MIN_STOCK';
 
-        // --- Duplicate check (same type + name + size/brand) ---
+        if (!Category::exists($categoryId)) return 'INVALID_CATEGORY';
+
         $exists = Database::fetchOne(
             'SELECT id FROM products
-             WHERE type = ? AND name = ? AND IFNULL(size_brand,"") = ?
+             WHERE category_id = ? AND name = ? AND IFNULL(size_brand,"") = ?
                AND is_active = 1 LIMIT 1',
-            [$type, $name, trim($sizeBrand)]
+            [$categoryId, $name, trim($sizeBrand)]
         );
         if ($exists) return 'DUPLICATE';
 
         $id = Database::insert(
             'INSERT INTO products
-             (type, name, size_brand, unit, buy_price, sell_price, min_stock)
+             (category_id, name, size_brand, unit, buy_price, sell_price, min_stock)
              VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$type, $name, trim($sizeBrand), trim($unit), $buyPrice, $sellPrice, $minStock]
+            [$categoryId, $name, trim($sizeBrand), trim($unit), $buyPrice, $sellPrice, $minStock]
         );
 
         self::log('create_product', 'products', (int)$id, "Added product: $name");
         return (int)$id;
     }
 
-    /**
-     * Get products, optionally filtered by type.
-     */
-    public static function getProducts(?string $type = null): array
+    public static function getProducts(?int $categoryId = null): array
     {
-        if ($type !== null && in_array($type, self::TYPES, true)) {
+        if ($categoryId !== null && $categoryId > 0) {
             return Database::fetchAll(
-                'SELECT * FROM products WHERE type = ? AND is_active = 1 ORDER BY name',
-                [$type]
+                'SELECT p.*, pc.name AS category_name
+                 FROM products p
+                 JOIN product_categories pc ON pc.id = p.category_id
+                 WHERE p.category_id = ? AND p.is_active = 1
+                 ORDER BY p.name',
+                [$categoryId]
             );
         }
         return Database::fetchAll(
-            'SELECT * FROM products WHERE is_active = 1 ORDER BY type, name'
+            'SELECT p.*, pc.name AS category_name
+             FROM products p
+             JOIN product_categories pc ON pc.id = p.category_id
+             WHERE p.is_active = 1
+             ORDER BY pc.name, p.name'
         );
     }
 
     public static function getProductById(int $id): array|false
     {
         return Database::fetchOne(
-            'SELECT * FROM products WHERE id = ? AND is_active = 1 LIMIT 1',
+            'SELECT p.*, pc.name AS category_name
+             FROM products p
+             JOIN product_categories pc ON pc.id = p.category_id
+             WHERE p.id = ? AND p.is_active = 1 LIMIT 1',
             [$id]
         );
     }
 
-    /**
-     * Update an existing product.
-     * Returns true, or an error code string.
-     */
     public static function updateProduct(int $id, array $data): bool|string
     {
         $product = self::getProductById($id);
         if (!$product) return 'NOT_FOUND';
 
-        $type      = strtolower(trim($data['type']       ?? $product['type']));
-        $name      = trim($data['name']                  ?? $product['name']);
-        $sizeBrand = trim($data['size_brand']            ?? $product['size_brand']);
-        $unit      = trim($data['unit']                  ?? $product['unit']);
-        $buyPrice  = (float)($data['buy_price']          ?? $product['buy_price']);
-        $sellPrice = (float)($data['sell_price']         ?? $product['sell_price']);
-        $minStock  = (float)($data['min_stock']          ?? $product['min_stock']);
+        $categoryId = isset($data['category_id']) ? (int)$data['category_id'] : (int)$product['category_id'];
+        $name       = trim($data['name']       ?? $product['name']);
+        $sizeBrand  = trim($data['size_brand'] ?? $product['size_brand']);
+        $unit       = trim($data['unit']       ?? $product['unit']);
+        $buyPrice   = (float)($data['buy_price']  ?? $product['buy_price']);
+        $sellPrice  = (float)($data['sell_price'] ?? $product['sell_price']);
+        $minStock   = (float)($data['min_stock']  ?? $product['min_stock']);
 
-        // --- Validation ---
-        if (!in_array($type, self::TYPES, true)) return 'INVALID_TYPE';
-        if ($name === '')    return 'NAME_REQUIRED';
-        if ($buyPrice  <= 0) return 'INVALID_BUY_PRICE';
-        if ($sellPrice <= 0) return 'INVALID_SELL_PRICE';
-        if ($minStock  <  0) return 'INVALID_MIN_STOCK';
+        if ($categoryId <= 0)  return 'INVALID_CATEGORY';
+        if ($name === '')      return 'NAME_REQUIRED';
+        if ($buyPrice  <= 0)   return 'INVALID_BUY_PRICE';
+        if ($sellPrice <= 0)   return 'INVALID_SELL_PRICE';
+        if ($minStock  <  0)   return 'INVALID_MIN_STOCK';
 
-        // --- Duplicate check (exclude current id) ---
+        if (!Category::exists($categoryId)) return 'INVALID_CATEGORY';
+
         $dup = Database::fetchOne(
             'SELECT id FROM products
-             WHERE type = ? AND name = ? AND IFNULL(size_brand,"") = ?
+             WHERE category_id = ? AND name = ? AND IFNULL(size_brand,"") = ?
                AND is_active = 1 AND id <> ? LIMIT 1',
-            [$type, $name, $sizeBrand, $id]
+            [$categoryId, $name, $sizeBrand, $id]
         );
         if ($dup) return 'DUPLICATE';
 
         Database::execute(
             'UPDATE products SET
-                type = ?, name = ?, size_brand = ?, unit = ?,
+                category_id = ?, name = ?, size_brand = ?, unit = ?,
                 buy_price = ?, sell_price = ?, min_stock = ?
              WHERE id = ?',
-            [$type, $name, $sizeBrand, $unit, $buyPrice, $sellPrice, $minStock, $id]
+            [$categoryId, $name, $sizeBrand, $unit, $buyPrice, $sellPrice, $minStock, $id]
         );
 
         self::log('update_product', 'products', $id, "Updated product: $name");
         return true;
     }
 
-    /**
-     * Soft-delete a product. Blocks if it has stock or sales history.
-     */
     public static function deleteProduct(int $id): bool|string
     {
         $product = self::getProductById($id);
         if (!$product) return 'NOT_FOUND';
 
-        // Block delete if product is referenced by stock or sales
         $inStock = Database::fetchOne(
             'SELECT id FROM stock_inbound WHERE product_id = ? LIMIT 1', [$id]
         );
@@ -137,15 +130,11 @@ class Product extends BaseModel
         );
         if ($inStock || $inSales) return 'HAS_HISTORY';
 
-        // Soft delete
         Database::execute('UPDATE products SET is_active = 0 WHERE id = ?', [$id]);
         self::log('delete_product', 'products', $id, "Deleted product: {$product['name']}");
         return true;
     }
 
-    /**
-     * Products at or below their minimum stock level.
-     */
     public static function checkMinStock(): array
     {
         return Database::fetchAll(
@@ -155,13 +144,10 @@ class Product extends BaseModel
         );
     }
 
-    /**
-     * Human-readable message for an error code.
-     */
     public static function errorMessage(string $code): string
     {
         return [
-            'INVALID_TYPE'       => 'পণ্যের ধরন সঠিক নয় (rod / cement)।',
+            'INVALID_CATEGORY'   => 'সঠিক ক্যাটাগরি নির্বাচন করুন।',
             'NAME_REQUIRED'      => 'পণ্যের নাম দিন।',
             'INVALID_BUY_PRICE'  => 'ক্রয় দাম ০ এর বেশি হতে হবে।',
             'INVALID_SELL_PRICE' => 'বিক্রয় দাম ০ এর বেশি হতে হবে।',

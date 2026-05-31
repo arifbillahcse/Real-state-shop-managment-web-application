@@ -2,12 +2,17 @@
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Product.php';
+require_once __DIR__ . '/../classes/Category.php';
 requireManagerOrAdmin();
 
-$pageTitle = 'পণ্য ম্যানেজমেন্ট';
+$pageTitle  = 'পণ্য ম্যানেজমেন্ট';
+$categories = Category::getAll();
 
-$rods    = Product::getProducts('rod');
-$cements = Product::getProducts('cement');
+// Build products grouped by category
+$productsByCategory = [];
+foreach ($categories as $cat) {
+    $productsByCategory[$cat['id']] = Product::getProducts((int)$cat['id']);
+}
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/sidebar.php';
@@ -18,42 +23,51 @@ require_once __DIR__ . '/../includes/sidebar.php';
     <!-- Page Header -->
     <div class="page-header">
         <h5><i class="bi bi-box-seam me-2 text-danger"></i>পণ্য ম্যানেজমেন্ট</h5>
-        <button class="btn btn-primary btn-sm" id="btnAddProduct">
-            <i class="bi bi-plus-lg me-1"></i> নতুন পণ্য
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btnManageCategories"
+                    data-bs-toggle="modal" data-bs-target="#categoryModal">
+                <i class="bi bi-tags me-1"></i> ক্যাটাগরি
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnAddProduct">
+                <i class="bi bi-plus-lg me-1"></i> নতুন পণ্য
+            </button>
+        </div>
     </div>
 
-    <!-- Tabs -->
+    <?php if (empty($categories)): ?>
+    <div class="alert alert-info">
+        কোনো ক্যাটাগরি নেই। উপরের <strong>ক্যাটাগরি</strong> বাটন থেকে প্রথমে ক্যাটাগরি যোগ করুন।
+    </div>
+    <?php else: ?>
+
+    <!-- Category Tabs -->
     <ul class="nav nav-tabs mb-3" id="productTabs">
+        <?php foreach ($categories as $i => $cat): ?>
         <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#rodTab">
-                <i class="bi bi-bezier2 me-1"></i> রড <span class="badge bg-secondary ms-1"><?= count($rods) ?></span>
+            <button class="nav-link <?= $i === 0 ? 'active' : '' ?>"
+                    data-bs-toggle="tab"
+                    data-bs-target="#catTab<?= $cat['id'] ?>">
+                <i class="bi bi-tag me-1"></i>
+                <?= e($cat['name']) ?>
+                <span class="badge bg-secondary ms-1"><?= count($productsByCategory[$cat['id']]) ?></span>
             </button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cementTab">
-                <i class="bi bi-bricks me-1"></i> সিমেন্ট <span class="badge bg-secondary ms-1"><?= count($cements) ?></span>
-            </button>
-        </li>
+        <?php endforeach; ?>
     </ul>
 
     <div class="tab-content">
-        <!-- ROD TAB -->
-        <div class="tab-pane fade show active" id="rodTab">
-            <?php renderProductTable($rods, 'rod'); ?>
+        <?php foreach ($categories as $i => $cat): ?>
+        <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="catTab<?= $cat['id'] ?>">
+            <?php renderProductTable($productsByCategory[$cat['id']]); ?>
         </div>
-        <!-- CEMENT TAB -->
-        <div class="tab-pane fade" id="cementTab">
-            <?php renderProductTable($cements, 'cement'); ?>
-        </div>
+        <?php endforeach; ?>
     </div>
+
+    <?php endif; ?>
 </div>
 
 <?php
-/** Render a product table for a given list. */
-function renderProductTable(array $items, string $type): void {
-    $col = $type === 'rod' ? 'সাইজ' : 'ব্র্যান্ড';
-?>
+function renderProductTable(array $items): void { ?>
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -61,7 +75,7 @@ function renderProductTable(array $items, string $type): void {
                     <thead>
                         <tr>
                             <th>পণ্যের নাম</th>
-                            <th><?= $col ?></th>
+                            <th>সাইজ / ব্র্যান্ড</th>
                             <th>ইউনিট</th>
                             <th class="text-end">ক্রয় দাম</th>
                             <th class="text-end">বিক্রয় দাম</th>
@@ -72,12 +86,12 @@ function renderProductTable(array $items, string $type): void {
                     <tbody>
                     <?php if (empty($items)): ?>
                         <tr><td colspan="7" class="text-center text-muted py-4">
-                            কোন পণ্য নেই। “নতুন পণ্য” বাটনে ক্লিক করুন।
+                            কোন পণ্য নেই। "নতুন পণ্য" বাটনে ক্লিক করুন।
                         </td></tr>
                     <?php else: foreach ($items as $p): ?>
                         <tr>
                             <td class="fw-semibold"><?= e($p['name']) ?></td>
-                            <td><span class="badge bg-light text-dark border"><?= e($p['size_brand']) ?></span></td>
+                            <td><span class="badge bg-light text-dark border"><?= e($p['size_brand'] ?: '—') ?></span></td>
                             <td><?= e($p['unit']) ?></td>
                             <td class="text-end"><?= money((float)$p['buy_price']) ?></td>
                             <td class="text-end"><?= money((float)$p['sell_price']) ?></td>
@@ -117,9 +131,11 @@ function renderProductTable(array $items, string $type): void {
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">পণ্যের ধরন <span class="text-danger">*</span></label>
-                        <select name="type" id="productType" class="form-select" required>
-                            <option value="rod">রড (Rod)</option>
-                            <option value="cement">সিমেন্ট (Cement)</option>
+                        <select name="category_id" id="productCategory" class="form-select" required>
+                            <option value="">— ক্যাটাগরি নির্বাচন করুন —</option>
+                            <?php foreach ($categories as $cat): ?>
+                            <option value="<?= $cat['id'] ?>"><?= e($cat['name']) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
@@ -131,9 +147,9 @@ function renderProductTable(array $items, string $type): void {
 
                     <div class="row g-2">
                         <div class="col-7 mb-3">
-                            <label class="form-label fw-semibold" id="sizeBrandLabel">সাইজ</label>
+                            <label class="form-label fw-semibold">সাইজ / ব্র্যান্ড</label>
                             <input type="text" name="size_brand" id="sizeBrand" class="form-control"
-                                   placeholder="8mm / LAFARGE">
+                                   placeholder="যেমন: 12mm / LAFARGE / 60×60cm">
                         </div>
                         <div class="col-5 mb-3">
                             <label class="form-label fw-semibold">ইউনিট <span class="text-danger">*</span></label>
@@ -141,6 +157,10 @@ function renderProductTable(array $items, string $type): void {
                                 <option value="ton">টন (ton)</option>
                                 <option value="bag">ব্যাগ (bag)</option>
                                 <option value="pcs">পিস (pcs)</option>
+                                <option value="sqft">বর্গফুট (sqft)</option>
+                                <option value="cft">ঘনফুট (cft)</option>
+                                <option value="kg">কেজি (kg)</option>
+                                <option value="liter">লিটার (liter)</option>
                             </select>
                         </div>
                     </div>
@@ -178,5 +198,55 @@ function renderProductTable(array $items, string $type): void {
     </div>
 </div>
 
+<!-- ============ CATEGORY MANAGEMENT MODAL ============ -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-tags me-1 text-danger"></i> ক্যাটাগরি ম্যানেজমেন্ট
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Existing categories list -->
+                <ul class="list-group mb-3" id="categoryList">
+                    <?php foreach ($categories as $cat): ?>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span><?= e($cat['name']) ?></span>
+                        <button class="btn btn-sm btn-outline-danger btn-del-cat"
+                                data-id="<?= $cat['id'] ?>" data-name="<?= e($cat['name']) ?>">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </li>
+                    <?php endforeach; ?>
+                    <?php if (empty($categories)): ?>
+                    <li class="list-group-item text-muted text-center" id="noCatMsg">কোনো ক্যাটাগরি নেই</li>
+                    <?php endif; ?>
+                </ul>
+
+                <!-- Add new category -->
+                <div class="input-group">
+                    <input type="text" class="form-control" id="newCategoryName"
+                           placeholder="নতুন ক্যাটাগরির নাম" maxlength="100">
+                    <button class="btn btn-primary" id="btnAddCategory">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </div>
+                <div class="alert alert-danger py-2 mt-2 d-none" id="catError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>রিফ্রেশ করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE       = '<?= BASE_URL ?>';
+const CATEGORIES = <?= json_encode(array_values($categories)) ?>;
+</script>
 <script src="<?= BASE_URL ?>/assets/js/products.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

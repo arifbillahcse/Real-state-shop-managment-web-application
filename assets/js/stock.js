@@ -231,7 +231,7 @@ async function loadBranchStockById(branchId, detailed = true) {
         tbody.innerHTML = rows.map(r => {
             const stock = parseFloat(r.current_stock);
             const low   = parseFloat(r.min_stock) > 0 && stock <= parseFloat(r.min_stock);
-            const typeBadge  = r.product_type === 'rod' ? '<span class="badge bg-primary">রড</span>' : '<span class="badge bg-warning text-dark">সিমেন্ট</span>';
+            const typeBadge  = `<span class="badge bg-secondary">${r.product_type ?? ''}</span>`;
             const statusBadge = low ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>কম</span>' : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>';
             const fmt = (v) => parseFloat(v||0).toLocaleString('bn-BD', {maximumFractionDigits:2});
             if (detailed) {

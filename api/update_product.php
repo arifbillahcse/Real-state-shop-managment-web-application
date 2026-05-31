@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Product.php';
+require_once __DIR__ . '/../classes/Category.php';
 
 requireMethod('POST');
 requireAdminApi();
@@ -11,13 +12,13 @@ if ($id <= 0) {
 }
 
 $result = Product::updateProduct($id, [
-    'type'       => $_POST['type']       ?? null,
-    'name'       => $_POST['name']       ?? null,
-    'size_brand' => $_POST['size_brand'] ?? null,
-    'unit'       => $_POST['unit']       ?? null,
-    'buy_price'  => $_POST['buy_price']  ?? null,
-    'sell_price' => $_POST['sell_price'] ?? null,
-    'min_stock'  => $_POST['min_stock']  ?? null,
+    'category_id' => $_POST['category_id'] ?? null,
+    'name'        => $_POST['name']        ?? null,
+    'size_brand'  => $_POST['size_brand']  ?? null,
+    'unit'        => $_POST['unit']        ?? null,
+    'buy_price'   => $_POST['buy_price']   ?? null,
+    'sell_price'  => $_POST['sell_price']  ?? null,
+    'min_stock'   => $_POST['min_stock']   ?? null,
 ]);
 
 if ($result === true) {
