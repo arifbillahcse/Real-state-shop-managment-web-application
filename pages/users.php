@@ -82,6 +82,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <label class="form-label fw-semibold">রোল</label>
             <select class="form-select" id="userRole" name="role" onchange="toggleBranchField()">
               <option value="staff">স্টাফ (Staff)</option>
+              <option value="manager">ম্যানেজার (Manager)</option>
               <option value="admin">অ্যাডমিন (Admin)</option>
             </select>
           </div>

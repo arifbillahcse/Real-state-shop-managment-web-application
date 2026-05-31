@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Product.php';
-requireAdmin();   // products are admin-only
+requireManagerOrAdmin();
 
 $pageTitle = 'পণ্য ম্যানেজমেন্ট';
 

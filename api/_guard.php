@@ -27,9 +27,19 @@ function requireMethod(string $method): void
 }
 
 /**
- * Ensure current user is admin (product management is admin-only).
+ * Ensure current user is admin or manager (most privileged endpoints).
  */
 function requireAdminApi(): void
+{
+    if (!isAdminOrManager()) {
+        jsonResponse(false, 'এই কাজের অনুমতি নেই।');
+    }
+}
+
+/**
+ * Ensure current user is strictly admin (user management, settings).
+ */
+function requireStrictAdminApi(): void
 {
     if (!User::isAdmin()) {
         jsonResponse(false, 'এই কাজের অনুমতি শুধু অ্যাডমিনের আছে।');

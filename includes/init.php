@@ -46,11 +46,20 @@ function requireLogin(): void
     }
 }
 
-// Helper: require admin role
+// Helper: require strict admin role (users page, settings page)
 function requireAdmin(): void
 {
     requireLogin();
     if (($_SESSION['user_role'] ?? '') !== 'admin') {
+        redirect(BASE_URL . '/pages/dashboard.php');
+    }
+}
+
+// Helper: require admin OR manager role (all other privileged pages)
+function requireManagerOrAdmin(): void
+{
+    requireLogin();
+    if (!in_array($_SESSION['user_role'] ?? '', ['admin', 'manager'], true)) {
         redirect(BASE_URL . '/pages/dashboard.php');
     }
 }
@@ -61,7 +70,19 @@ function isStaff(): bool
     return ($_SESSION['user_role'] ?? '') === 'staff';
 }
 
-// Helper: get current user's assigned branch id (null for admin)
+// Helper: is current user a manager?
+function isManager(): bool
+{
+    return ($_SESSION['user_role'] ?? '') === 'manager';
+}
+
+// Helper: is current user admin OR manager (privileged)?
+function isAdminOrManager(): bool
+{
+    return in_array($_SESSION['user_role'] ?? '', ['admin', 'manager'], true);
+}
+
+// Helper: get current user's assigned branch id (null for admin and manager)
 function getSessionBranchId(): ?int
 {
     $bid = $_SESSION['user_branch_id'] ?? null;

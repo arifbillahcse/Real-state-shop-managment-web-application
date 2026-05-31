@@ -56,6 +56,16 @@ class User extends BaseModel
         return self::checkRole('admin');
     }
 
+    public static function isManager(): bool
+    {
+        return self::checkRole('manager');
+    }
+
+    public static function isAdminOrManager(): bool
+    {
+        return in_array($_SESSION['user_role'] ?? '', ['admin', 'manager'], true);
+    }
+
     public static function getCurrentUser(): array|false
     {
         if (!isLoggedIn()) return false;
@@ -88,7 +98,8 @@ class User extends BaseModel
         );
         if ($exists) return 'USERNAME_TAKEN';
 
-        $branchId = ($role === 'staff' && $branchId > 0) ? $branchId : null;
+        // Only staff gets a branch assignment
+        $branchId = ($role === 'staff' && $branchId !== null && $branchId > 0) ? $branchId : null;
 
         $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $id = Database::insert(
@@ -125,14 +136,15 @@ class User extends BaseModel
 
         $name = trim($name);
         if ($name === '') return 'NAME_REQUIRED';
-        if (!in_array($role, ['admin', 'staff'], true)) return 'INVALID_ROLE';
+        if (!in_array($role, ['admin', 'manager', 'staff'], true)) return 'INVALID_ROLE';
 
         // Don't allow demoting the last active admin
         if ($user['role'] === 'admin' && $role !== 'admin' && self::countActiveAdmins() <= 1) {
             return 'LAST_ADMIN';
         }
 
-        $branchId = ($role === 'staff' && $branchId > 0) ? $branchId : null;
+        // Only staff gets a branch assignment; admin and manager have no branch
+        $branchId = ($role === 'staff' && $branchId !== null && $branchId > 0) ? $branchId : null;
 
         Database::execute(
             'UPDATE users SET name = ?, role = ?, branch_id = ? WHERE id = ?',

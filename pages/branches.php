@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
-requireAdmin();
+requireManagerOrAdmin();
 
 $pageTitle = 'ব্রাঞ্চ';
 include __DIR__ . '/../includes/header.php';

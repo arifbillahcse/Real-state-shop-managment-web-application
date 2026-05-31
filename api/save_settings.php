@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireStrictAdminApi();
 
 $allowed = [
     'shop_name', 'shop_address', 'shop_phone',

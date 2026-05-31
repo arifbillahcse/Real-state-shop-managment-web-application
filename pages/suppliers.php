@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Supplier.php';
 requireLogin();
-requireAdmin();
+requireManagerOrAdmin();
 
 $pageTitle = 'সাপ্লাইয়ার';
 include __DIR__ . '/../includes/header.php';

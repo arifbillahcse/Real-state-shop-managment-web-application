@@ -281,7 +281,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL      = '<?= BASE_URL ?>';
-const IS_ADMIN      = <?= User::isAdmin() ? 'true' : 'false' ?>;
+const IS_ADMIN      = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
 const IS_STAFF      = <?= $_isStaff ? 'true' : 'false' ?>;
 const STAFF_BRANCH  = <?= $staffBranch ?? 'null' ?>;
 const PRODUCTS      = <?= json_encode(array_values($products)) ?>;

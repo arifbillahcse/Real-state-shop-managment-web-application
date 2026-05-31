@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireStrictAdminApi();
 
 $name     = trim($_POST['name']     ?? '');
 $username = trim($_POST['username'] ?? '');

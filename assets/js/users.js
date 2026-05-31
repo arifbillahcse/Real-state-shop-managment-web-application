@@ -139,9 +139,13 @@ function renderUsers(list) {
     tbody.innerHTML = list.map((u, i) => {
         const active    = parseInt(u.is_active) === 1;
         const isAdmin   = u.role === 'admin';
+        const isManager = u.role === 'manager';
         const isSelf    = parseInt(u.id) === CURRENT_UID;
+        const roleLabel = isAdmin ? 'অ্যাডমিন' : isManager ? 'ম্যানেজার' : 'স্টাফ';
+        const roleBg    = isAdmin ? 'danger' : isManager ? 'warning text-dark' : 'secondary';
+        const hasNoBranch = isAdmin || isManager;
         const branchCell = HAS_BRANCHES
-            ? `<td>${u.branch_name && !isAdmin ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(u.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
+            ? `<td>${u.branch_name && !hasNoBranch ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(u.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
             : '';
         return `
         <tr class="${active ? '' : 'text-muted'}">
@@ -151,8 +155,8 @@ function renderUsers(list) {
             </td>
             <td>${esc(u.username)}</td>
             <td class="text-center">
-                <span class="badge bg-${isAdmin ? 'danger' : 'secondary'}">
-                    ${isAdmin ? 'অ্যাডমিন' : 'স্টাফ'}
+                <span class="badge bg-${roleBg}">
+                    ${roleLabel}
                 </span>
             </td>
             ${branchCell}
