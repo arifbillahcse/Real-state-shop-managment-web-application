@@ -28,7 +28,12 @@ class Supplier extends BaseModel
     public static function getSuppliers(): array
     {
         return Database::fetchAll(
-            'SELECT * FROM suppliers WHERE is_active = 1 ORDER BY name'
+            'SELECT s.*,
+                    COALESCE((SELECT SUM(total_cost) FROM stock_inbound
+                              WHERE supplier_id = s.id), 0) AS total_purchase
+             FROM suppliers s
+             WHERE s.is_active = 1
+             ORDER BY s.name'
         );
     }
 

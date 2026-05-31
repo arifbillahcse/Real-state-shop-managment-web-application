@@ -96,4 +96,88 @@ class User extends BaseModel
         );
         self::log('update_password', 'users', $id, 'Password changed');
     }
+
+    public static function getById(int $id): array|false
+    {
+        return Database::fetchOne(
+            'SELECT id, name, username, role, is_active FROM users WHERE id = ? LIMIT 1',
+            [$id]
+        );
+    }
+
+    /** Update a user's name and role (username is immutable). */
+    public static function updateUser(int $id, string $name, string $role): bool|string
+    {
+        $user = self::getById($id);
+        if (!$user) return 'NOT_FOUND';
+
+        $name = trim($name);
+        if ($name === '') return 'NAME_REQUIRED';
+        if (!in_array($role, ['admin', 'staff'], true)) return 'INVALID_ROLE';
+
+        // Don't allow demoting the last active admin
+        if ($user['role'] === 'admin' && $role !== 'admin' && self::countActiveAdmins() <= 1) {
+            return 'LAST_ADMIN';
+        }
+
+        Database::execute(
+            'UPDATE users SET name = ?, role = ? WHERE id = ?',
+            [$name, $role, $id]
+        );
+        self::log('update_user', 'users', $id, "Updated user: {$user['username']}");
+        return true;
+    }
+
+    /** Enable / disable a user account. */
+    public static function setStatus(int $id, bool $active): bool|string
+    {
+        $user = self::getById($id);
+        if (!$user) return 'NOT_FOUND';
+
+        // Prevent self-deactivation
+        if ($id === (int)($_SESSION['user_id'] ?? 0) && !$active) {
+            return 'SELF_DEACTIVATE';
+        }
+        // Prevent disabling the last active admin
+        if ($user['role'] === 'admin' && !$active && self::countActiveAdmins() <= 1) {
+            return 'LAST_ADMIN';
+        }
+
+        Database::execute('UPDATE users SET is_active = ? WHERE id = ?', [(int)$active, $id]);
+        self::log('toggle_user', 'users', $id,
+            ($active ? 'Activated' : 'Deactivated') . " user: {$user['username']}");
+        return true;
+    }
+
+    /** Admin reset of another user's password. */
+    public static function resetPassword(int $id, string $newPassword): bool|string
+    {
+        $user = self::getById($id);
+        if (!$user) return 'NOT_FOUND';
+        if (strlen($newPassword) < 4) return 'WEAK_PASSWORD';
+
+        self::updatePassword($id, $newPassword);
+        return true;
+    }
+
+    public static function countActiveAdmins(): int
+    {
+        $row = Database::fetchOne(
+            "SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin' AND is_active = 1"
+        );
+        return (int)($row['cnt'] ?? 0);
+    }
+
+    public static function errorMessage(string $code): string
+    {
+        return [
+            'USERNAME_TAKEN'  => 'এই ইউজারনেম ইতিমধ্যে ব্যবহৃত হচ্ছে।',
+            'NOT_FOUND'       => 'ব্যবহারকারী খুঁজে পাওয়া যায়নি।',
+            'NAME_REQUIRED'   => 'নাম দিন।',
+            'INVALID_ROLE'    => 'সঠিক রোল নির্বাচন করুন।',
+            'LAST_ADMIN'      => 'শেষ অ্যাডমিনকে নিষ্ক্রিয় বা ডিমোট করা যাবে না।',
+            'SELF_DEACTIVATE' => 'আপনি নিজের অ্যাকাউন্ট নিষ্ক্রিয় করতে পারবেন না।',
+            'WEAK_PASSWORD'   => 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।',
+        ][$code] ?? 'একটি সমস্যা হয়েছে।';
+    }
 }
