@@ -136,6 +136,83 @@ include __DIR__ . '/../includes/sidebar.php';
   </div>
 </div>
 
+<!-- Edit Quotation Modal -->
+<div class="modal fade" id="editQuoteModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>কোটেশন সম্পাদনা</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editQuoteForm" onsubmit="submitEditQuote(event)">
+          <input type="hidden" id="eqId">
+          <div class="row g-3 mb-3">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">কাস্টমারের নাম <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="eqCustomer" maxlength="150"
+                     placeholder="নাম লিখুন" required list="customerSuggestions">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">তারিখ</label>
+              <input type="date" class="form-control" id="eqDate">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">মেয়াদ (দিন)</label>
+              <input type="number" class="form-control" id="eqValidDays" min="1" max="365">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">ছাড় (৳)</label>
+              <input type="number" class="form-control" id="eqDiscount" min="0" step="0.01" oninput="calcEditTotal()">
+            </div>
+          </div>
+          <div class="table-responsive mb-3">
+            <table class="table table-bordered table-sm">
+              <thead class="table-dark">
+                <tr>
+                  <th style="min-width:200px">পণ্য</th>
+                  <th style="width:100px">পরিমাণ</th>
+                  <th style="width:130px">ইউনিট মূল্য (৳)</th>
+                  <th style="width:130px">মোট (৳)</th>
+                  <th style="width:50px"></th>
+                </tr>
+              </thead>
+              <tbody id="editQuoteItemsBody"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEditQuoteRow()">
+                      <i class="bi bi-plus-lg me-1"></i>পণ্য যোগ করুন
+                    </button>
+                  </td>
+                </tr>
+                <tr class="table-light fw-bold">
+                  <td colspan="3" class="text-end">সাবটোটাল:</td>
+                  <td id="eqSubtotal">০.০০ ৳</td><td></td>
+                </tr>
+                <tr class="table-light fw-bold">
+                  <td colspan="3" class="text-end">মোট:</td>
+                  <td id="eqTotal" class="text-success">০.০০ ৳</td><td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">নোট</label>
+            <textarea class="form-control" id="eqNote" rows="2" maxlength="500"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="submit" form="editQuoteForm" class="btn btn-warning" id="editQuoteSaveBtn">
+          <i class="bi bi-check-circle me-1"></i>আপডেট করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- View Quotation Modal -->
 <div class="modal fade" id="viewQuoteModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">

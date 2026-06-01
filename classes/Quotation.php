@@ -94,6 +94,59 @@ class Quotation extends BaseModel
         return $q;
     }
 
+    public static function update(int $id, array $data, array $newItems): bool|string
+    {
+        $q = Database::fetchOne('SELECT status FROM quotations WHERE id = ? LIMIT 1', [$id]);
+        if (!$q)                    return 'NOT_FOUND';
+        if ($q['status'] !== 'active') return 'NOT_ACTIVE';
+        if (empty($newItems))       return 'NO_ITEMS';
+
+        $customerName = trim($data['customer_name'] ?? '');
+        $quoteDate    = $data['quote_date']  ?? date('Y-m-d');
+        $validDays    = max(1, (int)($data['valid_days']  ?? 7));
+        $discount     = max(0, (float)($data['discount']  ?? 0));
+        $note         = trim($data['note'] ?? '');
+
+        $subtotal = 0;
+        $valid    = [];
+        foreach ($newItems as $it) {
+            $pid   = (int)($it['product_id']   ?? 0);
+            $qty   = (float)($it['quantity']   ?? 0);
+            $price = (float)($it['unit_price'] ?? 0);
+            $pname = trim($it['product_name']  ?? '');
+            if ($pid <= 0 || $qty <= 0 || $price <= 0) return 'INVALID_ITEM';
+            $valid[]   = ['product_id' => $pid, 'product_name' => $pname,
+                          'quantity' => $qty, 'unit_price' => $price,
+                          'total_price' => $qty * $price];
+            $subtotal += $qty * $price;
+        }
+        $total = max(0, $subtotal - $discount);
+
+        Database::beginTransaction();
+        try {
+            Database::execute('DELETE FROM quotation_items WHERE quotation_id = ?', [$id]);
+            foreach ($valid as $it) {
+                Database::insert(
+                    'INSERT INTO quotation_items
+                     (quotation_id, product_id, product_name, quantity, unit_price, total_price)
+                     VALUES (?,?,?,?,?,?)',
+                    [$id, $it['product_id'], $it['product_name'],
+                     $it['quantity'], $it['unit_price'], $it['total_price']]
+                );
+            }
+            Database::execute(
+                'UPDATE quotations SET customer_name=?, quote_date=?, valid_days=?,
+                  subtotal=?, discount=?, total_amount=?, note=? WHERE id=?',
+                [$customerName, $quoteDate, $validDays, $subtotal, $discount, $total, $note, $id]
+            );
+            Database::commit();
+        } catch (Throwable $e) {
+            Database::rollback();
+            return 'DB_ERROR';
+        }
+        return true;
+    }
+
     public static function updateStatus(int $id, string $status): bool|string
     {
         $q = Database::fetchOne('SELECT status FROM quotations WHERE id = ? LIMIT 1', [$id]);

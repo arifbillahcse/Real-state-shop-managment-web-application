@@ -262,8 +262,107 @@ include __DIR__ . '/../includes/sidebar.php';
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+        <?php if (User::isAdminOrManager()): ?>
+        <button type="button" class="btn btn-warning" id="btnEditInvoice" onclick="openEditSale()">
+          <i class="bi bi-pencil-square me-1"></i>সম্পাদনা
+        </button>
+        <?php endif; ?>
         <button type="button" class="btn btn-primary" onclick="printInvoice()">
           <i class="bi bi-printer me-1"></i>প্রিন্ট করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Sale Modal -->
+<div class="modal fade" id="editSaleModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>বিক্রয় সম্পাদনা</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editSaleForm" onsubmit="submitEditSale(event)">
+          <input type="hidden" id="esSaleId">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">কাস্টমার</label>
+              <select class="form-select" id="esCustomer">
+                <option value="0">Walk-in / অজ্ঞাত</option>
+                <?php foreach ($customers as $c): ?>
+                <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">বিক্রয়ের তারিখ</label>
+              <input type="date" class="form-control" id="esSaleDate">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">পেমেন্ট পদ্ধতি</label>
+              <select class="form-select" id="esPayMethod">
+                <option value="cash">নগদ</option>
+                <option value="credit">বাকি</option>
+                <option value="mobile_banking">মোবাইল ব্যাংকিং</option>
+                <option value="cheque">চেক</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">ছাড় (৳)</label>
+              <input type="number" class="form-control" id="esDiscount" min="0" step="0.01" oninput="calcEditSaleTotal()">
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">পরিশোধ (৳)</label>
+              <input type="number" class="form-control" id="esPaid" min="0" step="0.01">
+            </div>
+            <div class="col-md-9">
+              <label class="form-label fw-semibold">নোট</label>
+              <input type="text" class="form-control" id="esNote" maxlength="500">
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div class="table-responsive mb-2">
+            <table class="table table-bordered table-sm">
+              <thead class="table-dark">
+                <tr>
+                  <th style="min-width:200px">পণ্য</th>
+                  <th style="width:100px">পরিমাণ</th>
+                  <th style="width:130px">ইউনিট মূল্য (৳)</th>
+                  <th style="width:130px">মোট (৳)</th>
+                  <th style="width:50px"></th>
+                </tr>
+              </thead>
+              <tbody id="editSaleItemsBody"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEditSaleRow()">
+                      <i class="bi bi-plus-lg me-1"></i>পণ্য যোগ করুন
+                    </button>
+                  </td>
+                </tr>
+                <tr class="table-light fw-bold">
+                  <td colspan="3" class="text-end">সাবটোটাল:</td>
+                  <td id="esSubtotal">০.০০ ৳</td><td></td>
+                </tr>
+                <tr class="table-light fw-bold">
+                  <td colspan="3" class="text-end">মোট:</td>
+                  <td id="esTotal" class="text-success">০.০০ ৳</td><td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="submit" form="editSaleForm" class="btn btn-warning" id="editSaleSaveBtn">
+          <i class="bi bi-check-circle me-1"></i>আপডেট করুন
         </button>
       </div>
     </div>
@@ -278,6 +377,7 @@ const STAFF_BRANCH  = <?= $staffBranch ?? 'null' ?>;
 const PRODUCTS      = <?= json_encode(array_values($products)) ?>;
 const BRANCHES      = <?= json_encode(array_values($branches)) ?>;
 const HAS_BRANCHES  = <?= !empty($branches) ? 'true' : 'false' ?>;
+const CUSTOMERS     = <?= json_encode(array_values($customers)) ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/sales.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

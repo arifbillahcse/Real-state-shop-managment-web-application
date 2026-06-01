@@ -1,8 +1,9 @@
 /* global BASE_URL, PRODUCTS, CAN_WRITE */
 let activeStatus = '', searchTimer = null;
-let _lastQuoteRes = null;
-const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
-const viewModal  = new bootstrap.Modal(document.getElementById('viewQuoteModal'));
+let _lastQuoteRes = null, editQuoteRowCount = 0;
+const quoteModal     = new bootstrap.Modal(document.getElementById('quoteModal'));
+const viewModal      = new bootstrap.Modal(document.getElementById('viewQuoteModal'));
+const editQuoteModal = new bootstrap.Modal(document.getElementById('editQuoteModal'));
 
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(v) { return parseFloat(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' ৳'; }
@@ -89,6 +90,9 @@ function viewQuote(id) {
             </button>`;
         if (CAN_WRITE && q.status === 'active') {
             footer.innerHTML += `
+            <button class="btn btn-warning" onclick="openEditQuote()">
+                <i class="bi bi-pencil-square me-1"></i>সম্পাদনা
+            </button>
             <button class="btn btn-secondary" onclick="changeStatus(${q.id},'cancelled')">
                 <i class="bi bi-x-circle me-1"></i>বাতিল করুন
             </button>
@@ -229,6 +233,111 @@ function printQuote() {
     <script>window.onload = function(){ window.print(); window.close(); };<\/script>
     </body></html>`);
     win.document.close();
+}
+
+// ── Edit quotation ────────────────────────────────────────────────────────────
+function openEditQuote() {
+    if (!_lastQuoteRes) return;
+    const q = _lastQuoteRes.data;
+    document.getElementById('eqId').value          = q.id;
+    document.getElementById('eqCustomer').value    = q.customer_name;
+    document.getElementById('eqDate').value        = q.quote_date;
+    document.getElementById('eqValidDays').value   = q.valid_days;
+    document.getElementById('eqDiscount').value    = parseFloat(q.discount)||0;
+    document.getElementById('eqNote').value        = q.note||'';
+
+    const tbody = document.getElementById('editQuoteItemsBody');
+    tbody.innerHTML = '';
+    editQuoteRowCount = 0;
+    (q.items||[]).forEach(it => addEditQuoteRow(it));
+    calcEditTotal();
+    viewModal.hide();
+    editQuoteModal.show();
+}
+
+function addEditQuoteRow(prefill = null) {
+    editQuoteRowCount++;
+    const n    = editQuoteRowCount;
+    const opts = PRODUCTS.map(p =>
+        `<option value="${p.id}" data-price="${p.sell_price}" data-name="${esc(p.name)}"
+            ${prefill && p.id == prefill.product_id ? 'selected' : ''}>
+            ${esc(p.name)}</option>`
+    ).join('');
+    const tr = document.createElement('tr');
+    tr.id = 'eqrow' + n;
+    tr.innerHTML = `
+        <td><select class="form-select form-select-sm" onchange="onEditQuoteProductChange(this,${n})">
+            <option value="">-- পণ্য --</option>${opts}</select></td>
+        <td><input type="number" class="form-control form-control-sm" id="eqqty${n}"
+                   value="${prefill ? prefill.quantity : 1}" min="0.01" step="0.01"
+                   oninput="calcEditRow(${n});calcEditTotal()"></td>
+        <td><input type="number" class="form-control form-control-sm" id="eqprice${n}"
+                   value="${prefill ? prefill.unit_price : 0}" min="0" step="0.01"
+                   oninput="calcEditRow(${n});calcEditTotal()"></td>
+        <td class="align-middle fw-semibold" id="eqrowtotal${n}">০.০০ ৳</td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="document.getElementById('eqrow${n}').remove();calcEditTotal()">
+                <i class="bi bi-x"></i></button></td>`;
+    document.getElementById('editQuoteItemsBody').appendChild(tr);
+    calcEditRow(n);
+}
+function onEditQuoteProductChange(sel, n) {
+    const opt = sel.selectedOptions[0];
+    if (opt?.dataset.price) document.getElementById('eqprice'+n).value = opt.dataset.price;
+    calcEditRow(n); calcEditTotal();
+}
+function calcEditRow(n) {
+    const q  = parseFloat(document.getElementById('eqqty'+n)?.value||0);
+    const p  = parseFloat(document.getElementById('eqprice'+n)?.value||0);
+    const el = document.getElementById('eqrowtotal'+n);
+    if (el) el.textContent = (q*p).toFixed(2)+' ৳';
+}
+function calcEditTotal() {
+    let sub = 0;
+    document.querySelectorAll('#editQuoteItemsBody tr').forEach(tr => {
+        const n = tr.id.replace('eqrow','');
+        sub += parseFloat(document.getElementById('eqqty'+n)?.value||0)
+             * parseFloat(document.getElementById('eqprice'+n)?.value||0);
+    });
+    const disc = parseFloat(document.getElementById('eqDiscount')?.value||0);
+    document.getElementById('eqSubtotal').textContent = sub.toFixed(2)+' ৳';
+    document.getElementById('eqTotal').textContent    = Math.max(0,sub-disc).toFixed(2)+' ৳';
+}
+function submitEditQuote(e) {
+    e.preventDefault();
+    const id    = document.getElementById('eqId').value;
+    const items = [];
+    document.querySelectorAll('#editQuoteItemsBody tr').forEach(tr => {
+        const n   = tr.id.replace('eqrow','');
+        const sel = tr.querySelector('select');
+        const pid = parseInt(sel?.value||0);
+        if (!pid) return;
+        const opt   = sel.selectedOptions[0];
+        const qty   = parseFloat(document.getElementById('eqqty'+n)?.value||0);
+        const price = parseFloat(document.getElementById('eqprice'+n)?.value||0);
+        if (qty > 0 && price > 0)
+            items.push({product_id:pid, product_name:opt?.dataset.name||'', quantity:qty, unit_price:price});
+    });
+    const data = {
+        id,
+        customer_name: document.getElementById('eqCustomer').value.trim(),
+        quote_date:    document.getElementById('eqDate').value,
+        valid_days:    document.getElementById('eqValidDays').value,
+        discount:      document.getElementById('eqDiscount').value,
+        note:          document.getElementById('eqNote').value.trim(),
+        items:         JSON.stringify(items),
+    };
+    const btn = document.getElementById('editQuoteSaveBtn');
+    btn.disabled = true;
+    fetch(BASE_URL+'/api/update_quotation.php',{method:'POST',body:new URLSearchParams(data)})
+        .then(r=>r.json()).then(res=>{
+            btn.disabled = false;
+            if (res.success) {
+                editQuoteModal.hide();
+                showToast(res.message,'success');
+                loadList();
+            } else showToast(res.message,'danger');
+        }).catch(()=>{ btn.disabled=false; showToast('সমস্যা হয়েছে।','danger'); });
 }
 
 function changeStatus(id, status) {

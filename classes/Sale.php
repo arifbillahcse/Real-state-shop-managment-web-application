@@ -174,6 +174,79 @@ class Sale extends BaseModel
         return $sale;
     }
 
+    public static function updateSale(int $id, array $data, array $newItems): bool|string
+    {
+        $sale = Database::fetchOne('SELECT * FROM sales WHERE id = ? LIMIT 1', [$id]);
+        if (!$sale)                          return 'NOT_FOUND';
+        if ($sale['status'] === 'cancelled') return 'CANNOT_EDIT_CANCELLED';
+        if (empty($newItems))                return 'NO_ITEMS';
+
+        // Old items keyed by product_id → quantity (to credit back when checking stock)
+        $oldItems = Database::fetchAll(
+            'SELECT product_id, quantity FROM sale_items WHERE sale_id = ?', [$id]
+        );
+        $oldQtyMap = [];
+        foreach ($oldItems as $oi) {
+            $oldQtyMap[(int)$oi['product_id']] = (float)$oi['quantity'];
+        }
+
+        // Validate new items & check stock
+        $subtotal  = 0;
+        $validItems = [];
+        foreach ($newItems as $it) {
+            $pid   = (int)($it['product_id']  ?? 0);
+            $qty   = (float)($it['quantity']   ?? 0);
+            $price = (float)($it['unit_price'] ?? 0);
+            if ($pid <= 0 || $qty <= 0 || $price <= 0) return 'INVALID_ITEM';
+
+            $currentStock = $sale['branch_id']
+                ? Stock::getCurrentBranchStock($pid, (int)$sale['branch_id'])
+                : Stock::getCurrentStock($pid);
+            $available = $currentStock + ($oldQtyMap[$pid] ?? 0);
+            if ($available < $qty) return 'INSUFFICIENT_STOCK:' . $pid;
+
+            $validItems[] = ['product_id' => $pid, 'quantity' => $qty, 'unit_price' => $price];
+            $subtotal    += $qty * $price;
+        }
+
+        $discount    = max(0, (float)($data['discount']       ?? $sale['discount']));
+        $paidAmount  = max(0, (float)($data['paid_amount']    ?? $sale['paid_amount']));
+        $totalAmount = max(0, $subtotal - $discount);
+        $paidAmount  = min($paidAmount, $totalAmount);
+        $dueAmount   = $totalAmount - $paidAmount;
+        $saleDate    = $data['sale_date']       ?? $sale['sale_date'];
+        $payMethod   = $data['payment_method']  ?? $sale['payment_method'];
+        $note        = trim($data['note']        ?? $sale['note'] ?? '');
+        $customerId  = array_key_exists('customer_id', $data)
+            ? (($data['customer_id'] > 0) ? (int)$data['customer_id'] : null)
+            : $sale['customer_id'];
+
+        Database::beginTransaction();
+        try {
+            Database::execute('DELETE FROM sale_items WHERE sale_id = ?', [$id]);
+            foreach ($validItems as $it) {
+                Database::insert(
+                    'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price)
+                     VALUES (?, ?, ?, ?)',
+                    [$id, $it['product_id'], $it['quantity'], $it['unit_price']]
+                );
+            }
+            Database::execute(
+                'UPDATE sales SET customer_id=?, sale_date=?, subtotal=?, discount=?,
+                  total_amount=?, paid_amount=?, due_amount=?, payment_method=?, note=?
+                 WHERE id=?',
+                [$customerId, $saleDate, $subtotal, $discount,
+                 $totalAmount, $paidAmount, $dueAmount, $payMethod, $note, $id]
+            );
+            Database::commit();
+        } catch (Throwable $e) {
+            Database::rollback();
+            return 'DB_ERROR';
+        }
+        self::log('update_sale', 'sales', $id, 'Sale #' . $sale['invoice_number'] . ' updated');
+        return true;
+    }
+
     public static function cancelSale(int $id): bool|string
     {
         $sale = Database::fetchOne(
@@ -196,16 +269,18 @@ class Sale extends BaseModel
             return 'পর্যাপ্ত স্টক নেই।';
         }
         return [
-            'NO_ITEMS'           => 'কমপক্ষে একটি পণ্য যোগ করুন।',
-            'CUSTOMER_NOT_FOUND' => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
-            'BRANCH_NOT_FOUND'   => 'ব্রাঞ্চটি খুঁজে পাওয়া যায়নি।',
-            'INVALID_PRODUCT'    => 'সঠিক পণ্য নির্বাচন করুন।',
-            'PRODUCT_NOT_FOUND'  => 'পণ্যটি খুঁজে পাওয়া যায়নি।',
-            'INVALID_QUANTITY'   => 'পরিমাণ ০ এর বেশি হতে হবে।',
-            'INVALID_PRICE'      => 'মূল্য ০ এর বেশি হতে হবে।',
-            'NOT_FOUND'          => 'বিক্রয় রেকর্ড খুঁজে পাওয়া যায়নি।',
-            'ALREADY_CANCELLED'  => 'এই বিক্রয় ইতিমধ্যে বাতিল।',
-            'DB_ERROR'           => 'ডেটাবেস সমস্যা। আবার চেষ্টা করুন।',
+            'NO_ITEMS'              => 'কমপক্ষে একটি পণ্য যোগ করুন।',
+            'CANNOT_EDIT_CANCELLED' => 'বাতিল বিক্রয় সম্পাদনা করা যাবে না।',
+            'NOT_FOUND'             => 'বিক্রয় রেকর্ড খুঁজে পাওয়া যায়নি।',
+            'INVALID_ITEM'          => 'পণ্যের তথ্য সঠিক নয়।',
+            'CUSTOMER_NOT_FOUND'    => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
+            'BRANCH_NOT_FOUND'      => 'ব্রাঞ্চটি খুঁজে পাওয়া যায়নি।',
+            'INVALID_PRODUCT'       => 'সঠিক পণ্য নির্বাচন করুন।',
+            'PRODUCT_NOT_FOUND'     => 'পণ্যটি খুঁজে পাওয়া যায়নি।',
+            'INVALID_QUANTITY'      => 'পরিমাণ ০ এর বেশি হতে হবে।',
+            'INVALID_PRICE'         => 'মূল্য ০ এর বেশি হতে হবে।',
+            'ALREADY_CANCELLED'     => 'এই বিক্রয় ইতিমধ্যে বাতিল।',
+            'DB_ERROR'              => 'ডেটাবেস সমস্যা। আবার চেষ্টা করুন।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
 }

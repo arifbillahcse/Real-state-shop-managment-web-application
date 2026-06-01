@@ -505,6 +505,124 @@ function printInvoice() {
     win.document.close();
 }
 
+// ---- Edit Sale ----
+let editSaleRowCount = 0;
+let editSaleModal = null;
+
+function openEditSale() {
+    const res = window._lastInvoiceRes;
+    if (!res) return;
+    const s = res.data;
+    if (s.status === 'cancelled') { showToast('বাতিল বিক্রয় সম্পাদনা করা যাবে না।','warning'); return; }
+
+    if (!editSaleModal) editSaleModal = new bootstrap.Modal(document.getElementById('editSaleModal'));
+
+    document.getElementById('esSaleId').value      = s.id;
+    document.getElementById('esSaleDate').value    = s.sale_date;
+    document.getElementById('esDiscount').value    = parseFloat(s.discount)||0;
+    document.getElementById('esPaid').value        = parseFloat(s.paid_amount)||0;
+    document.getElementById('esNote').value        = s.note||'';
+    document.getElementById('esPayMethod').value   = s.payment_method||'cash';
+
+    const custSel = document.getElementById('esCustomer');
+    custSel.value = s.customer_id || 0;
+
+    const tbody = document.getElementById('editSaleItemsBody');
+    tbody.innerHTML = '';
+    editSaleRowCount = 0;
+    (s.items||[]).forEach(it => addEditSaleRow(it));
+    calcEditSaleTotal();
+
+    invoiceModal.hide();
+    editSaleModal.show();
+}
+
+function addEditSaleRow(prefill = null) {
+    editSaleRowCount++;
+    const n    = editSaleRowCount;
+    const opts = PRODUCTS.map(p =>
+        `<option value="${p.id}" data-price="${p.sell_price}" data-name="${esc(p.name)}"
+            ${prefill && p.id == prefill.product_id ? 'selected' : ''}>
+            ${esc(p.name)}</option>`
+    ).join('');
+    const tr = document.createElement('tr');
+    tr.id = 'esrow' + n;
+    tr.innerHTML = `
+        <td><select class="form-select form-select-sm" onchange="onEditSaleProductChange(this,${n})">
+            <option value="">-- পণ্য --</option>${opts}</select></td>
+        <td><input type="number" class="form-control form-control-sm" id="esqty${n}"
+                   value="${prefill ? prefill.quantity : 1}" min="0.01" step="0.01"
+                   oninput="calcEditSaleRow(${n});calcEditSaleTotal()"></td>
+        <td><input type="number" class="form-control form-control-sm" id="esprice${n}"
+                   value="${prefill ? prefill.unit_price : 0}" min="0" step="0.01"
+                   oninput="calcEditSaleRow(${n});calcEditSaleTotal()"></td>
+        <td class="align-middle fw-semibold" id="esrowtotal${n}">০.০০ ৳</td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="document.getElementById('esrow${n}').remove();calcEditSaleTotal()">
+                <i class="bi bi-x"></i></button></td>`;
+    document.getElementById('editSaleItemsBody').appendChild(tr);
+    calcEditSaleRow(n);
+}
+function onEditSaleProductChange(sel, n) {
+    const opt = sel.selectedOptions[0];
+    if (opt?.dataset.price) document.getElementById('esprice'+n).value = opt.dataset.price;
+    calcEditSaleRow(n); calcEditSaleTotal();
+}
+function calcEditSaleRow(n) {
+    const q  = parseFloat(document.getElementById('esqty'+n)?.value||0);
+    const p  = parseFloat(document.getElementById('esprice'+n)?.value||0);
+    const el = document.getElementById('esrowtotal'+n);
+    if (el) el.textContent = (q*p).toFixed(2)+' ৳';
+}
+function calcEditSaleTotal() {
+    let sub = 0;
+    document.querySelectorAll('#editSaleItemsBody tr').forEach(tr => {
+        const n = tr.id.replace('esrow','');
+        sub += parseFloat(document.getElementById('esqty'+n)?.value||0)
+             * parseFloat(document.getElementById('esprice'+n)?.value||0);
+    });
+    const disc = parseFloat(document.getElementById('esDiscount')?.value||0);
+    document.getElementById('esSubtotal').textContent = sub.toFixed(2)+' ৳';
+    document.getElementById('esTotal').textContent    = Math.max(0,sub-disc).toFixed(2)+' ৳';
+}
+function submitEditSale(e) {
+    e.preventDefault();
+    const id    = document.getElementById('esSaleId').value;
+    const items = [];
+    document.querySelectorAll('#editSaleItemsBody tr').forEach(tr => {
+        const n   = tr.id.replace('esrow','');
+        const sel = tr.querySelector('select');
+        const pid = parseInt(sel?.value||0);
+        if (!pid) return;
+        const opt   = sel.selectedOptions[0];
+        const qty   = parseFloat(document.getElementById('esqty'+n)?.value||0);
+        const price = parseFloat(document.getElementById('esprice'+n)?.value||0);
+        if (qty > 0 && price > 0)
+            items.push({product_id:pid, product_name:opt?.dataset.name||'', quantity:qty, unit_price:price});
+    });
+    const data = {
+        id,
+        customer_id:    document.getElementById('esCustomer').value,
+        sale_date:      document.getElementById('esSaleDate').value,
+        payment_method: document.getElementById('esPayMethod').value,
+        discount:       document.getElementById('esDiscount').value,
+        paid_amount:    document.getElementById('esPaid').value,
+        note:           document.getElementById('esNote').value.trim(),
+        items:          JSON.stringify(items),
+    };
+    const btn = document.getElementById('editSaleSaveBtn');
+    btn.disabled = true;
+    fetch(BASE_URL+'/api/update_sale.php',{method:'POST',body:new URLSearchParams(data)})
+        .then(r=>r.json()).then(res=>{
+            btn.disabled = false;
+            if (res.success) {
+                editSaleModal.hide();
+                showToast(res.message,'success');
+                loadSalesHistory();
+            } else showToast(res.message,'danger');
+        }).catch(()=>{ btn.disabled=false; showToast('সমস্যা হয়েছে।','danger'); });
+}
+
 // ---- Toggle between New Sale form and Sales History ----
 function toggleSaleView() {
     const newPane  = document.getElementById('newSaleTab');
