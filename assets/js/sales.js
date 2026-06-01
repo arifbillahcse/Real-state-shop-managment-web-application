@@ -287,6 +287,11 @@ function renderSalesTable(sales) {
                     <i class="bi bi-file-text"></i>
                 </button>
                 ${IS_ADMIN && !IS_STAFF && !cancelled ? `
+                <button class="btn btn-sm btn-outline-warning me-1"
+                        onclick="openEditSale(${s.id})"
+                        title="সম্পাদনা করুন">
+                    <i class="bi bi-pencil"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-danger"
                         onclick="cancelSale(${s.id}, '${esc(s.invoice_number)}')"
                         title="বাতিল করুন">
@@ -509,7 +514,13 @@ function printInvoice() {
 let editSaleRowCount = 0;
 let editSaleModal = null;
 
-function openEditSale() {
+function openEditSale(saleId) {
+    if (saleId) {
+        fetch(BASE_URL + '/api/get_sale_detail.php?id=' + saleId)
+            .then(r => r.json())
+            .then(res => { if (res.success) { window._lastInvoiceRes = res; openEditSale(); } else showToast(res.message, 'danger') });
+        return;
+    }
     const res = window._lastInvoiceRes;
     if (!res) return;
     const s = res.data;
@@ -533,7 +544,7 @@ function openEditSale() {
     (s.items||[]).forEach(it => addEditSaleRow(it));
     calcEditSaleTotal();
 
-    invoiceModal.hide();
+    if (invoiceModal) invoiceModal.hide();
     editSaleModal.show();
 }
 
