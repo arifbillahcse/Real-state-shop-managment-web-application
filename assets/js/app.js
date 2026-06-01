@@ -56,16 +56,9 @@ function initTomSelect(el) {
         maxOptions: 1000,
         placeholder: placeholder || 'খুঁজুন...',
         sortField: [{ field: '$order' }, { field: '$score' }],
-        // Show all items immediately when dropdown opens (no typing required)
-        score: function(search) {
-            const scoreFn = this.getScoreFunction(search);
-            return function(item) {
-                if (!search || !search.trim()) return 1;
-                return scoreFn(item);
-            };
-        },
         onDropdownOpen: function() {
-            this.refreshOptions(false);
+            // Ensure all items render immediately when no search text is present
+            requestAnimationFrame(() => this.refreshOptions(false));
         },
     });
 }
