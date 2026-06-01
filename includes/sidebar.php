@@ -23,6 +23,7 @@ $menuItems = [
     ['icon' => 'bi-cash-stack',   'label' => 'খরচ',             'href' => 'expenses.php',   'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-sticky',       'label' => 'নোট',             'href' => 'notes.php',      'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-people-fill',   'label' => 'ব্যবহারকারী',     'href' => 'users.php',      'admin' => true,  'manager' => false, 'staff' => false],
+    ['icon' => 'bi-database-fill-down', 'label' => 'ব্যাকআপ',   'href' => 'backup.php',     'admin' => true,  'manager' => false, 'staff' => false],
     ['icon' => 'bi-gear',          'label' => 'সেটিংস',         'href' => 'settings.php',   'admin' => true,  'manager' => false, 'staff' => false],
 ];
 ?>
