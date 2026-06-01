@@ -552,9 +552,9 @@ function addEditSaleRow(prefill = null) {
     editSaleRowCount++;
     const n    = editSaleRowCount;
     const opts = PRODUCTS.map(p =>
-        `<option value="${p.id}" data-price="${p.sell_price}" data-name="${esc(p.name)}"
-            ${prefill && p.id == prefill.product_id ? 'selected' : ''}>
-            ${esc(p.name)}</option>`
+        `<option value="${p.product_id}" data-price="${p.sell_price}" data-name="${esc(p.product_name)}"
+            ${prefill && p.product_id == prefill.product_id ? 'selected' : ''}>
+            ${esc(p.product_name)}</option>`
     ).join('');
     const tr = document.createElement('tr');
     tr.id = 'esrow' + n;
