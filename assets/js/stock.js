@@ -359,7 +359,7 @@ async function loadBranchStockById(branchId, detailed = true) {
         const rows = (data.stock || []).filter(r => parseFloat(r.current_stock) > 0 || parseFloat(r.total_inbound) > 0);
         if (!rows.length) { wrap.style.display='none'; emptyMsg.style.display=''; return; }
         const adjBtn = CAN_WRITE
-            ? `<button class="btn btn-sm btn-outline-warning py-0 px-1" onclick="openAdjustForBranch('{pid}',${branchId})" title="স্টক সংশোধন"><i class="bi bi-sliders"></i></button>`
+            ? `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="openAdjustForBranch('{pid}',${branchId})" title="স্টক সংশোধন"><i class="bi bi-sliders"></i></button>`
             : '';
         tbody.innerHTML = rows.map(r => {
             const stock = parseFloat(r.current_stock);
@@ -540,7 +540,7 @@ async function loadAdjustments() {
             const qty = parseFloat(r.quantity);
             const qtyCell = `<span class="${qty>0?'text-success fw-semibold':'text-danger fw-semibold'}">${qty>0?'+':''}${qty.toLocaleString('bn-BD',{maximumFractionDigits:2})} ${r.unit}</span>`;
             const actions = CAN_WRITE ? `
-                <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditAdjustment(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger me-1" onclick="openEditAdjustment(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteAdjustment(${r.id})" title="ডিলিট"><i class="bi bi-trash"></i></button>` : '';
             return `<tr>
                 <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
@@ -573,7 +573,7 @@ async function loadTransfers() {
         tbody.innerHTML = list.map(r => {
             transfersCache[r.id] = r;
             const actions = CAN_WRITE ? `
-                <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditTransfer(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger me-1" onclick="openEditTransfer(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteTransfer(${r.id})" title="ডিলিট"><i class="bi bi-trash"></i></button>` : '';
             return `<tr>
                 <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>

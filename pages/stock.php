@@ -36,7 +36,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
             <button class="btn btn-primary btn-sm" id="btnAddInbound">
                 <i class="bi bi-plus-lg me-1"></i>পণ্য কেনা
             </button>
-            <button class="btn btn-warning btn-sm" id="btnAdjustStock">
+            <button class="btn btn-danger btn-sm" id="btnAdjustStock">
                 <i class="bi bi-sliders me-1"></i>স্টক সংশোধন
             </button>
             <?php if (!empty($branches)): ?>
@@ -146,7 +146,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                             : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>' ?>
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-warning"
+                                        <button class="btn btn-sm btn-outline-danger"
                                                 onclick="openAdjustFor(<?= $r['product_id'] ?>)"
                                                 title="স্টক সংশোধন">
                                             <i class="bi bi-sliders"></i>
@@ -468,7 +468,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <div class="modal fade" id="adjustModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-warning">
+            <div class="modal-header bg-danger text-white">
                 <h6 class="modal-title" id="adjModalTitle"><i class="bi bi-sliders me-1"></i>স্টক সংশোধন</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -532,7 +532,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">বাতিল</button>
-                <button type="button" class="btn btn-warning" id="btnSaveAdj"><i class="bi bi-check-lg me-1"></i>সংশোধন করুন</button>
+                <button type="button" class="btn btn-danger" id="btnSaveAdj"><i class="bi bi-check-lg me-1"></i>সংশোধন করুন</button>
             </div>
         </div>
     </div>
