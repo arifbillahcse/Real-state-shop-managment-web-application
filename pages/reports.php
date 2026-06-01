@@ -104,16 +104,6 @@ include __DIR__ . '/../includes/sidebar.php';
           </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-pie-chart me-1 text-danger"></i>রড vs সিমেন্ট
-          </div>
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <canvas id="typeChart" height="220"></canvas>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Top products + dues -->
