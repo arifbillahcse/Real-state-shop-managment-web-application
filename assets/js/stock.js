@@ -125,6 +125,21 @@ function openAdjustFor(productId) {
     updateAdjCurrentStock();
 }
 
+function openAdjustForBranch(productId, branchId) {
+    editAdjId = null;
+    setAdjTitle(false);
+    tsSet('adjProduct', productId, true);
+    const adjBranch = document.getElementById('adjBranch');
+    if (adjBranch) tsSet(adjBranch, branchId, true);
+    document.getElementById('adjQty').value    = '';
+    document.getElementById('adjNote').value   = '';
+    document.getElementById('adjAdd').checked  = true;
+    document.getElementById('adjReason').value = 'count_correction';
+    document.getElementById('adjError').classList.add('d-none');
+    adjustModal.show();
+    updateAdjCurrentStock();
+}
+
 function openEditAdjustment(id) {
     const r = adjustmentsCache[id];
     if (!r) return;
@@ -333,19 +348,23 @@ async function loadBranchStockById(branchId, detailed = true) {
     const tbody    = document.getElementById('branchStockBody');
     if (!wrap) return;
     emptyMsg.style.display = 'none';
-    tbody.innerHTML = `<tr><td colspan="${detailed?10:7}" class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${detailed?11:8}" class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...</td></tr>`;
     wrap.style.display = '';
     try {
         const data = await fetchJSON(`${BASE}/api/get_branch_stock.php?branch_id=${branchId}`);
         if (!data.success) { showToast(data.message, 'danger'); return; }
         const rows = (data.stock || []).filter(r => parseFloat(r.current_stock) > 0 || parseFloat(r.total_inbound) > 0);
         if (!rows.length) { wrap.style.display='none'; emptyMsg.style.display=''; return; }
+        const adjBtn = CAN_WRITE
+            ? `<button class="btn btn-sm btn-outline-warning py-0 px-1" onclick="openAdjustForBranch('{pid}',${branchId})" title="স্টক সংশোধন"><i class="bi bi-sliders"></i></button>`
+            : '';
         tbody.innerHTML = rows.map(r => {
             const stock = parseFloat(r.current_stock);
             const low   = parseFloat(r.min_stock) > 0 && stock <= parseFloat(r.min_stock);
             const typeBadge  = `<span class="badge bg-secondary">${r.product_type ?? ''}</span>`;
             const statusBadge = low ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>কম</span>' : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>';
             const fmt = (v) => parseFloat(v||0).toLocaleString('bn-BD', {maximumFractionDigits:2});
+            const action = adjBtn.replace('{pid}', r.product_id);
             if (detailed) {
                 const adjVal = parseFloat(r.total_adjustments||0);
                 const adjCell = adjVal !== 0
@@ -362,6 +381,7 @@ async function loadBranchStockById(branchId, detailed = true) {
                     <td class="text-end">${fmt(r.total_sold)} ${r.unit}</td>
                     <td class="text-end ${low?'low-stock':''} fw-semibold">${fmt(stock)} ${r.unit}</td>
                     <td class="text-center">${statusBadge}</td>
+                    ${CAN_WRITE ? `<td class="text-center">${action}</td>` : ''}
                 </tr>`;
             } else {
                 return `<tr class="${low?'table-danger':''}">
@@ -372,6 +392,7 @@ async function loadBranchStockById(branchId, detailed = true) {
                     <td class="text-end">${fmt(r.total_sold)} ${r.unit}</td>
                     <td class="text-end ${low?'low-stock':''} fw-semibold">${fmt(stock)} ${r.unit}</td>
                     <td class="text-center">${statusBadge}</td>
+                    ${CAN_WRITE ? `<td class="text-center">${action}</td>` : ''}
                 </tr>`;
             }
         }).join('');

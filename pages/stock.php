@@ -244,6 +244,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                             <th class="text-end">মোট বিক্রি</th>
                                             <th class="text-end">বর্তমান স্টক</th>
                                             <th class="text-center">অবস্থা</th>
+                                            <?php if (!$_isStaff): ?><th class="text-center">একশন</th><?php endif; ?>
                                         </tr>
                                     </thead>
                                     <tbody id="branchStockBody"></tbody>
