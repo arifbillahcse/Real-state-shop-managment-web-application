@@ -120,6 +120,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <th class="text-end">ক্রয় দাম</th>
                                     <th class="text-end">মোট মূল্য</th>
                                     <th class="text-center">অবস্থা</th>
+                                    <th class="text-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -144,6 +145,13 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                             ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>কম</span>'
                                             : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>' ?>
                                     </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-warning"
+                                                onclick="openAdjustFor(<?= $r['product_id'] ?>)"
+                                                title="স্টক সংশোধন">
+                                            <i class="bi bi-sliders"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -155,6 +163,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                 <tr>
                                     <td colspan="6" class="text-end fw-bold">মোট স্টক মূল্য:</td>
                                     <td class="text-end fw-bold text-danger"><?= money($grandTotal) ?></td>
+                                    <td></td>
                                     <td></td>
                                 </tr>
                             </tfoot>

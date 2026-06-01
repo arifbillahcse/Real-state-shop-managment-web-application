@@ -95,6 +95,18 @@ document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
 });
 
 // ── Adjustment modal ──────────────────────────────────────────────────────
+function openAdjustFor(productId) {
+    tsSet('adjProduct', productId, true);
+    const adjBranch = document.getElementById('adjBranch');
+    if (adjBranch) tsSet(adjBranch, '', true);
+    document.getElementById('adjQty').value   = '';
+    document.getElementById('adjNote').value  = '';
+    document.getElementById('adjAdd').checked = true;
+    document.getElementById('adjError').classList.add('d-none');
+    adjustModal.show();
+    updateAdjCurrentStock();
+}
+
 document.getElementById('btnAdjustStock')?.addEventListener('click', () => {
     tsSet('adjProduct', '', true);
     const adjBranch = document.getElementById('adjBranch');
@@ -113,16 +125,24 @@ async function updateAdjCurrentStock() {
     const bid      = branchEl ? branchEl.value : '';
     const info     = document.getElementById('adjCurrentStock');
     if (!pid) { info.textContent = ''; return; }
+    info.textContent = '...';
     try {
-        const url = bid
-            ? `${BASE}/api/get_branch_stock.php?branch_id=${bid}`
-            : `${BASE}/api/get_stock.php?product_id=${pid}`;
-        const data = await fetchJSON(url);
-        if (bid && data.success) {
-            const row = (data.stock || []).find(r => String(r.product_id) === String(pid));
-            info.textContent = row ? `বর্তমান স্টক: ${parseFloat(row.current_stock)} ${row.unit}` : 'এই ব্রাঞ্চে স্টক নেই';
+        if (bid) {
+            const data = await fetchJSON(`${BASE}/api/get_branch_stock.php?branch_id=${bid}`);
+            if (data.success) {
+                const row = (data.stock || []).find(r => String(r.product_id) === String(pid));
+                info.innerHTML = row
+                    ? `<span class="text-primary fw-semibold">বর্তমান স্টক: ${parseFloat(row.current_stock)} ${row.unit}</span>`
+                    : '<span class="text-muted">এই ব্রাঞ্চে স্টক নেই</span>';
+            }
         } else {
-            info.textContent = '';
+            const data = await fetchJSON(`${BASE}/api/get_stock.php`);
+            if (data.success) {
+                const row = (data.stock || []).find(r => String(r.product_id) === String(pid));
+                info.innerHTML = row
+                    ? `<span class="text-primary fw-semibold">বর্তমান স্টক: ${parseFloat(row.current_stock)} ${row.unit}</span>`
+                    : '<span class="text-muted">স্টক তথ্য পাওয়া যায়নি</span>';
+            }
         }
     } catch { info.textContent = ''; }
 }
