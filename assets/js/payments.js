@@ -110,6 +110,7 @@ function submitPayment(e) {
 
         if (res.success) {
             showToast(res.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('paymentModal'))?.hide();
             document.getElementById('paymentForm').reset();
             tsSyncForm('paymentForm');
             document.getElementById('payDate').value = new Date().toISOString().slice(0, 10);
@@ -121,14 +122,19 @@ function submitPayment(e) {
     });
 }
 
-// ---- Quick navigation from Due List tab ----
+// ---- Open payment modal ----
+function openPaymentModal(customerId) {
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    if (customerId) {
+        const sel = document.getElementById('payCustomerId');
+        tsSet(sel, customerId, true);
+        onCustomerChange(sel);
+    }
+    modal.show();
+}
+
 function goToPayment(customerId) {
-    // Switch to pay tab and pre-select customer
-    const payTabBtn = document.querySelector('[data-bs-target="#payTab"]');
-    bootstrap.Tab.getOrCreateInstance(payTabBtn).show();
-    const sel = document.getElementById('payCustomerId');
-    tsSet(sel, customerId, true);
-    onCustomerChange(sel);
+    openPaymentModal(customerId);
 }
 
 function goToLedger(customerId) {
