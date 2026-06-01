@@ -61,6 +61,7 @@ include __DIR__ . '/../includes/sidebar.php';
 const BASE_URL  = '<?= BASE_URL ?>';
 const IS_ADMIN  = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
 const PRE_SEL   = <?= $preSelected ?>;
+const SHOP_NAME = '<?= e(Setting::get('shop_name', 'দোকানের খাতা')) ?>';
 </script>
 <script src="<?= BASE_URL ?>/assets/js/khata.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
