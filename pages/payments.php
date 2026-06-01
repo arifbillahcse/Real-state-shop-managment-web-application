@@ -69,12 +69,12 @@ include __DIR__ . '/../includes/sidebar.php';
 
   <ul class="nav nav-pills mb-4" role="tablist">
     <li class="nav-item">
-      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#payTab" type="button">
+      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#payTab" type="button">
         <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#dueListTab" type="button"
+      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#dueListTab" type="button"
               id="dueListTabBtn">
         <i class="bi bi-people me-1"></i>বাকি তালিকা
       </button>
@@ -96,7 +96,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="tab-content">
 
     <!-- ===== PAY TAB ===== -->
-    <div class="tab-pane fade show active" id="payTab">
+    <div class="tab-pane fade" id="payTab">
       <div class="row justify-content-center">
         <div class="col-lg-7">
           <div class="card shadow-sm">
@@ -184,7 +184,7 @@ include __DIR__ . '/../includes/sidebar.php';
     </div><!-- /payTab -->
 
     <!-- ===== DUE LIST TAB ===== -->
-    <div class="tab-pane fade" id="dueListTab">
+    <div class="tab-pane fade show active" id="dueListTab">
       <div class="card shadow-sm">
         <div class="table-responsive">
           <table class="table table-hover mb-0">
