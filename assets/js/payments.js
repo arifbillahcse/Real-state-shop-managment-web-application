@@ -132,10 +132,7 @@ function goToPayment(customerId) {
 }
 
 function goToLedger(customerId) {
-    const tabBtn = document.getElementById('ledgerTabBtn');
-    bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-    tsSet('ledgerCustomer', customerId, true);
-    loadLedger();
+    window.location.href = BASE_URL + '/pages/khata.php?customer_id=' + customerId;
 }
 
 // ---- Payment History ----
@@ -190,122 +187,6 @@ function renderHistory(payments) {
             <td class="text-end text-success">${fmt(total)}</td>
             <td></td>
         </tr>`;
-}
-
-// ---- Customer Ledger ----
-function loadLedger() {
-    const cid = document.getElementById('ledgerCustomer').value;
-    if (!cid) { showToast('কাস্টমার নির্বাচন করুন', 'warning'); return; }
-
-    const el = document.getElementById('ledgerContent');
-    el.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
-
-    fetch(BASE_URL + '/api/get_customer_ledger.php?customer_id=' + cid)
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) renderLedger(res.data);
-            else el.innerHTML = `<div class="alert alert-danger">${esc(res.message)}</div>`;
-        })
-        .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
-}
-
-function renderLedger(data) {
-    const { customer, sales, payments, summary } = data;
-    const mLabel = { cash: 'নগদ', credit: 'বাকি', mobile_banking: 'মো.ব্যাং', cheque: 'চেক' };
-
-    const salesRows = sales.length
-        ? sales.map(s => `
-            <tr>
-                <td>${s.sale_date}</td>
-                <td><span class="badge bg-primary">বিক্রয়</span></td>
-                <td>${esc(s.invoice_number)}</td>
-                <td class="text-end">${fmt(s.total_amount)}</td>
-                <td class="text-end text-success">${fmt(s.paid_amount)}</td>
-                <td class="text-end ${parseFloat(s.due_amount) > 0 ? 'text-danger fw-semibold' : 'text-success'}">${fmt(s.due_amount)}</td>
-            </tr>`).join('')
-        : '<tr><td colspan="6" class="text-center text-muted">কোনো বিক্রয় নেই</td></tr>';
-
-    const payRows = payments.length
-        ? payments.map(p => `
-            <tr class="table-success bg-opacity-25">
-                <td>${p.txn_date}</td>
-                <td><span class="badge bg-success">পেমেন্ট</span></td>
-                <td>${p.linked_invoice
-                    ? `<span class="text-muted small">${esc(p.linked_invoice)}</span>`
-                    : '<span class="text-muted small">সাধারণ</span>'}</td>
-                <td class="text-end">—</td>
-                <td class="text-end fw-semibold text-success">${fmt(p.amount)}</td>
-                <td class="text-end text-muted">—</td>
-            </tr>`).join('')
-        : '<tr><td colspan="6" class="text-center text-muted">কোনো পেমেন্ট নেই</td></tr>';
-
-    const sum = summary || {};
-
-    document.getElementById('ledgerContent').innerHTML = `
-    <div class="card shadow-sm mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">
-                <i class="bi bi-person-circle me-1"></i>${esc(customer.name)}
-                ${customer.phone ? `<span class="text-muted small ms-2">${esc(customer.phone)}</span>` : ''}
-            </span>
-            <button class="btn btn-sm btn-success" onclick="goToPayment(${customer.id})">
-                <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 mb-3">
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">মোট ক্রয়</div>
-                    <div class="fw-bold fs-5">${fmt(sum.total_purchase || 0)}</div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">মোট পরিশোধ</div>
-                    <div class="fw-bold fs-5 text-success">${fmt(sum.total_paid || 0)}</div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">বর্তমান বাকি</div>
-                    <div class="fw-bold fs-5 ${parseFloat(sum.total_due || 0) > 0 ? 'text-danger' : 'text-success'}">
-                        ${fmt(sum.total_due || 0)}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Transactions -->
-    <div class="card shadow-sm">
-        <div class="card-header fw-semibold">
-            <i class="bi bi-list-ul me-1"></i>লেনদেনের ইতিহাস
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>তারিখ</th>
-                        <th>ধরন</th>
-                        <th>ইনভয়েস / বিবরণ</th>
-                        <th class="text-end">বিক্রয় (৳)</th>
-                        <th class="text-end">পরিশোধ (৳)</th>
-                        <th class="text-end">বাকি (৳)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${salesRows}
-                    ${payments.length ? payRows : ''}
-                </tbody>
-                <tfoot>
-                    <tr class="table-dark fw-bold">
-                        <td colspan="3">সারসংক্ষেপ</td>
-                        <td class="text-end">${fmt(sum.total_purchase || 0)}</td>
-                        <td class="text-end text-success">${fmt(sum.total_paid || 0)}</td>
-                        <td class="text-end ${parseFloat(sum.total_due || 0) > 0 ? 'text-warning' : 'text-success'}">
-                            ${fmt(sum.total_due || 0)}
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    </div>`;
 }
 
 // ---- Tab event bindings ----

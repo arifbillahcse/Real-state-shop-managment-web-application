@@ -86,10 +86,9 @@ include __DIR__ . '/../includes/sidebar.php';
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#ledgerTab" type="button"
-              id="ledgerTabBtn">
+      <a class="nav-link" href="<?= BASE_URL ?>/pages/khata.php">
         <i class="bi bi-journal-text me-1"></i>খাতা
-      </button>
+      </a>
     </li>
   </ul>
 
@@ -311,35 +310,6 @@ include __DIR__ . '/../includes/sidebar.php';
         </div>
       </div>
     </div><!-- /historyTab -->
-
-    <!-- ===== LEDGER TAB ===== -->
-    <div class="tab-pane fade" id="ledgerTab">
-      <div class="card shadow-sm mb-3">
-        <div class="card-body py-2">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-5">
-              <label class="form-label small text-muted mb-1">কাস্টমার নির্বাচন করুন</label>
-              <select class="form-select" id="ledgerCustomer">
-                <option value="">-- কাস্টমার নির্বাচন করুন --</option>
-                <?php foreach ($allCustomers as $c): ?>
-                <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <button class="btn btn-primary w-100" onclick="loadLedger()">
-                <i class="bi bi-journal-text me-1"></i>দেখুন
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="ledgerContent">
-        <div class="text-center py-5 text-muted">
-          কাস্টমার নির্বাচন করুন
-        </div>
-      </div>
-    </div><!-- /ledgerTab -->
 
   </div><!-- /tab-content -->
 </div>
