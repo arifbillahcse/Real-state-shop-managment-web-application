@@ -139,3 +139,11 @@ body {
     font-weight: 700;
     color: #1a1a2e;
 }
+
+/* ==============================
+   Tom Select — dropdown always on top
+============================== */
+.ts-dropdown {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
