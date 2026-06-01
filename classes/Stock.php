@@ -267,6 +267,73 @@ class Stock extends BaseModel
         return Database::fetchAll($sql, $params);
     }
 
+    public static function getAdjustmentById(int $id): array|false
+    {
+        return Database::fetchOne(
+            'SELECT * FROM stock_adjustments WHERE id = ? LIMIT 1', [$id]
+        );
+    }
+
+    /**
+     * Update an adjustment. Re-checks that the resulting stock won't go negative,
+     * crediting back this record's old quantity first.
+     */
+    public static function updateAdjustment(int $id, array $data): bool|string
+    {
+        $row = self::getAdjustmentById($id);
+        if (!$row) return 'NOT_FOUND';
+
+        $productId = (int)($data['product_id'] ?? $row['product_id']);
+        $quantity  = (float)($data['quantity']  ?? $row['quantity']);
+        $reason    = trim($data['reason'] ?? $row['reason']);
+        $note      = trim($data['note']   ?? $row['note']);
+        $branchId  = array_key_exists('branch_id', $data)
+                     ? (($data['branch_id'] !== '' && $data['branch_id'] !== null) ? (int)$data['branch_id'] : null)
+                     : ($row['branch_id'] !== null ? (int)$row['branch_id'] : null);
+
+        if ($productId <= 0 || !Product::getProductById($productId)) return 'PRODUCT_NOT_FOUND';
+        if ($quantity == 0) return 'INVALID_QUANTITY';
+
+        if ($branchId !== null) {
+            $br = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]);
+            if (!$br) return 'BRANCH_NOT_FOUND';
+            $current = self::getCurrentBranchStock($productId, $branchId);
+        } else {
+            $current = self::getCurrentStock($productId);
+        }
+        // Credit back the old quantity (only if same product+branch) before applying new
+        $oldContribution = ((int)$row['product_id'] === $productId
+            && (int)($row['branch_id'] ?? 0) === (int)($branchId ?? 0))
+            ? (float)$row['quantity'] : 0;
+        if ($current - $oldContribution + $quantity < 0) return 'WOULD_GO_NEGATIVE';
+
+        Database::execute(
+            'UPDATE stock_adjustments SET product_id = ?, branch_id = ?, quantity = ?, reason = ?, note = ?
+             WHERE id = ?',
+            [$productId, $branchId, $quantity, $reason, $note, $id]
+        );
+        self::log('update_adjustment', 'stock', $id, "Updated adjustment #$id");
+        return true;
+    }
+
+    public static function deleteAdjustment(int $id): bool|string
+    {
+        $row = self::getAdjustmentById($id);
+        if (!$row) return 'NOT_FOUND';
+
+        // Deleting a positive adjustment removes stock; ensure it won't go negative
+        if ($row['branch_id'] !== null) {
+            $current = self::getCurrentBranchStock((int)$row['product_id'], (int)$row['branch_id']);
+        } else {
+            $current = self::getCurrentStock((int)$row['product_id']);
+        }
+        if ($current - (float)$row['quantity'] < 0) return 'WOULD_GO_NEGATIVE';
+
+        Database::execute('DELETE FROM stock_adjustments WHERE id = ?', [$id]);
+        self::log('delete_adjustment', 'stock', $id, "Deleted adjustment #$id");
+        return true;
+    }
+
     // ===== TRANSFERS =====
 
     public static function addTransfer(
@@ -320,6 +387,69 @@ class Stock extends BaseModel
         return Database::fetchAll($sql, $params);
     }
 
+    public static function getTransferById(int $id): array|false
+    {
+        return Database::fetchOne(
+            'SELECT * FROM stock_transfers WHERE id = ? LIMIT 1', [$id]
+        );
+    }
+
+    /**
+     * Update a transfer. Credits back the old transfer to the source branch
+     * before validating the new source has enough stock.
+     */
+    public static function updateTransfer(int $id, array $data): bool|string
+    {
+        $row = self::getTransferById($id);
+        if (!$row) return 'NOT_FOUND';
+
+        $productId    = (int)($data['product_id']      ?? $row['product_id']);
+        $fromBranchId = (int)($data['from_branch_id']  ?? $row['from_branch_id']);
+        $toBranchId   = (int)($data['to_branch_id']    ?? $row['to_branch_id']);
+        $quantity     = (float)($data['quantity']      ?? $row['quantity']);
+        $note         = trim($data['note'] ?? $row['note']);
+
+        if ($productId <= 0 || !Product::getProductById($productId)) return 'PRODUCT_NOT_FOUND';
+        if ($quantity <= 0)                return 'INVALID_QUANTITY';
+        if ($fromBranchId === $toBranchId) return 'SAME_BRANCH';
+
+        $fromBr = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$fromBranchId]);
+        if (!$fromBr) return 'FROM_BRANCH_NOT_FOUND';
+        $toBr = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$toBranchId]);
+        if (!$toBr) return 'TO_BRANCH_NOT_FOUND';
+
+        // Credit back old quantity to the original source branch before checking
+        $fromStock = self::getCurrentBranchStock($productId, $fromBranchId);
+        if ((int)$row['product_id'] === $productId
+            && (int)$row['from_branch_id'] === $fromBranchId) {
+            $fromStock += (float)$row['quantity'];
+        }
+        if ($fromStock < $quantity) return 'INSUFFICIENT_STOCK';
+
+        Database::execute(
+            'UPDATE stock_transfers SET product_id = ?, from_branch_id = ?, to_branch_id = ?, quantity = ?, note = ?
+             WHERE id = ?',
+            [$productId, $fromBranchId, $toBranchId, $quantity, $note, $id]
+        );
+        self::log('update_transfer', 'stock', $id, "Updated transfer #$id");
+        return true;
+    }
+
+    public static function deleteTransfer(int $id): bool|string
+    {
+        $row = self::getTransferById($id);
+        if (!$row) return 'NOT_FOUND';
+
+        // Deleting returns stock to source and removes from destination.
+        // Ensure destination branch won't go negative.
+        $toStock = self::getCurrentBranchStock((int)$row['product_id'], (int)$row['to_branch_id']);
+        if ($toStock - (float)$row['quantity'] < 0) return 'WOULD_GO_NEGATIVE';
+
+        Database::execute('DELETE FROM stock_transfers WHERE id = ?', [$id]);
+        self::log('delete_transfer', 'stock', $id, "Deleted transfer #$id");
+        return true;
+    }
+
     public static function getAllBranchStock(): array
     {
         return Database::fetchAll(
@@ -338,6 +468,7 @@ class Stock extends BaseModel
             'FROM_BRANCH_NOT_FOUND'=> 'উৎস ব্রাঞ্চ পাওয়া যায়নি।',
             'TO_BRANCH_NOT_FOUND'  => 'গন্তব্য ব্রাঞ্চ পাওয়া যায়নি।',
             'INSUFFICIENT_STOCK'   => 'উৎস ব্রাঞ্চে পর্যাপ্ত স্টক নেই।',
+            'NOT_FOUND'            => 'রেকর্ডটি খুঁজে পাওয়া যায়নি।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
 }

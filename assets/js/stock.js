@@ -12,6 +12,10 @@ const transferModal = document.getElementById('transferModal') ? new bootstrap.M
 const form        = document.getElementById('inboundForm');
 const formError   = document.getElementById('inboundError');
 const modalTitle  = document.getElementById('inboundModalTitle');
+
+// Edit-state for adjustments / transfers
+let editAdjId = null, editTrfId = null;
+let adjustmentsCache = {}, transfersCache = {};
 const qtyInput    = document.getElementById('inboundQty');
 const priceInput  = document.getElementById('inboundPrice');
 const totalPreview = document.getElementById('totalPreview');
@@ -95,25 +99,68 @@ document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
 });
 
 // ── Adjustment modal ──────────────────────────────────────────────────────
+function setAdjTitle(isEdit) {
+    const t = document.getElementById('adjModalTitle');
+    if (t) t.innerHTML = isEdit
+        ? '<i class="bi bi-pencil me-1"></i>সংশোধন সম্পাদনা'
+        : '<i class="bi bi-sliders me-1"></i>স্টক সংশোধন';
+    const btn = document.getElementById('btnSaveAdj');
+    if (btn) btn.innerHTML = isEdit
+        ? '<i class="bi bi-check-lg me-1"></i>আপডেট করুন'
+        : '<i class="bi bi-check-lg me-1"></i>সংশোধন করুন';
+}
+
 function openAdjustFor(productId) {
+    editAdjId = null;
+    setAdjTitle(false);
     tsSet('adjProduct', productId, true);
     const adjBranch = document.getElementById('adjBranch');
     if (adjBranch) tsSet(adjBranch, '', true);
     document.getElementById('adjQty').value   = '';
     document.getElementById('adjNote').value  = '';
     document.getElementById('adjAdd').checked = true;
+    document.getElementById('adjReason').value = 'count_correction';
     document.getElementById('adjError').classList.add('d-none');
     adjustModal.show();
     updateAdjCurrentStock();
 }
 
+function openEditAdjustment(id) {
+    const r = adjustmentsCache[id];
+    if (!r) return;
+    editAdjId = id;
+    setAdjTitle(true);
+    tsSet('adjProduct', r.product_id, true);
+    const adjBranch = document.getElementById('adjBranch');
+    if (adjBranch) tsSet(adjBranch, r.branch_id || '', true);
+    const qty = parseFloat(r.quantity);
+    document.getElementById('adjQty').value     = Math.abs(qty);
+    document.getElementById('adjAdd').checked    = qty >= 0;
+    document.getElementById('adjSub').checked    = qty < 0;
+    document.getElementById('adjReason').value   = r.reason || 'other';
+    document.getElementById('adjNote').value      = r.note || '';
+    document.getElementById('adjError').classList.add('d-none');
+    adjustModal.show();
+    updateAdjCurrentStock();
+}
+
+async function deleteAdjustment(id) {
+    if (!confirm('এই স্টক সংশোধন রেকর্ডটি ডিলিট করবেন?')) return;
+    const data = await postJSON(`${BASE}/api/delete_stock_adjustment.php`, { id });
+    if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.message, 'danger');
+}
+
 document.getElementById('btnAdjustStock')?.addEventListener('click', () => {
+    editAdjId = null;
+    setAdjTitle(false);
     tsSet('adjProduct', '', true);
     const adjBranch = document.getElementById('adjBranch');
     if (adjBranch) tsSet(adjBranch, '', true);
     document.getElementById('adjQty').value     = '';
     document.getElementById('adjNote').value    = '';
     document.getElementById('adjAdd').checked   = true;
+    document.getElementById('adjReason').value  = 'count_correction';
     document.getElementById('adjCurrentStock').textContent = '';
     document.getElementById('adjError').classList.add('d-none');
     adjustModal.show();
@@ -163,14 +210,54 @@ document.getElementById('btnSaveAdj')?.addEventListener('click', async () => {
     if (qty <= 0) { showErr(errEl, 'পরিমাণ ০ এর বেশি হতে হবে।'); return; }
     const btn = document.getElementById('btnSaveAdj');
     await submitWithSpinner(btn, async () => {
-        const data = await postJSON(`${BASE}/api/add_stock_adjustment.php`, { product_id: pid, quantity: qty, direction: dir, reason, note, branch_id: bid });
+        const url = editAdjId
+            ? `${BASE}/api/update_stock_adjustment.php`
+            : `${BASE}/api/add_stock_adjustment.php`;
+        const payload = { product_id: pid, quantity: qty, direction: dir, reason, note, branch_id: bid };
+        if (editAdjId) payload.id = editAdjId;
+        const data = await postJSON(url, payload);
         if (data.success) { showToast(data.message, 'success'); adjustModal.hide(); setTimeout(() => location.reload(), 700); }
         else showErr(errEl, data.message);
     });
 });
 
 // ── Transfer modal ────────────────────────────────────────────────────────
+function setTrfTitle(isEdit) {
+    const t = document.getElementById('trfModalTitle');
+    if (t) t.innerHTML = isEdit
+        ? '<i class="bi bi-pencil me-1"></i>ট্রান্সফার সম্পাদনা'
+        : '<i class="bi bi-arrow-left-right me-1"></i>ব্রাঞ্চ ট্রান্সফার';
+    const btn = document.getElementById('btnSaveTrf');
+    if (btn) btn.innerHTML = isEdit
+        ? '<i class="bi bi-check-lg me-1"></i>আপডেট করুন'
+        : '<i class="bi bi-check-lg me-1"></i>ট্রান্সফার করুন';
+}
+
+function openEditTransfer(id) {
+    const r = transfersCache[id];
+    if (!r) return;
+    editTrfId = id;
+    setTrfTitle(true);
+    tsSet('trfProduct', r.product_id, true);
+    tsSet('trfFrom', r.from_branch_id, true);
+    tsSet('trfTo', r.to_branch_id, true);
+    document.getElementById('trfQty').value  = parseFloat(r.quantity);
+    document.getElementById('trfNote').value = r.note || '';
+    document.getElementById('trfError').classList.add('d-none');
+    transferModal.show();
+    updateTrfFromStock();
+}
+
+async function deleteTransfer(id) {
+    if (!confirm('এই ট্রান্সফার রেকর্ডটি ডিলিট করবেন?')) return;
+    const data = await postJSON(`${BASE}/api/delete_stock_transfer.php`, { id });
+    if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.message, 'danger');
+}
+
 document.getElementById('btnTransferStock')?.addEventListener('click', () => {
+    editTrfId = null;
+    setTrfTitle(false);
     tsSet('trfProduct', '', true);
     tsSet('trfFrom', '', true);
     tsSet('trfTo', '', true);
@@ -211,7 +298,12 @@ document.getElementById('btnSaveTrf')?.addEventListener('click', async () => {
     if (qty <= 0)      { showErr(errEl, 'পরিমাণ ০ এর বেশি হতে হবে।'); return; }
     const btn = document.getElementById('btnSaveTrf');
     await submitWithSpinner(btn, async () => {
-        const data = await postJSON(`${BASE}/api/add_stock_transfer.php`, { product_id: pid, from_branch_id: from, to_branch_id: to, quantity: qty, note });
+        const url = editTrfId
+            ? `${BASE}/api/update_stock_transfer.php`
+            : `${BASE}/api/add_stock_transfer.php`;
+        const payload = { product_id: pid, from_branch_id: from, to_branch_id: to, quantity: qty, note };
+        if (editTrfId) payload.id = editTrfId;
+        const data = await postJSON(url, payload);
         if (data.success) { showToast(data.message, 'success'); transferModal.hide(); setTimeout(() => location.reload(), 700); }
         else showErr(errEl, data.message);
     });
@@ -410,10 +502,15 @@ async function loadAdjustments() {
         const data = await fetchJSON(`${BASE}/api/get_stock_adjustments.php`);
         if (!data.success) { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message}</td></tr>`; return; }
         const list = data.data || [];
-        if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">কোনো সংশোধন রেকর্ড নেই।</td></tr>'; return; }
+        adjustmentsCache = {};
+        if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">কোনো সংশোধন রেকর্ড নেই।</td></tr>'; return; }
         tbody.innerHTML = list.map(r => {
+            adjustmentsCache[r.id] = r;
             const qty = parseFloat(r.quantity);
             const qtyCell = `<span class="${qty>0?'text-success fw-semibold':'text-danger fw-semibold'}">${qty>0?'+':''}${qty.toLocaleString('bn-BD',{maximumFractionDigits:2})} ${r.unit}</span>`;
+            const actions = CAN_WRITE ? `
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditAdjustment(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAdjustment(${r.id})" title="ডিলিট"><i class="bi bi-trash"></i></button>` : '';
             return `<tr>
                 <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
                 <td class="fw-semibold">${r.product_name}</td>
@@ -422,10 +519,11 @@ async function loadAdjustments() {
                 <td><span class="badge bg-light text-dark border">${reasonLabel[r.reason]||r.reason}</span></td>
                 <td class="text-muted small">${r.note||'—'}</td>
                 <td class="text-muted small">${r.created_by_name||'—'}</td>
+                <td class="text-center text-nowrap">${actions}</td>
             </tr>`;
         }).join('');
         tbody.dataset.loaded = '1';
-    } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
+    } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
 }
 
 // ── Transfer history tab ──────────────────────────────────────────────────
@@ -438,18 +536,26 @@ async function loadTransfers() {
         const data = await fetchJSON(`${BASE}/api/get_stock_transfers.php`);
         if (!data.success) { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message}</td></tr>`; return; }
         const list = data.data || [];
-        if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">কোনো ট্রান্সফার রেকর্ড নেই।</td></tr>'; return; }
-        tbody.innerHTML = list.map(r => `<tr>
-            <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
-            <td class="fw-semibold">${r.product_name}</td>
-            <td><span class="badge bg-warning text-dark">${r.from_branch_name}</span></td>
-            <td><span class="badge bg-success">${r.to_branch_name}</span></td>
-            <td class="text-end fw-semibold">${parseFloat(r.quantity).toLocaleString('bn-BD',{maximumFractionDigits:2})} ${r.unit}</td>
-            <td class="text-muted small">${r.note||'—'}</td>
-            <td class="text-muted small">${r.created_by_name||'—'}</td>
-        </tr>`).join('');
+        transfersCache = {};
+        if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">কোনো ট্রান্সফার রেকর্ড নেই।</td></tr>'; return; }
+        tbody.innerHTML = list.map(r => {
+            transfersCache[r.id] = r;
+            const actions = CAN_WRITE ? `
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditTransfer(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteTransfer(${r.id})" title="ডিলিট"><i class="bi bi-trash"></i></button>` : '';
+            return `<tr>
+                <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
+                <td class="fw-semibold">${r.product_name}</td>
+                <td><span class="badge bg-warning text-dark">${r.from_branch_name}</span></td>
+                <td><span class="badge bg-success">${r.to_branch_name}</span></td>
+                <td class="text-end fw-semibold">${parseFloat(r.quantity).toLocaleString('bn-BD',{maximumFractionDigits:2})} ${r.unit}</td>
+                <td class="text-muted small">${r.note||'—'}</td>
+                <td class="text-muted small">${r.created_by_name||'—'}</td>
+                <td class="text-center text-nowrap">${actions}</td>
+            </tr>`;
+        }).join('');
         tbody.dataset.loaded = '1';
-    } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
+    } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────

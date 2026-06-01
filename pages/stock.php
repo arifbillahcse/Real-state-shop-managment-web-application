@@ -352,10 +352,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <th>তারিখ</th><th>পণ্য</th><th>ব্রাঞ্চ</th>
                                     <th class="text-end">পরিমাণ</th>
                                     <th>কারণ</th><th>নোট</th><th>করেছেন</th>
+                                    <th class="text-center">একশন</th>
                                 </tr>
                             </thead>
                             <tbody id="adjustBody">
-                                <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>
+                                <tr><td colspan="8" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -377,10 +378,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <th>গন্তব্য ব্রাঞ্চ</th>
                                     <th class="text-end">পরিমাণ</th>
                                     <th>নোট</th><th>করেছেন</th>
+                                    <th class="text-center">একশন</th>
                                 </tr>
                             </thead>
                             <tbody id="transferBody">
-                                <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>
+                                <tr><td colspan="8" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -478,7 +480,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h6 class="modal-title"><i class="bi bi-sliders me-1"></i>স্টক সংশোধন</h6>
+                <h6 class="modal-title" id="adjModalTitle"><i class="bi bi-sliders me-1"></i>স্টক সংশোধন</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -553,7 +555,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
-                <h6 class="modal-title"><i class="bi bi-arrow-left-right me-1"></i>ব্রাঞ্চ ট্রান্সফার</h6>
+                <h6 class="modal-title" id="trfModalTitle"><i class="bi bi-arrow-left-right me-1"></i>ব্রাঞ্চ ট্রান্সফার</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -616,6 +618,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 const STAFF_BRANCH_ID = <?= $staffBranch ?? 'null' ?>;
 const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
 const HAS_BRANCHES    = <?= !empty($branches) ? 'true' : 'false' ?>;
+const CAN_WRITE       = <?= (!$_isStaff && User::isAdminOrManager()) ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
