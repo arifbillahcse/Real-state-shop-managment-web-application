@@ -13,7 +13,6 @@ $menuItems = [
     ['icon' => 'bi-stack',         'label' => 'স্টক',            'href' => 'stock.php',      'admin' => false, 'manager' => true,  'staff' => true],
     ['icon' => 'bi-cart-check',    'label' => 'বিক্রয়',          'href' => 'sales.php',       'admin' => false, 'manager' => true,  'staff' => true],
     ['icon' => 'bi-file-earmark-text','label' => 'কোটেশন',       'href' => 'quotations.php',  'admin' => false, 'manager' => true,  'staff' => false],
-    ['icon' => 'bi-arrow-return-left','label' => 'পণ্য ফেরত',    'href' => 'returns.php',     'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-people',        'label' => 'কাস্টমার',        'href' => 'customers.php',   'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-wallet2',       'label' => 'বাকি / পেমেন্ট', 'href' => 'payments.php',    'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-calendar-check','label' => 'কিস্তি',          'href' => 'installments.php','admin' => false, 'manager' => true,  'staff' => false],
