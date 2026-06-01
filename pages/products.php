@@ -280,7 +280,6 @@ function renderProductTable(array $items): void { ?>
 <script>
 const BASE       = '<?= BASE_URL ?>';
 const CATEGORIES = <?= json_encode(array_values($categories)) ?>;
-const AUTO_EDIT  = <?= isset($_GET['edit']) ? (int)$_GET['edit'] : 'null' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/products.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

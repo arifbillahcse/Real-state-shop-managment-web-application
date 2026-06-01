@@ -256,27 +256,3 @@ document.querySelectorAll('.btn-del-cat').forEach(btn => {
     btn.addEventListener('click', deleteCategoryHandler);
 });
 
-// Auto-open edit modal when redirected from stock page with ?edit=ID
-if (typeof AUTO_EDIT === 'number' && AUTO_EDIT > 0) {
-    window.addEventListener('DOMContentLoaded', async () => {
-        const btn = document.querySelector(`.btn-edit[data-id="${AUTO_EDIT}"]`);
-        if (btn) { btn.click(); return; }
-        // Fallback: fetch directly if button not found
-        try {
-            const res  = await fetch(`${BASE}/api/get_products.php?id=${AUTO_EDIT}`);
-            const data = await res.json();
-            if (!data.success) return;
-            const p = data.product;
-            document.getElementById('productId').value   = p.id;
-            tsSet(catSelect,  String(p.category_id), true);
-            document.getElementById('productName').value = p.name;
-            document.getElementById('sizeBrand').value   = p.size_brand || '';
-            tsSet(unitSelect, p.unit, true);
-            document.getElementById('buyPrice').value    = p.buy_price;
-            document.getElementById('sellPrice').value   = p.sell_price;
-            document.getElementById('minStock').value    = p.min_stock;
-            modalTitle.innerHTML = '<i class="bi bi-pencil me-1 text-danger"></i> পণ্য সম্পাদনা';
-            productModal.show();
-        } catch {}
-    });
-}

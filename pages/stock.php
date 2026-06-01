@@ -145,17 +145,12 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                             ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>কম</span>'
                                             : '<span class="badge bg-success"><i class="bi bi-check me-1"></i>ঠিক আছে</span>' ?>
                                     </td>
-                                    <td class="text-center text-nowrap">
-                                        <button class="btn btn-sm btn-outline-warning me-1"
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-warning"
                                                 onclick="openAdjustFor(<?= $r['product_id'] ?>)"
                                                 title="স্টক সংশোধন">
                                             <i class="bi bi-sliders"></i>
                                         </button>
-                                        <a class="btn btn-sm btn-outline-primary"
-                                           href="<?= BASE_URL ?>/pages/products.php?edit=<?= $r['product_id'] ?>"
-                                           title="পণ্য সম্পাদনা">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

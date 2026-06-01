@@ -287,11 +287,6 @@ function renderSalesTable(sales) {
                     <i class="bi bi-file-text"></i>
                 </button>
                 ${IS_ADMIN && !IS_STAFF && !cancelled ? `
-                <button class="btn btn-sm btn-outline-warning"
-                        onclick="editSaleDirect(${s.id})"
-                        title="সম্পাদনা করুন">
-                    <i class="bi bi-pencil-square"></i>
-                </button>
                 <button class="btn btn-sm btn-outline-danger"
                         onclick="cancelSale(${s.id}, '${esc(s.invoice_number)}')"
                         title="বাতিল করুন">
@@ -513,18 +508,6 @@ function printInvoice() {
 // ---- Edit Sale ----
 let editSaleRowCount = 0;
 let editSaleModal = null;
-
-function editSaleDirect(saleId) {
-    if (!editSaleModal) editSaleModal = new bootstrap.Modal(document.getElementById('editSaleModal'));
-    fetch(BASE_URL + '/api/get_sale_detail.php?id=' + saleId)
-        .then(r => r.json())
-        .then(res => {
-            if (!res.success) { showToast(res.message, 'danger'); return; }
-            window._lastInvoiceRes = res;
-            openEditSale();
-        })
-        .catch(() => showToast('লোড করতে সমস্যা হয়েছে।', 'danger'));
-}
 
 function openEditSale() {
     const res = window._lastInvoiceRes;
