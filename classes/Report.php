@@ -49,12 +49,13 @@ class Report extends BaseModel
     {
         $limit = max(1, min(100, $limit));
         return Database::fetchAll(
-            "SELECT p.id, p.name AS product_name, p.type AS product_type, p.unit,
+            "SELECT p.id, p.name AS product_name, pc.name AS product_type, p.unit,
                     SUM(si.quantity)    AS total_qty,
                     SUM(si.total_price) AS total_revenue
              FROM sale_items si
              JOIN sales s    ON s.id = si.sale_id
              JOIN products p ON p.id = si.product_id
+             JOIN product_categories pc ON pc.id = p.category_id
              WHERE s.status = 'completed' AND s.sale_date BETWEEN ? AND ?
              GROUP BY p.id
              ORDER BY total_revenue DESC
@@ -69,14 +70,15 @@ class Report extends BaseModel
     public static function salesByType(string $from, string $to): array
     {
         return Database::fetchAll(
-            "SELECT p.type AS product_type,
+            "SELECT pc.name AS product_type,
                     SUM(si.quantity)    AS total_qty,
                     SUM(si.total_price) AS total_revenue
              FROM sale_items si
              JOIN sales s    ON s.id = si.sale_id
              JOIN products p ON p.id = si.product_id
+             JOIN product_categories pc ON pc.id = p.category_id
              WHERE s.status = 'completed' AND s.sale_date BETWEEN ? AND ?
-             GROUP BY p.type",
+             GROUP BY pc.id",
             [$from, $to]
         );
     }

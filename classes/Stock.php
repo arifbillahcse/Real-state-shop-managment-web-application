@@ -59,12 +59,13 @@ class Stock extends BaseModel
      */
     public static function getStockInbound(?int $productId = null, ?int $branchId = null): array
     {
-        $sql = 'SELECT si.*, p.name AS product_name, p.type AS product_type, p.unit,
+        $sql = 'SELECT si.*, p.name AS product_name, pc.name AS product_type, p.unit,
                        s.name AS supplier_name,
                        b.name AS branch_name,
                        u.name AS created_by_name
                 FROM stock_inbound si
                 JOIN  products  p  ON p.id = si.product_id
+                JOIN  product_categories pc ON pc.id = p.category_id
                 LEFT JOIN suppliers s ON s.id = si.supplier_id
                 LEFT JOIN branches  b ON b.id = si.branch_id
                 LEFT JOIN users     u ON u.id = si.created_by

@@ -164,9 +164,10 @@ class Sale extends BaseModel
         if (!$sale) return false;
 
         $sale['items'] = Database::fetchAll(
-            'SELECT si.*, p.name AS product_name, p.type AS product_type, p.unit
+            'SELECT si.*, p.name AS product_name, pc.name AS product_type, p.unit
              FROM sale_items si
              JOIN products p ON p.id = si.product_id
+             JOIN product_categories pc ON pc.id = p.category_id
              WHERE si.sale_id = ? ORDER BY si.id',
             [$id]
         );
