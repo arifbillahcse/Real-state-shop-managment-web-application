@@ -54,10 +54,10 @@ function initTomSelect(el) {
         create: false,
         allowEmptyOption: true,
         maxOptions: 1000,
+        dropdownParent: 'body',
         placeholder: placeholder || 'খুঁজুন...',
         sortField: [{ field: '$order' }, { field: '$score' }],
         onDropdownOpen: function() {
-            // Ensure all items render immediately when no search text is present
             requestAnimationFrame(() => this.refreshOptions(false));
         },
     });
