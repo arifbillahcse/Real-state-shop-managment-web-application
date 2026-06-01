@@ -1,20 +1,23 @@
 /* global BASE_URL, CAN_WRITE */
 
-let searchTimer = null;
+let searchTimer  = null;
+let activeStatus = '';   // '' | 'pending' | 'done'
 
 function esc(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
-function loadNotes(search) {
-    const list = document.getElementById('notesList');
+function loadNotes() {
+    const search = document.getElementById('searchInput').value.trim();
+    const list   = document.getElementById('notesList');
     list.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
 
-    const url = BASE_URL + '/api/get_free_notes.php' +
-                (search ? '?search=' + encodeURIComponent(search) : '');
+    const params = new URLSearchParams();
+    if (search)       params.set('search', search);
+    if (activeStatus) params.set('status', activeStatus);
 
-    fetch(url)
+    fetch(BASE_URL + '/api/get_free_notes.php?' + params.toString())
         .then(r => r.json())
         .then(res => {
             if (res.success) renderNotes(res.notes);
@@ -38,15 +41,56 @@ function renderNotes(notes) {
         return;
     }
 
-    list.innerHTML = notes.map(n => `
-    <div class="card shadow-sm mb-3 note-card" id="note-${n.id}">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-                <div class="flex-grow-1">
+    list.innerHTML = notes.map(n => noteCard(n)).join('');
+}
+
+function noteCard(n) {
+    const pinned   = parseInt(n.is_pinned) === 1;
+    const isDone   = n.status === 'done';
+    const pinnedBorder = pinned ? 'border-warning border-2' : '';
+    const fadedText    = isDone ? 'opacity-75' : '';
+
+    const statusBadge = isDone
+        ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>সফল</span>`
+        : `<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>পেন্ডিং</span>`;
+
+    const pinBadge = pinned
+        ? `<span class="badge bg-warning text-dark ms-1"><i class="bi bi-pin-angle-fill"></i> পিন</span>`
+        : '';
+
+    const actions = CAN_WRITE ? `
+        <div class="d-flex gap-1 flex-shrink-0 ms-2">
+            <!-- Pin toggle -->
+            <button class="btn btn-sm ${pinned ? 'btn-warning' : 'btn-outline-secondary'}"
+                    onclick="togglePin(${n.id})" title="${pinned ? 'পিন সরান' : 'পিন করুন'}">
+                <i class="bi bi-pin-angle${pinned ? '-fill' : ''}"></i>
+            </button>
+            <!-- Status toggle -->
+            ${isDone
+                ? `<button class="btn btn-sm btn-outline-warning" onclick="setStatus(${n.id},'pending')" title="পেন্ডিং করুন">
+                       <i class="bi bi-arrow-counterclockwise"></i>
+                   </button>`
+                : `<button class="btn btn-sm btn-outline-success" onclick="setStatus(${n.id},'done')" title="সফল চিহ্নিত করুন">
+                       <i class="bi bi-check-lg"></i>
+                   </button>`
+            }
+            <!-- Delete -->
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteNote(${n.id})" title="মুছুন">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>` : '';
+
+    return `
+    <div class="card shadow-sm mb-3 note-card ${pinnedBorder}" id="note-${n.id}">
+        <div class="card-body ${isDone ? 'bg-light' : ''}">
+            <div class="d-flex justify-content-between align-items-start gap-1">
+                <div class="flex-grow-1 ${fadedText}">
                     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                         <span class="fw-bold text-primary">
                             <i class="bi bi-person-circle me-1"></i>${esc(n.customer_name)}
                         </span>
+                        ${statusBadge}
+                        ${pinBadge}
                         <span class="badge bg-light text-dark border">
                             <i class="bi bi-calendar3 me-1"></i>${esc(n.note_date)}
                         </span>
@@ -54,16 +98,12 @@ function renderNotes(notes) {
                             <i class="bi bi-pencil me-1"></i>${esc(n.author)}
                         </span>
                     </div>
-                    <div style="white-space:pre-wrap;line-height:1.7">${esc(n.note)}</div>
+                    <div style="white-space:pre-wrap;line-height:1.7;${isDone ? 'text-decoration:line-through;color:#6c757d' : ''}">${esc(n.note)}</div>
                 </div>
-                ${CAN_WRITE ? `
-                <button class="btn btn-sm btn-outline-danger flex-shrink-0"
-                        onclick="deleteNote(${n.id})" title="মুছুন">
-                    <i class="bi bi-trash"></i>
-                </button>` : ''}
+                ${actions}
             </div>
         </div>
-    </div>`).join('');
+    </div>`;
 }
 
 // ── Submit ───────────────────────────────────────────────────────────────────
@@ -91,7 +131,7 @@ function submitNote(e) {
             document.getElementById('nDate').value = new Date().toISOString().slice(0, 10);
             document.getElementById('charCount').textContent = '0';
             showToast(res.message, 'success');
-            loadNotes(document.getElementById('searchInput').value.trim());
+            loadNotes();
         } else {
             showToast(res.message, 'danger');
         }
@@ -99,14 +139,41 @@ function submitNote(e) {
     .catch(() => {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>সংরক্ষণ করুন';
-        showToast('সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'danger');
+        showToast('সমস্যা হয়েছে।', 'danger');
     });
+}
+
+// ── Pin toggle ───────────────────────────────────────────────────────────────
+function togglePin(id) {
+    fetch(BASE_URL + '/api/update_free_note.php', {
+        method: 'POST',
+        body:   new URLSearchParams({ id, action: 'toggle_pin' })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) { showToast(res.message, 'success'); loadNotes(); }
+        else showToast(res.message, 'danger');
+    })
+    .catch(() => showToast('সমস্যা হয়েছে।', 'danger'));
+}
+
+// ── Status change ────────────────────────────────────────────────────────────
+function setStatus(id, status) {
+    fetch(BASE_URL + '/api/update_free_note.php', {
+        method: 'POST',
+        body:   new URLSearchParams({ id, action: 'set_status', status })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) { showToast(res.message, 'success'); loadNotes(); }
+        else showToast(res.message, 'danger');
+    })
+    .catch(() => showToast('সমস্যা হয়েছে।', 'danger'));
 }
 
 // ── Delete ───────────────────────────────────────────────────────────────────
 function deleteNote(id) {
     if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-
     fetch(BASE_URL + '/api/delete_free_note.php', {
         method: 'POST',
         body:   new URLSearchParams({ id })
@@ -124,16 +191,35 @@ function deleteNote(id) {
     .catch(() => showToast('মুছতে সমস্যা হয়েছে।', 'danger'));
 }
 
+// ── Filter tabs ──────────────────────────────────────────────────────────────
+document.querySelectorAll('#statusFilter button').forEach(btn => {
+    btn.addEventListener('click', function () {
+        document.querySelectorAll('#statusFilter button').forEach(b => {
+            b.classList.remove('active', 'btn-danger', 'btn-warning', 'btn-success');
+            const s = b.dataset.status;
+            b.classList.add(s === 'pending' ? 'btn-outline-warning'
+                          : s === 'done'    ? 'btn-outline-success'
+                          :                   'btn-outline-secondary');
+        });
+        this.classList.remove('btn-outline-warning', 'btn-outline-success', 'btn-outline-secondary');
+        const s = this.dataset.status;
+        this.classList.add('active', s === 'pending' ? 'btn-warning'
+                                   : s === 'done'    ? 'btn-success'
+                                   :                   'btn-danger');
+        activeStatus = s;
+        loadNotes();
+    });
+});
+
 // ── Search ───────────────────────────────────────────────────────────────────
 function clearSearch() {
     document.getElementById('searchInput').value = '';
-    loadNotes('');
+    loadNotes();
 }
 
 document.getElementById('searchInput').addEventListener('input', function () {
     clearTimeout(searchTimer);
-    const val = this.value.trim();
-    searchTimer = setTimeout(() => loadNotes(val), 350);
+    searchTimer = setTimeout(loadNotes, 350);
 });
 
 // ── Char counter ─────────────────────────────────────────────────────────────
@@ -145,4 +231,4 @@ if (nText) {
 }
 
 // Initial load
-loadNotes('');
+loadNotes();

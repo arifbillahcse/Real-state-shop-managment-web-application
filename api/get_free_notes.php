@@ -2,17 +2,22 @@
 require_once __DIR__ . '/_guard.php';
 
 $search = trim($_GET['search'] ?? '');
-$limit  = min(200, max(1, (int)($_GET['limit'] ?? 100)));
+$status = trim($_GET['status'] ?? '');   // 'pending' | 'done' | ''
+$limit  = min(200, max(1, (int)($_GET['limit'] ?? 200)));
+
+$where  = ['1=1'];
+$params = [];
 
 if ($search !== '') {
-    $rows = Database::fetchAll(
-        'SELECT * FROM free_notes WHERE customer_name LIKE ? ORDER BY note_date DESC, id DESC LIMIT ' . $limit,
-        ['%' . $search . '%']
-    );
-} else {
-    $rows = Database::fetchAll(
-        'SELECT * FROM free_notes ORDER BY note_date DESC, id DESC LIMIT ' . $limit
-    );
+    $where[]  = 'customer_name LIKE ?';
+    $params[] = '%' . $search . '%';
+}
+if ($status === 'pending' || $status === 'done') {
+    $where[]  = 'status = ?';
+    $params[] = $status;
 }
 
-jsonResponse(true, '', ['notes' => $rows]);
+$sql = 'SELECT * FROM free_notes WHERE ' . implode(' AND ', $where)
+     . ' ORDER BY is_pinned DESC, note_date DESC, id DESC LIMIT ' . $limit;
+
+jsonResponse(true, '', ['notes' => Database::fetchAll($sql, $params)]);
