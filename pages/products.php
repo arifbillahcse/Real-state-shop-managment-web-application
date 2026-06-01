@@ -161,6 +161,7 @@ function renderProductTable(array $items): void { ?>
                                 <option value="cft">ঘনফুট (cft)</option>
                                 <option value="kg">কেজি (kg)</option>
                                 <option value="liter">লিটার (liter)</option>
+                                <option value="other">অন্যান্য</option>
                             </select>
                         </div>
                     </div>
