@@ -18,9 +18,9 @@ $branches    = Branch::getBranches();
 
 $lowStock = array_filter($allStock, fn($r) => $r['min_stock'] > 0 && $r['current_stock'] <= $r['min_stock']);
 
-// Group products by type for modal selects
+// Group products by category for modal selects
 $productsByType = [];
-foreach ($products as $p) { $productsByType[$p['type']][] = $p; }
+foreach ($products as $p) { $productsByType[$p['category_name']][] = $p; }
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/sidebar.php';
@@ -133,9 +133,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                 ?>
                                 <tr class="<?= $low ? 'table-danger' : '' ?>">
                                     <td class="fw-semibold"><?= e($r['product_name']) ?></td>
-                                    <td><span class="badge <?= $r['product_type']==='rod' ? 'bg-primary' : 'bg-warning text-dark' ?>">
-                                        <?= $r['product_type']==='rod' ? 'রড' : 'সিমেন্ট' ?>
-                                    </span></td>
+                                    <td><span class="badge bg-secondary"><?= e($r['product_type']) ?></span></td>
                                     <td><?= e($r['size_brand'] ?? '—') ?></td>
                                     <td class="text-end <?= $low ? 'low-stock' : '' ?>"><?= $qty ?> <?= e($r['unit']) ?></td>
                                     <td class="text-end"><?= rtrim(rtrim($r['min_stock'],'0'),'.') ?> <?= e($r['unit']) ?></td>
@@ -312,7 +310,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <td><?= date('d M Y', strtotime($h['inbound_date'])) ?></td>
                                     <td>
                                         <div class="fw-semibold"><?= e($h['product_name']) ?></div>
-                                        <small class="text-muted"><?= $h['product_type']==='rod' ? 'রড' : 'সিমেন্ট' ?></small>
+                                        <small class="text-muted"><?= e($h['product_type']) ?></small>
                                     </td>
                                     <td><?= !empty($h['branch_name']) ? '<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>'.e($h['branch_name']).'</span>' : '<span class="text-muted">—</span>' ?></td>
                                     <td><?= e($h['supplier_name'] ?? '—') ?></td>
@@ -404,7 +402,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                         <select name="product_id" id="inboundProduct" class="form-select" required>
                             <option value="">— পণ্য নির্বাচন করুন —</option>
                             <?php foreach ($productsByType as $type => $list): ?>
-                            <optgroup label="<?= $type === 'rod' ? 'রড' : 'সিমেন্ট' ?>">
+                            <optgroup label="<?= e($type) ?>">
                                 <?php foreach ($list as $p): ?>
                                 <option value="<?= $p['id'] ?>"><?= e($p['name']) ?> (<?= e($p['size_brand']) ?>)</option>
                                 <?php endforeach; ?>
