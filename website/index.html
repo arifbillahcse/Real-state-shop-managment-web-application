@@ -4,247 +4,547 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>নিহারিকা এন্টারপ্রাইজ | মঠবাড়িয়া, পিরোজপুর</title>
-    <meta name="description" content="নিহারিকা এন্টারপ্রাইজ - মঠবাড়িয়া, পিরোজপুর-এর বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী। রড, সিমেন্ট, বালু সহ সকল নির্মাণ সামগ্রী।">
+    <meta name="description" content="নিহারিকা এন্টারপ্রাইজ — মঠবাড়িয়া, পিরোজপুর-এর বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী।">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <!-- ============ Top Bar ============ -->
+    <!-- ===== Preloader ===== -->
+    <div class="preloader" id="preloader">
+        <div class="pre-logo">
+            <span class="pre-mark">নি</span>
+            <div class="pre-bar"></div>
+        </div>
+    </div>
+
+    <!-- ===== Top Bar ===== -->
     <div class="topbar">
         <div class="container topbar-inner">
             <div class="topbar-left">
-                <span>📍 মঠবাড়িয়া, পিরোজপুর</span>
-                <span class="hide-mobile">✉️ niharica.enterprise@gmail.com</span>
+                <span class="tb-item"><i class="ic ic-pin"></i>মঠবাড়িয়া, পিরোজপুর, বাংলাদেশ</span>
+                <span class="tb-item hide-sm"><i class="ic ic-mail"></i>niharica.enterprise@gmail.com</span>
             </div>
             <div class="topbar-right">
-                <a href="tel:+8801700000000">📞 ০১৭০০-০০০০০০</a>
+                <span class="tb-item tb-time"><i class="ic ic-clock"></i>শনি–বৃহস্পতি: সকাল ৮টা – রাত ৮টা</span>
+                <a href="tel:+8801700000000" class="tb-phone"><i class="ic ic-phone"></i>০১৭০০-০০০০০০</a>
             </div>
         </div>
     </div>
 
-    <!-- ============ Navbar ============ -->
+    <!-- ===== Navbar ===== -->
     <header class="navbar" id="navbar">
         <div class="container navbar-inner">
             <a href="#home" class="brand">
-                <span class="brand-mark">নি</span>
-                <span class="brand-text">
+                <div class="brand-logo">
+                    <span>নি</span>
+                    <div class="brand-glow"></div>
+                </div>
+                <div class="brand-text">
                     <strong>নিহারিকা এন্টারপ্রাইজ</strong>
                     <small>NIHARICA ENTERPRISE</small>
-                </span>
+                </div>
             </a>
             <nav class="nav-links" id="navLinks">
-                <a href="#home">হোম</a>
-                <a href="#about">আমাদের সম্পর্কে</a>
-                <a href="#products">পণ্যসমূহ</a>
-                <a href="#why">কেন আমরা</a>
-                <a href="#contact">যোগাযোগ</a>
+                <a href="#home" class="nav-link">হোম</a>
+                <a href="#about" class="nav-link">আমাদের সম্পর্কে</a>
+                <a href="#products" class="nav-link">পণ্যসমূহ</a>
+                <a href="#why" class="nav-link">কেন আমরা</a>
+                <a href="#contact" class="nav-link">যোগাযোগ</a>
+                <a href="tel:+8801700000000" class="nav-cta">📞 কল করুন</a>
             </nav>
-            <button class="nav-toggle" id="navToggle" aria-label="Menu">
+            <button class="hamburger" id="hamburger" aria-label="menu">
                 <span></span><span></span><span></span>
             </button>
         </div>
     </header>
 
-    <!-- ============ Hero ============ -->
+    <!-- ===== Hero ===== -->
     <section class="hero" id="home">
-        <div class="hero-overlay"></div>
+        <!-- Animated background shapes -->
+        <div class="hero-bg">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+            <div class="particles" id="particles"></div>
+        </div>
+
         <div class="container hero-content">
-            <p class="hero-tag">বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী</p>
-            <h1>আপনার স্বপ্নের নির্মাণে<br><span>মানসম্মত সামগ্রী</span></h1>
-            <p class="hero-sub">রড, সিমেন্ট, বালু সহ সকল নির্মাণ সামগ্রী একই ছাদের নিচে। মঠবাড়িয়া, পিরোজপুর-এ বিশ্বস্ততার সাথে সেবা দিয়ে আসছি।</p>
-            <div class="hero-btns">
-                <a href="#products" class="btn btn-primary">পণ্য দেখুন</a>
-                <a href="#contact" class="btn btn-outline">যোগাযোগ করুন</a>
+            <div class="hero-text">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী
+                </div>
+                <h1>
+                    আপনার স্বপ্নের<br>
+                    <span class="gradient-text">নির্মাণে মানসম্মত</span><br>
+                    সামগ্রী
+                </h1>
+                <p class="hero-sub">রড, সিমেন্ট, বালু সহ সকল নির্মাণ সামগ্রী একই ছাদের নিচে। মঠবাড়িয়া, পিরোজপুর-এ ১৫+ বছর ধরে বিশ্বস্ততার সাথে সেবা দিয়ে আসছি।</p>
+                <div class="hero-actions">
+                    <a href="#products" class="btn btn-hero-primary">
+                        <span>পণ্য দেখুন</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                    <a href="#contact" class="btn btn-hero-ghost">যোগাযোগ করুন</a>
+                </div>
+                <div class="hero-trust">
+                    <div class="trust-avatars">
+                        <div class="avatar av1">ক</div>
+                        <div class="avatar av2">র</div>
+                        <div class="avatar av3">ম</div>
+                        <div class="avatar av4">+</div>
+                    </div>
+                    <p><strong>৫০০+</strong> সন্তুষ্ট গ্রাহক আমাদের বিশ্বাস করেন</p>
+                </div>
             </div>
+            <div class="hero-visual">
+                <div class="hero-card-wrap">
+                    <div class="hero-main-card">
+                        <div class="hmc-header">
+                            <div class="hmc-logo">নি</div>
+                            <div>
+                                <strong>নিহারিকা এন্টারপ্রাইজ</strong>
+                                <span>মঠবাড়িয়া, পিরোজপুর</span>
+                            </div>
+                        </div>
+                        <div class="hmc-body">
+                            <div class="hmc-icon">🏗️</div>
+                            <p>নির্মাণের প্রতিটি ধাপে<br>আমরা আপনার পাশে</p>
+                        </div>
+                        <div class="hmc-products">
+                            <span>রড</span><span>সিমেন্ট</span><span>বালু</span><span>পাইপ</span>
+                        </div>
+                    </div>
+                    <div class="float-card fc-1">
+                        <span class="fc-icon">✅</span>
+                        <div><strong>মান নিশ্চিত</strong><small>প্রতিটি পণ্য যাচাইকৃত</small></div>
+                    </div>
+                    <div class="float-card fc-2">
+                        <span class="fc-icon">🚚</span>
+                        <div><strong>দ্রুত ডেলিভারি</strong><small>সময়মতো সাইটে</small></div>
+                    </div>
+                    <div class="float-card fc-3">
+                        <span class="fc-icon">⭐</span>
+                        <div><strong>৪.৯/৫ রেটিং</strong><small>গ্রাহক সন্তুষ্টি</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-scroll">
+            <span>নিচে স্ক্রোল করুন</span>
+            <div class="scroll-line"></div>
         </div>
     </section>
 
-    <!-- ============ Stats ============ -->
+    <!-- ===== Stats ===== -->
     <section class="stats">
         <div class="container stats-grid">
-            <div class="stat"><h3 data-count="15">০</h3><p>বছরের অভিজ্ঞতা</p></div>
-            <div class="stat"><h3 data-count="500">০</h3><p>সন্তুষ্ট গ্রাহক</p></div>
-            <div class="stat"><h3 data-count="30">০</h3><p>পণ্যের ধরন</p></div>
-            <div class="stat"><h3 data-count="100">০</h3><p>% মান নিশ্চয়তা</p></div>
+            <div class="stat-item">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-info">
+                    <h3><span data-count="15" class="count-num">০</span><span class="stat-plus">+</span></h3>
+                    <p>বছরের অভিজ্ঞতা</p>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <h3><span data-count="500" class="count-num">০</span><span class="stat-plus">+</span></h3>
+                    <p>সন্তুষ্ট গ্রাহক</p>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="stat-icon">📦</div>
+                <div class="stat-info">
+                    <h3><span data-count="30" class="count-num">০</span><span class="stat-plus">+</span></h3>
+                    <p>পণ্যের ধরন</p>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="stat-icon">✨</div>
+                <div class="stat-info">
+                    <h3><span data-count="100" class="count-num">০</span><span class="stat-plus">%</span></h3>
+                    <p>মান নিশ্চয়তা</p>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- ============ About ============ -->
+    <!-- ===== About ===== -->
     <section class="about section" id="about">
-        <div class="container about-grid">
-            <div class="about-img">
-                <div class="about-img-box"></div>
-                <div class="about-badge">
+        <div class="container about-wrap">
+            <div class="about-visual" data-reveal="left">
+                <div class="av-bg-ring"></div>
+                <div class="av-main">
+                    <div class="av-icon-big">🏗️</div>
+                    <div class="av-pattern"></div>
+                </div>
+                <div class="av-badge-1">
                     <strong>১৫+</strong>
-                    <span>বছরের বিশ্বস্ততা</span>
+                    <span>বছর</span>
+                </div>
+                <div class="av-badge-2">
+                    <span class="ab2-icon">🌟</span>
+                    <div>
+                        <strong>বিশ্বস্ত প্রতিষ্ঠান</strong>
+                        <small>মঠবাড়িয়া, পিরোজপুর</small>
+                    </div>
                 </div>
             </div>
-            <div class="about-text">
-                <span class="section-tag">আমাদের সম্পর্কে</span>
-                <h2>মঠবাড়িয়ার অন্যতম নির্ভরযোগ্য নির্মাণ সামগ্রীর প্রতিষ্ঠান</h2>
-                <p>নিহারিকা এন্টারপ্রাইজ মঠবাড়িয়া, পিরোজপুর-এ অবস্থিত একটি স্বনামধন্য নির্মাণ সামগ্রী সরবরাহকারী প্রতিষ্ঠান। আমরা দীর্ঘদিন ধরে স্থানীয় গ্রাহক, ঠিকাদার ও নির্মাতাদের কাছে মানসম্মত পণ্য ন্যায্য দামে পৌঁছে দিচ্ছি।</p>
-                <p>আমাদের লক্ষ্য — গ্রাহকের আস্থা অর্জন করে সততা ও গুণমানের সাথে সেবা প্রদান করা। আপনি ছোট বাড়ি নির্মাণ করুন বা বড় প্রকল্প, প্রয়োজনীয় সকল সামগ্রী আমরা সরবরাহ করি।</p>
-                <ul class="about-list">
-                    <li>✔ ব্র্যান্ডেড ও মানসম্মত পণ্য</li>
-                    <li>✔ প্রতিযোগিতামূলক দাম</li>
-                    <li>✔ দ্রুত হোম ডেলিভারি</li>
-                    <li>✔ বাকিতে ক্রয়ের সুবিধা</li>
-                </ul>
+            <div class="about-content" data-reveal="right">
+                <div class="section-label">আমাদের সম্পর্কে</div>
+                <h2 class="section-title">মঠবাড়িয়ার অন্যতম <span>নির্ভরযোগ্য</span> নির্মাণ সামগ্রীর প্রতিষ্ঠান</h2>
+                <p class="about-lead">নিহারিকা এন্টারপ্রাইজ মঠবাড়িয়া, পিরোজপুর-এ অবস্থিত একটি স্বনামধন্য নির্মাণ সামগ্রী সরবরাহকারী প্রতিষ্ঠান।</p>
+                <p class="about-body">আমরা দীর্ঘদিন ধরে স্থানীয় গ্রাহক, ঠিকাদার ও নির্মাতাদের কাছে মানসম্মত পণ্য ন্যায্য দামে পৌঁছে দিচ্ছি। আমাদের লক্ষ্য — গ্রাহকের আস্থা অর্জন করে সততা ও গুণমানের সাথে সেবা প্রদান করা।</p>
+                <div class="about-features">
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>ব্র্যান্ডেড ও মানসম্মত পণ্য</span>
+                    </div>
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>প্রতিযোগিতামূলক মূল্য</span>
+                    </div>
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>দ্রুত হোম ডেলিভারি</span>
+                    </div>
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>বাকিতে ক্রয়ের সুবিধা</span>
+                    </div>
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>স্বচ্ছ হিসাব ব্যবস্থা</span>
+                    </div>
+                    <div class="af-item">
+                        <div class="af-check">✓</div>
+                        <span>বিক্রয়োত্তর সেবা</span>
+                    </div>
+                </div>
+                <a href="#contact" class="btn btn-primary-grad">আমাদের সাথে কথা বলুন
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- ============ Products ============ -->
+    <!-- ===== Products ===== -->
     <section class="products section" id="products">
+        <div class="products-bg-decor"></div>
         <div class="container">
-            <div class="section-head">
-                <span class="section-tag">আমাদের পণ্যসমূহ</span>
-                <h2>যা যা পাওয়া যায়</h2>
-                <p>নির্মাণের প্রতিটি ধাপের জন্য প্রয়োজনীয় সকল সামগ্রী আমাদের কাছে পাবেন।</p>
+            <div class="section-head" data-reveal="up">
+                <div class="section-label">আমাদের পণ্যসমূহ</div>
+                <h2 class="section-title">যা যা <span>পাওয়া যায়</span></h2>
+                <p>নির্মাণের প্রতিটি ধাপের জন্য প্রয়োজনীয় সকল সামগ্রী একটাই জায়গায় পাবেন।</p>
             </div>
-            <div class="product-grid">
-                <div class="product-card">
-                    <div class="product-icon">🏗️</div>
+            <div class="products-grid">
+                <div class="prod-card" data-reveal="up" style="--d:.0s">
+                    <div class="pc-top">
+                        <div class="pc-icon-wrap">
+                            <span class="pc-icon">⚙️</span>
+                        </div>
+                        <div class="pc-tag">সর্বাধিক বিক্রিত</div>
+                    </div>
                     <h3>রড (Rod)</h3>
-                    <p>BSRM, GPH, AKS সহ বিভিন্ন ব্র্যান্ডের ১০মিমি, ১২মিমি, ১৬মিমি রড।</p>
+                    <p>BSRM, GPH, AKS সহ বিভিন্ন ব্র্যান্ডের উচ্চমানের রড।</p>
+                    <ul class="pc-list">
+                        <li>১০মিমি — ৬০০ ওয়াট</li>
+                        <li>১২মিমি — ৬০০ ওয়াট</li>
+                        <li>১৬মিমি — ৬০০ ওয়াট</li>
+                        <li>বিভিন্ন সাইজে পাওয়া যায়</li>
+                    </ul>
+                    <div class="pc-footer">
+                        <span class="pc-brand">BSRM · GPH · AKS</span>
+                    </div>
                 </div>
-                <div class="product-card">
-                    <div class="product-icon">🧱</div>
+
+                <div class="prod-card" data-reveal="up" style="--d:.1s">
+                    <div class="pc-top">
+                        <div class="pc-icon-wrap pc-iw-2">
+                            <span class="pc-icon">🧱</span>
+                        </div>
+                    </div>
                     <h3>সিমেন্ট (Cement)</h3>
-                    <p>শাহ সিমেন্ট সহ মানসম্মত ব্র্যান্ডের সিমেন্ট, ব্যাগ হিসেবে সরবরাহ।</p>
+                    <p>দেশের সেরা ব্র্যান্ডের মানসম্মত সিমেন্ট, ব্যাগ হিসেবে সরবরাহ।</p>
+                    <ul class="pc-list">
+                        <li>শাহ সিমেন্ট (বিশেষ)</li>
+                        <li>শাহ সিমেন্ট (নম্বর ওয়ান)</li>
+                        <li>বাল্ক অর্ডারে বিশেষ ছাড়</li>
+                        <li>দ্রুত ডেলিভারি</li>
+                    </ul>
+                    <div class="pc-footer">
+                        <span class="pc-brand">Shah Cement</span>
+                    </div>
                 </div>
-                <div class="product-card">
-                    <div class="product-icon">⛰️</div>
+
+                <div class="prod-card" data-reveal="up" style="--d:.2s">
+                    <div class="pc-top">
+                        <div class="pc-icon-wrap pc-iw-3">
+                            <span class="pc-icon">⛰️</span>
+                        </div>
+                    </div>
                     <h3>বালু (Sand)</h3>
-                    <p>সিলেট বালু ও যমুনা বালু — সকল প্রকার নির্মাণ কাজের উপযোগী।</p>
+                    <p>উচ্চমানের বালু সকল প্রকার নির্মাণ কাজের জন্য উপযুক্ত।</p>
+                    <ul class="pc-list">
+                        <li>সিলেট বালু</li>
+                        <li>যমুনা বালু</li>
+                        <li>যেকোনো পরিমাণে সরবরাহ</li>
+                        <li>সাশ্রয়ী মূল্যে</li>
+                    </ul>
+                    <div class="pc-footer">
+                        <span class="pc-brand">Sylhet · Jamuna</span>
+                    </div>
                 </div>
-                <div class="product-card">
-                    <div class="product-icon">🔧</div>
+
+                <div class="prod-card" data-reveal="up" style="--d:.3s">
+                    <div class="pc-top">
+                        <div class="pc-icon-wrap pc-iw-4">
+                            <span class="pc-icon">🔧</span>
+                        </div>
+                    </div>
                     <h3>পাইপ ও ফিটিংস</h3>
-                    <p>বিভিন্ন সাইজের পাইপ ও আনুষঙ্গিক ফিটিংস সামগ্রী।</p>
+                    <p>বিভিন্ন সাইজ ও মানের পাইপ এবং আনুষঙ্গিক ফিটিংস।</p>
+                    <ul class="pc-list">
+                        <li>৩" পাইপ</li>
+                        <li>বিভিন্ন সাইজের পাইপ</li>
+                        <li>সকল প্রকার ফিটিংস</li>
+                        <li>দীর্ঘস্থায়ী মান</li>
+                    </ul>
+                    <div class="pc-footer">
+                        <span class="pc-brand">সকল ব্র্যান্ড</span>
+                    </div>
                 </div>
-                <div class="product-card">
-                    <div class="product-icon">✂️</div>
-                    <h3>রড কাটার ও যন্ত্রপাতি</h3>
-                    <p>নির্মাণ কাজের প্রয়োজনীয় টুলস ও যন্ত্রপাতি।</p>
+
+                <div class="prod-card" data-reveal="up" style="--d:.4s">
+                    <div class="pc-top">
+                        <div class="pc-icon-wrap pc-iw-5">
+                            <span class="pc-icon">✂️</span>
+                        </div>
+                    </div>
+                    <h3>যন্ত্রপাতি ও টুলস</h3>
+                    <p>নির্মাণ কাজের জন্য প্রয়োজনীয় সকল যন্ত্রপাতি।</p>
+                    <ul class="pc-list">
+                        <li>রড কাটার মেশিন</li>
+                        <li>নির্মাণ সরঞ্জাম</li>
+                        <li>বিভিন্ন ধরনের টুলস</li>
+                        <li>মানসম্মত যন্ত্রপাতি</li>
+                    </ul>
+                    <div class="pc-footer">
+                        <span class="pc-brand">সকল ব্র্যান্ড</span>
+                    </div>
                 </div>
-                <div class="product-card">
-                    <div class="product-icon">👷</div>
-                    <h3>শ্রমিক / লেবার সাপোর্ট</h3>
-                    <p>মালামাল লোড-আনলোড ও সরবরাহের জন্য লেবার সাপোর্ট।</p>
+
+                <div class="prod-card prod-card-cta" data-reveal="up" style="--d:.5s">
+                    <div class="pcc-inner">
+                        <div class="pcc-icon">💬</div>
+                        <h3>কাস্টম অর্ডার দিন</h3>
+                        <p>আপনার নির্মাণ প্রকল্পের জন্য প্রয়োজনীয় সব সামগ্রী একসাথে অর্ডার করুন। বিশেষ মূল্যে পাবেন।</p>
+                        <a href="#contact" class="btn btn-white-fill">এখনই যোগাযোগ করুন</a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ============ Why Choose Us ============ -->
+    <!-- ===== Why Choose Us ===== -->
     <section class="why section" id="why">
         <div class="container">
-            <div class="section-head light">
-                <span class="section-tag">কেন আমরা</span>
-                <h2>কেন নিহারিকা এন্টারপ্রাইজ বেছে নেবেন?</h2>
+            <div class="section-head white" data-reveal="up">
+                <div class="section-label label-gold">কেন আমরা</div>
+                <h2 class="section-title">কেন <span class="text-gold">নিহারিকা এন্টারপ্রাইজ</span> বেছে নেবেন?</h2>
+                <p>আমরা শুধু পণ্য বিক্রি করি না — আপনার নির্মাণ স্বপ্নকে বাস্তবে রূপ দিতে সহায়তা করি।</p>
             </div>
             <div class="why-grid">
-                <div class="why-card">
-                    <div class="why-num">০১</div>
+                <div class="why-card" data-reveal="up" style="--d:.0s">
+                    <div class="wc-num">০১</div>
+                    <div class="wc-icon">🏅</div>
                     <h3>মান নিশ্চয়তা</h3>
-                    <p>শুধুমাত্র যাচাইকৃত ব্র্যান্ডের আসল পণ্য সরবরাহ করি।</p>
+                    <p>শুধুমাত্র যাচাইকৃত ব্র্যান্ডের আসল পণ্য সরবরাহ করি। প্রতিটি পণ্যের গুণমান আমাদের অঙ্গীকার।</p>
+                    <div class="wc-line"></div>
                 </div>
-                <div class="why-card">
-                    <div class="why-num">০২</div>
+                <div class="why-card" data-reveal="up" style="--d:.1s">
+                    <div class="wc-num">০২</div>
+                    <div class="wc-icon">💰</div>
                     <h3>ন্যায্য মূল্য</h3>
-                    <p>বাজারের সেরা প্রতিযোগিতামূলক দাম নিশ্চিত করি।</p>
+                    <p>বাজারের সেরা প্রতিযোগিতামূলক দাম নিশ্চিত করি। বড় অর্ডারে বিশেষ ছাড়ের সুবিধা।</p>
+                    <div class="wc-line"></div>
                 </div>
-                <div class="why-card">
-                    <div class="why-num">০৩</div>
+                <div class="why-card" data-reveal="up" style="--d:.2s">
+                    <div class="wc-num">০৩</div>
+                    <div class="wc-icon">🚛</div>
                     <h3>দ্রুত ডেলিভারি</h3>
-                    <p>সময়মতো আপনার সাইটে মালামাল পৌঁছে দিই।</p>
+                    <p>সময়মতো আপনার নির্মাণ সাইটে মালামাল পৌঁছে দেওয়া আমাদের প্রতিশ্রুতি।</p>
+                    <div class="wc-line"></div>
                 </div>
-                <div class="why-card">
-                    <div class="why-num">০৪</div>
+                <div class="why-card" data-reveal="up" style="--d:.3s">
+                    <div class="wc-num">০৪</div>
+                    <div class="wc-icon">🤝</div>
                     <h3>বিশ্বস্ত সেবা</h3>
-                    <p>স্বচ্ছ হিসাব ও বিশ্বস্ত গ্রাহক সেবা আমাদের অঙ্গীকার।</p>
+                    <p>১৫+ বছর ধরে স্বচ্ছ হিসাব ও বিশ্বস্ত সেবার মাধ্যমে গ্রাহকের আস্থা অর্জন করেছি।</p>
+                    <div class="wc-line"></div>
                 </div>
+            </div>
+        </div>
+        <div class="why-bg-circle wbc-1"></div>
+        <div class="why-bg-circle wbc-2"></div>
+    </section>
+
+    <!-- ===== Testimonial Band ===== -->
+    <section class="testimonial-band">
+        <div class="container tb-inner">
+            <div class="tb-text">
+                <h2>আপনার স্বপ্নের নির্মাণ শুরু হোক আজই</h2>
+                <p>মঠবাড়িয়া, পিরোজপুরে আমাদের সাথে যোগাযোগ করুন</p>
+            </div>
+            <div class="tb-actions">
+                <a href="tel:+8801700000000" class="btn btn-gold">📞 এখনই ফোন করুন</a>
+                <a href="#contact" class="btn btn-outline-white">বার্তা পাঠান</a>
             </div>
         </div>
     </section>
 
-    <!-- ============ Contact ============ -->
+    <!-- ===== Contact ===== -->
     <section class="contact section" id="contact">
         <div class="container">
-            <div class="section-head">
-                <span class="section-tag">যোগাযোগ</span>
-                <h2>আমাদের সাথে যোগাযোগ করুন</h2>
+            <div class="section-head" data-reveal="up">
+                <div class="section-label">যোগাযোগ</div>
+                <h2 class="section-title">আমাদের সাথে <span>যোগাযোগ করুন</span></h2>
                 <p>যেকোনো প্রয়োজনে বা অর্ডারের জন্য নিচের তথ্য ব্যবহার করুন।</p>
             </div>
-            <div class="contact-grid">
-                <div class="contact-info">
-                    <div class="contact-item">
-                        <span class="contact-ic">📍</span>
-                        <div><strong>ঠিকানা</strong><p>মঠবাড়িয়া, পিরোজপুর, বাংলাদেশ</p></div>
+            <div class="contact-layout">
+                <div class="contact-info-wrap" data-reveal="left">
+                    <div class="ci-card">
+                        <div class="ci-item">
+                            <div class="ci-ic">📍</div>
+                            <div class="ci-detail">
+                                <strong>ঠিকানা</strong>
+                                <span>মঠবাড়িয়া, পিরোজপুর, বাংলাদেশ</span>
+                            </div>
+                        </div>
+                        <div class="ci-item">
+                            <div class="ci-ic">📞</div>
+                            <div class="ci-detail">
+                                <strong>ফোন নম্বর</strong>
+                                <a href="tel:+8801700000000">০১৭০০-০০০০০০</a>
+                            </div>
+                        </div>
+                        <div class="ci-item">
+                            <div class="ci-ic">✉️</div>
+                            <div class="ci-detail">
+                                <strong>ইমেইল</strong>
+                                <span>niharica.enterprise@gmail.com</span>
+                            </div>
+                        </div>
+                        <div class="ci-item">
+                            <div class="ci-ic">🕒</div>
+                            <div class="ci-detail">
+                                <strong>ব্যবসায়িক সময়</strong>
+                                <span>শনি – বৃহস্পতি: সকাল ৮টা – রাত ৮টা</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="contact-item">
-                        <span class="contact-ic">📞</span>
-                        <div><strong>ফোন</strong><p><a href="tel:+8801700000000">০১৭০০-০০০০০০</a></p></div>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-ic">✉️</span>
-                        <div><strong>ইমেইল</strong><p>niharica.enterprise@gmail.com</p></div>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-ic">🕒</span>
-                        <div><strong>খোলা থাকে</strong><p>শনি - বৃহস্পতি, সকাল ৮টা - রাত ৮টা</p></div>
+                    <div class="map-placeholder">
+                        <div class="map-inner">
+                            <span>📍</span>
+                            <p><strong>নিহারিকা এন্টারপ্রাইজ</strong></p>
+                            <small>মঠবাড়িয়া, পিরোজপুর</small>
+                        </div>
                     </div>
                 </div>
-                <form class="contact-form" id="contactForm" novalidate>
-                    <div class="form-row">
-                        <input type="text" name="name" placeholder="আপনার নাম" required>
-                        <input type="tel" name="phone" placeholder="মোবাইল নম্বর" required>
-                    </div>
-                    <input type="text" name="subject" placeholder="বিষয়">
-                    <textarea name="message" rows="5" placeholder="আপনার বার্তা লিখুন..." required></textarea>
-                    <button type="submit" class="btn btn-primary">বার্তা পাঠান</button>
-                    <p class="form-msg" id="formMsg"></p>
-                </form>
+                <div class="contact-form-wrap" data-reveal="right">
+                    <form class="cform" id="contactForm" novalidate>
+                        <h3>বার্তা পাঠান</h3>
+                        <p>আপনার তথ্য দিন, আমরা শীঘ্রই যোগাযোগ করব।</p>
+                        <div class="cf-row">
+                            <div class="cf-group">
+                                <label>আপনার নাম *</label>
+                                <input type="text" name="name" placeholder="যেমন: মো: রহিম" required>
+                            </div>
+                            <div class="cf-group">
+                                <label>মোবাইল নম্বর *</label>
+                                <input type="tel" name="phone" placeholder="০১XXXXXXXXX" required>
+                            </div>
+                        </div>
+                        <div class="cf-group">
+                            <label>বিষয়</label>
+                            <input type="text" name="subject" placeholder="যেমন: রড সম্পর্কে জানতে চাই">
+                        </div>
+                        <div class="cf-group">
+                            <label>আপনার বার্তা *</label>
+                            <textarea name="message" rows="5" placeholder="বিস্তারিত লিখুন..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary-grad cf-submit">
+                            <span>বার্তা পাঠান</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        </button>
+                        <div class="cf-msg" id="cfMsg"></div>
+                    </form>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- ============ Footer ============ -->
+    <!-- ===== Footer ===== -->
     <footer class="footer">
-        <div class="container footer-grid">
-            <div class="footer-col">
-                <a href="#home" class="brand brand-footer">
-                    <span class="brand-mark">নি</span>
-                    <span class="brand-text"><strong>নিহারিকা এন্টারপ্রাইজ</strong><small>NIHARICA ENTERPRISE</small></span>
-                </a>
-                <p>মঠবাড়িয়া, পিরোজপুর-এর বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী প্রতিষ্ঠান।</p>
-            </div>
-            <div class="footer-col">
-                <h4>দ্রুত লিংক</h4>
-                <a href="#home">হোম</a>
-                <a href="#about">আমাদের সম্পর্কে</a>
-                <a href="#products">পণ্যসমূহ</a>
-                <a href="#contact">যোগাযোগ</a>
-            </div>
-            <div class="footer-col">
-                <h4>যোগাযোগ</h4>
-                <p>📍 মঠবাড়িয়া, পিরোজপুর</p>
-                <p>📞 ০১৭০০-০০০০০০</p>
-                <p>✉️ niharica.enterprise@gmail.com</p>
+        <div class="footer-top">
+            <div class="container footer-grid">
+                <div class="fg-brand">
+                    <a href="#home" class="brand">
+                        <div class="brand-logo"><span>নি</span><div class="brand-glow"></div></div>
+                        <div class="brand-text">
+                            <strong>নিহারিকা এন্টারপ্রাইজ</strong>
+                            <small>NIHARICA ENTERPRISE</small>
+                        </div>
+                    </a>
+                    <p>মঠবাড়িয়া, পিরোজপুর-এর বিশ্বস্ত নির্মাণ সামগ্রী সরবরাহকারী। ১৫+ বছরের অভিজ্ঞতায় আপনার পাশে।</p>
+                    <div class="fg-contact-chips">
+                        <a href="tel:+8801700000000" class="fcc">📞 কল</a>
+                        <a href="mailto:niharica.enterprise@gmail.com" class="fcc">✉️ ইমেইল</a>
+                    </div>
+                </div>
+                <div class="fg-col">
+                    <h4>দ্রুত লিংক</h4>
+                    <a href="#home">হোম</a>
+                    <a href="#about">আমাদের সম্পর্কে</a>
+                    <a href="#products">পণ্যসমূহ</a>
+                    <a href="#why">কেন আমরা</a>
+                    <a href="#contact">যোগাযোগ</a>
+                </div>
+                <div class="fg-col">
+                    <h4>পণ্যসমূহ</h4>
+                    <a href="#products">রড (BSRM, GPH, AKS)</a>
+                    <a href="#products">শাহ সিমেন্ট</a>
+                    <a href="#products">সিলেট বালু</a>
+                    <a href="#products">যমুনা বালু</a>
+                    <a href="#products">পাইপ ও ফিটিংস</a>
+                </div>
+                <div class="fg-col">
+                    <h4>যোগাযোগ</h4>
+                    <p>📍 মঠবাড়িয়া, পিরোজপুর</p>
+                    <p>📞 ০১৭০০-০০০০০০</p>
+                    <p>✉️ niharica.enterprise@gmail.com</p>
+                    <p>🕒 শনি–বৃহস্পতি ৮AM–৮PM</p>
+                </div>
             </div>
         </div>
         <div class="footer-bottom">
-            <div class="container">
-                <p>© <span id="year"></span> নিহারিকা এন্টারপ্রাইজ। সর্বস্বত্ব সংরক্ষিত।</p>
+            <div class="container fb-inner">
+                <p>© <span id="yr"></span> নিহারিকা এন্টারপ্রাইজ। সর্বস্বত্ব সংরক্ষিত।</p>
+                <p>মঠবাড়িয়া, পিরোজপুর, বাংলাদেশ</p>
             </div>
         </div>
     </footer>
 
-    <a href="#home" class="back-top" id="backTop" aria-label="Back to top">↑</a>
+    <a href="#home" class="back-top" id="backTop">↑</a>
 
     <script src="js/main.js"></script>
 </body>
