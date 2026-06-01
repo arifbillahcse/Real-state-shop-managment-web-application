@@ -123,7 +123,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <th class="text-center"></th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="currentStockBody">
                             <?php if (empty($allStock)): ?>
                                 <tr><td colspan="8" class="text-center text-muted py-4">এখনো কোনো পণ্য নেই।</td></tr>
                             <?php else: ?>
@@ -156,18 +156,6 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                 <?php endforeach; ?>
                             <?php endif; ?>
                             </tbody>
-                            <?php if (!empty($allStock)):
-                                $grandTotal = array_sum(array_map(fn($r) => $r['current_stock'] * $r['buy_price'], $allStock));
-                            ?>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="6" class="text-end fw-bold">মোট স্টক মূল্য:</td>
-                                    <td class="text-end fw-bold text-danger"><?= money($grandTotal) ?></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                            <?php endif; ?>
                         </table>
                     </div>
                 </div>
@@ -311,7 +299,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     <th class="text-center" style="width:100px">অ্যাকশন</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="inboundBody">
                             <?php if (empty($history)): ?>
                                 <tr><td colspan="9" class="text-center text-muted py-4">এখনো কোনো ক্রয় রেকর্ড নেই।</td></tr>
                             <?php else: ?>
@@ -621,5 +609,6 @@ const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
 const HAS_BRANCHES    = <?= !empty($branches) ? 'true' : 'false' ?>;
 const CAN_WRITE       = <?= (!$_isStaff && User::isAdminOrManager()) ? 'true' : 'false' ?>;
 </script>
+<script src="<?= BASE_URL ?>/assets/js/pagination.js"></script>
 <script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

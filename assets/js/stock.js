@@ -4,6 +4,9 @@
 
 const BASE = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
 
+// Rows shown per page across all stock tables
+const PAGE_SIZE = 50;
+
 // ── Modal references (null if staff) ──────────────────────────────────────
 const inboundModal  = document.getElementById('inboundModal')  ? new bootstrap.Modal(document.getElementById('inboundModal'))  : null;
 const adjustModal   = document.getElementById('adjustModal')   ? new bootstrap.Modal(document.getElementById('adjustModal'))   : null;
@@ -396,6 +399,7 @@ async function loadBranchStockById(branchId, detailed = true) {
                 </tr>`;
             }
         }).join('');
+        if (typeof paginateTable === 'function') paginateTable(tbody, PAGE_SIZE);
     } catch { showToast('ডাটা লোড হয়নি।', 'danger'); }
 }
 
@@ -509,6 +513,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof IS_STAFF_VIEW !== 'undefined' && !IS_STAFF_VIEW && typeof HAS_BRANCHES !== 'undefined' && HAS_BRANCHES) {
         loadBranchComparison();
     }
+
+    // Paginate the PHP-rendered tables (50 rows per page)
+    if (typeof paginateTable === 'function') {
+        paginateTable('currentStockBody', PAGE_SIZE);
+        paginateTable('inboundBody', PAGE_SIZE);
+    }
 });
 
 // ── Adjustment history tab ────────────────────────────────────────────────
@@ -544,6 +554,7 @@ async function loadAdjustments() {
             </tr>`;
         }).join('');
         tbody.dataset.loaded = '1';
+        if (typeof paginateTable === 'function') paginateTable(tbody, PAGE_SIZE);
     } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
 }
 
@@ -576,6 +587,7 @@ async function loadTransfers() {
             </tr>`;
         }).join('');
         tbody.dataset.loaded = '1';
+        if (typeof paginateTable === 'function') paginateTable(tbody, PAGE_SIZE);
     } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
 }
 
