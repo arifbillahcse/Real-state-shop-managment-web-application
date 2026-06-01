@@ -227,7 +227,9 @@ function printQuote() {
     <meta charset="UTF-8">
     <title>কোটেশন — ${esc(q.quote_number)}</title>
     <style>
-        * { box-sizing:border-box; margin:0; padding:0; }
+        * { box-sizing:border-box; margin:0; padding:0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important; }
         body { background:#f0f0f0; padding:24px; font-family:'Hind Siliguri','Segoe UI',sans-serif; }
         @media print {
             body { background:#fff; padding:0; }

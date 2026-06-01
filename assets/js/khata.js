@@ -209,7 +209,9 @@ function printLedger() {
 <meta charset="UTF-8">
 <title>${shopName} — ${customer.name} এর খাতা</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #111; background: #fff; padding: 20px; }
 
   .header { text-align: center; border-bottom: 2px solid #c00; padding-bottom: 10px; margin-bottom: 16px; }
