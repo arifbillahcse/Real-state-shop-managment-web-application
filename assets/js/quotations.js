@@ -44,8 +44,13 @@ function renderList(rows) {
         <td class="text-muted small">${q.valid_days} দিন</td>
         <td class="text-end fw-semibold">${fmt(q.total_amount)}</td>
         <td>${badge[q.status]||''}</td>
-        <td><button class="btn btn-sm btn-outline-primary" onclick="viewQuote(${q.id})">
-            <i class="bi bi-eye"></i></button></td>
+        <td class="text-nowrap">
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="viewQuote(${q.id})" title="দেখুন">
+                <i class="bi bi-eye"></i></button>
+            ${CAN_WRITE && q.status === 'active' ? `
+            <button class="btn btn-sm btn-outline-warning" onclick="openEditQuoteById(${q.id})" title="সম্পাদনা">
+                <i class="bi bi-pencil"></i></button>` : ''}
+        </td>
     </tr>`).join('') + '</tbody></table></div>';
 }
 
@@ -236,6 +241,17 @@ function printQuote() {
 }
 
 // ── Edit quotation ────────────────────────────────────────────────────────────
+function openEditQuoteById(id) {
+    fetch(BASE_URL + '/api/get_quotation.php?id=' + id)
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) { showToast(res.message, 'danger'); return; }
+            _lastQuoteRes = res;
+            openEditQuote();
+        })
+        .catch(() => showToast('লোড করতে সমস্যা হয়েছে।', 'danger'));
+}
+
 function openEditQuote() {
     if (!_lastQuoteRes) return;
     const q = _lastQuoteRes.data;
