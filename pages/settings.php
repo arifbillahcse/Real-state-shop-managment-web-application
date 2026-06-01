@@ -18,17 +18,33 @@ $totalSupp    = Database::fetchOne('SELECT COUNT(*) AS c FROM suppliers WHERE is
 $totalBranch  = Database::fetchOne('SELECT COUNT(*) AS c FROM branches WHERE is_active = 1')['c'] ?? 0;
 $totalInbound = Database::fetchOne('SELECT COUNT(*) AS c FROM stock_inbound')['c'] ?? 0;
 $totalPay     = Database::fetchOne('SELECT COUNT(*) AS c FROM payments')['c'] ?? 0;
-$totalAdj     = Database::fetchOne('SELECT COUNT(*) AS c FROM stock_adjustments')['c'] ?? 0;
-$totalTrf     = Database::fetchOne('SELECT COUNT(*) AS c FROM stock_transfers')['c'] ?? 0;
-$totalQuote   = Database::fetchOne('SELECT COUNT(*) AS c FROM quotations')['c'] ?? 0;
 
 $salesAmount  = (float)(Database::fetchOne('SELECT COALESCE(SUM(total_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
 $paidAmount   = (float)(Database::fetchOne('SELECT COALESCE(SUM(paid_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
 $dueAmount    = (float)(Database::fetchOne('SELECT COALESCE(SUM(due_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
-$stockValue   = (float)(Database::fetchOne('SELECT COALESCE(SUM(current_stock * buy_price),0) AS t FROM vw_current_stock v JOIN products p ON p.id = v.product_id')['t'] ?? 0);
-$totalExpense = (float)(Database::fetchOne('SELECT COALESCE(SUM(amount),0) AS t FROM expenses')['t'] ?? 0);
 
-$dbSize       = Database::fetchOne("SELECT COALESCE(SUM(data_length + index_length),0) AS s FROM information_schema.tables WHERE table_schema = DATABASE()")['s'] ?? 0;
+try {
+    $stockValue = (float)(Database::fetchOne('SELECT COALESCE(SUM(current_stock * buy_price),0) AS t FROM vw_current_stock')['t'] ?? 0);
+} catch (\Throwable $e) { $stockValue = 0; }
+
+try {
+    $totalExpense = (float)(Database::fetchOne('SELECT COALESCE(SUM(amount),0) AS t FROM expenses')['t'] ?? 0);
+    $totalExpCat  = Database::fetchOne('SELECT COUNT(*) AS c FROM expense_categories')['c'] ?? 0;
+} catch (\Throwable $e) { $totalExpense = 0; $totalExpCat = 0; }
+
+try {
+    $totalQuote = Database::fetchOne('SELECT COUNT(*) AS c FROM quotations')['c'] ?? 0;
+} catch (\Throwable $e) { $totalQuote = 0; }
+
+try {
+    $totalAdj = Database::fetchOne('SELECT COUNT(*) AS c FROM stock_adjustments')['c'] ?? 0;
+} catch (\Throwable $e) { $totalAdj = 0; }
+
+try {
+    $totalTrf = Database::fetchOne('SELECT COUNT(*) AS c FROM stock_transfers')['c'] ?? 0;
+} catch (\Throwable $e) { $totalTrf = 0; }
+
+$dbSize = Database::fetchOne("SELECT COALESCE(SUM(data_length + index_length),0) AS s FROM information_schema.tables WHERE table_schema = DATABASE()")['s'] ?? 0;
 
 $diskFree     = function_exists('disk_free_space')  ? disk_free_space('/')  : null;
 $diskTotal    = function_exists('disk_total_space') ? disk_total_space('/') : null;

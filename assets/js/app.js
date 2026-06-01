@@ -53,10 +53,20 @@ function initTomSelect(el) {
     new TomSelect(el, {
         create: false,
         allowEmptyOption: true,
-        maxOptions: 1000,                            // search through long lists
+        maxOptions: 1000,
         placeholder: placeholder || 'খুঁজুন...',
-        // keep original option order (don't re-sort alphabetically)
         sortField: [{ field: '$order' }, { field: '$score' }],
+        // Show all items immediately when dropdown opens (no typing required)
+        score: function(search) {
+            const scoreFn = this.getScoreFunction(search);
+            return function(item) {
+                if (!search || !search.trim()) return 1;
+                return scoreFn(item);
+            };
+        },
+        onDropdownOpen: function() {
+            this.refreshOptions(false);
+        },
     });
 }
 
