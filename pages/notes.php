@@ -105,5 +105,41 @@ include __DIR__ . '/../includes/sidebar.php';
 const BASE_URL  = '<?= BASE_URL ?>';
 const CAN_WRITE = <?= $canWrite ? 'true' : 'false' ?>;
 </script>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editNoteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>নোট এডিট করুন</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editNoteForm" onsubmit="submitEdit(event)">
+          <input type="hidden" id="eNoteId">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">কাস্টমারের নাম <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="eCustomerName" maxlength="150" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">তারিখ</label>
+            <input type="date" class="form-control" id="eDate">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">নোট <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="eText" rows="5" maxlength="2000" required></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="submit" form="editNoteForm" class="btn btn-primary" id="editSaveBtn">
+          <i class="bi bi-check-circle me-1"></i>আপডেট করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="<?= BASE_URL ?>/assets/js/notes.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

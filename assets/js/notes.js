@@ -32,6 +32,9 @@ function loadNotes() {
 function renderNotes(notes) {
     const list = document.getElementById('notesList');
 
+    notesCache = {};
+    notes.forEach(n => { notesCache[n.id] = n; });
+
     if (!notes.length) {
         list.innerHTML = `
         <div class="text-center py-5 text-muted">
@@ -74,6 +77,10 @@ function noteCard(n) {
                        <i class="bi bi-check-lg"></i>
                    </button>`
             }
+            <!-- Edit -->
+            <button class="btn btn-sm btn-outline-primary" onclick="openEdit(${n.id})" title="এডিট করুন">
+                <i class="bi bi-pencil"></i>
+            </button>
             <!-- Delete -->
             <button class="btn btn-sm btn-outline-danger" onclick="deleteNote(${n.id})" title="মুছুন">
                 <i class="bi bi-trash"></i>
@@ -169,6 +176,55 @@ function setStatus(id, status) {
         else showToast(res.message, 'danger');
     })
     .catch(() => showToast('সমস্যা হয়েছে।', 'danger'));
+}
+
+// ── Edit ─────────────────────────────────────────────────────────────────────
+let editModal = null;
+let notesCache = {};
+
+function openEdit(id) {
+    const card = document.getElementById('note-' + id);
+    if (!card) return;
+    // Read data from rendered card via cache
+    const data = notesCache[id];
+    if (!data) return;
+
+    document.getElementById('eNoteId').value       = data.id;
+    document.getElementById('eCustomerName').value = data.customer_name;
+    document.getElementById('eDate').value         = data.note_date;
+    document.getElementById('eText').value         = data.note;
+
+    if (!editModal) editModal = new bootstrap.Modal(document.getElementById('editNoteModal'));
+    editModal.show();
+}
+
+function submitEdit(e) {
+    e.preventDefault();
+    const id   = document.getElementById('eNoteId').value;
+    const name = document.getElementById('eCustomerName').value.trim();
+    const note = document.getElementById('eText').value.trim();
+    const date = document.getElementById('eDate').value;
+    if (!name || !note) return;
+
+    const btn = document.getElementById('editSaveBtn');
+    btn.disabled = true;
+
+    fetch(BASE_URL + '/api/edit_free_note.php', {
+        method: 'POST',
+        body:   new URLSearchParams({ id, customer_name: name, note, note_date: date })
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.disabled = false;
+        if (res.success) {
+            editModal.hide();
+            showToast(res.message, 'success');
+            loadNotes();
+        } else {
+            showToast(res.message, 'danger');
+        }
+    })
+    .catch(() => { btn.disabled = false; showToast('সমস্যা হয়েছে।', 'danger'); });
 }
 
 // ── Delete ───────────────────────────────────────────────────────────────────
