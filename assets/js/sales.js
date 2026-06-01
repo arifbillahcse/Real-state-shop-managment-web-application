@@ -552,8 +552,7 @@ function addEditSaleRow(prefill = null) {
     editSaleRowCount++;
     const n    = editSaleRowCount;
     const opts = PRODUCTS.map(p =>
-        `<option value="${p.product_id}" data-price="${p.sell_price}" data-name="${esc(p.product_name)}"
-            ${prefill && p.product_id == prefill.product_id ? 'selected' : ''}>
+        `<option value="${p.product_id}" data-price="${p.sell_price}" data-name="${esc(p.product_name)}">
             ${esc(p.product_name)}</option>`
     ).join('');
     const tr = document.createElement('tr');
@@ -572,6 +571,16 @@ function addEditSaleRow(prefill = null) {
                     onclick="document.getElementById('esrow${n}').remove();calcEditSaleTotal()">
                 <i class="bi bi-x"></i></button></td>`;
     document.getElementById('editSaleItemsBody').appendChild(tr);
+
+    // MutationObserver is async — explicitly init Tom Select and set value
+    const sel = tr.querySelector('select');
+    if (typeof initTomSelect === 'function') initTomSelect(sel);
+    if (prefill?.product_id) {
+        const val = String(prefill.product_id);
+        if (sel.tomselect) sel.tomselect.setValue(val, true);
+        else sel.value = val;
+    }
+
     calcEditSaleRow(n);
 }
 function onEditSaleProductChange(sel, n) {
