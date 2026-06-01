@@ -17,6 +17,7 @@ $menuItems = [
     ['icon' => 'bi-shop',          'label' => 'ব্রাঞ্চ',         'href' => 'branches.php',   'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-truck',         'label' => 'সাপ্লাইয়ার',      'href' => 'suppliers.php',  'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-journal-text', 'label' => 'খাতা',            'href' => 'khata.php',      'admin' => false, 'manager' => true,  'staff' => false],
+    ['icon' => 'bi-sticky',      'label' => 'নোট',             'href' => 'notes.php',      'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-bar-chart-line','label' => 'রিপোর্ট',         'href' => 'reports.php',    'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-people-fill',   'label' => 'ব্যবহারকারী',     'href' => 'users.php',      'admin' => true,  'manager' => false, 'staff' => false],
     ['icon' => 'bi-gear',          'label' => 'সেটিংস',         'href' => 'settings.php',   'admin' => true,  'manager' => false, 'staff' => false],
