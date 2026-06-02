@@ -2,7 +2,7 @@
 // Stock Management — AJAX CRUD + Adjustments + Transfers + Branch Comparison
 // ============================================
 
-const BASE = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
+const BASE = BASE_URL;
 
 // Rows shown per page across all stock tables
 const PAGE_SIZE = 50;

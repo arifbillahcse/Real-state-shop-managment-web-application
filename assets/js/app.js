@@ -111,63 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(document.body, { childList: true, subtree: true });
 });
 
-// ── Shared table paginator ────────────────────────────────────────────────────
-// Usage: paginateTable('tbodyId', 50)  or  paginateTable(tbodyEl, 50)
-// Dynamically inserts a pagination bar after the closest .table-responsive.
-function paginateTable(tbodyIdOrEl, pageSize) {
-    const tbody = typeof tbodyIdOrEl === 'string'
-        ? document.getElementById(tbodyIdOrEl)
-        : tbodyIdOrEl;
-    if (!tbody) return;
-
-    const allRows = Array.from(tbody.querySelectorAll('tr'));
-    if (!allRows.length || allRows.length <= pageSize) return;
-
-    // Find or create the pagination bar
-    const tableResponsive = tbody.closest('.table-responsive') || tbody.closest('table').parentElement;
-    let bar = tableResponsive.nextElementSibling;
-    if (!bar || !bar.classList.contains('pg-bar')) {
-        bar = document.createElement('div');
-        bar.className = 'pg-bar d-flex justify-content-between align-items-center px-3 py-2 border-top';
-        tableResponsive.insertAdjacentElement('afterend', bar);
-    }
-
-    let currentPage = 1;
-
-    function go(page) {
-        currentPage = page;
-        const total      = allRows.length;
-        const totalPages = Math.ceil(total / pageSize);
-        const start      = (page - 1) * pageSize;
-
-        allRows.forEach((tr, i) => {
-            tr.style.display = (i >= start && i < start + pageSize) ? '' : 'none';
-        });
-
-        const from = start + 1;
-        const to   = Math.min(start + pageSize, total);
-
-        let html = `<small class="text-muted">${total} টির মধ্যে ${from}–${to}</small><nav><ul class="pagination pagination-sm mb-0">`;
-        html += `<li class="page-item ${page===1?'disabled':''}"><a class="page-link pg-prev" href="#">&#8249;</a></li>`;
-        for (let i = 1; i <= totalPages; i++) {
-            if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - page) > 1) {
-                if (i === 3 || i === totalPages - 2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
-                continue;
-            }
-            html += `<li class="page-item ${i===page?'active':''}"><a class="page-link pg-num" href="#" data-p="${i}">${i}</a></li>`;
-        }
-        html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link pg-next" href="#">&#8250;</a></li>`;
-        html += `</ul></nav>`;
-        bar.innerHTML = html;
-
-        bar.querySelector('.pg-prev')?.addEventListener('click', e => { e.preventDefault(); if (currentPage > 1) go(currentPage - 1); });
-        bar.querySelector('.pg-next')?.addEventListener('click', e => { e.preventDefault(); if (currentPage < totalPages) go(currentPage + 1); });
-        bar.querySelectorAll('.pg-num').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(parseInt(a.dataset.p)); }));
-    }
-
-    go(1);
-}
-
 // Toast notification
 function showToast(message, type = 'success') {
     const bg   = { success: '#198754', danger: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };

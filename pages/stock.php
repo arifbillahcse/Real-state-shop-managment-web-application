@@ -604,11 +604,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <?php endif; /* !$_isStaff */ ?>
 
 <script>
+const BASE_URL        = '<?= BASE_URL ?>';
 const STAFF_BRANCH_ID = <?= $staffBranch ?? 'null' ?>;
 const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
 const HAS_BRANCHES    = <?= !empty($branches) ? 'true' : 'false' ?>;
 const CAN_WRITE       = <?= (!$_isStaff && User::isAdminOrManager()) ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/pagination.js"></script>
 <script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
