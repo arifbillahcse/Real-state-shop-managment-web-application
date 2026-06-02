@@ -34,15 +34,22 @@ if (!$_isStaff) {
 }
 
 if ($branchId) {
-    $stockValue = Database::fetchOne(
-        "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total
-         FROM vw_branch_stock WHERE branch_id = ?",
-        [$branchId]
-    );
-    $lowStockItems = Database::fetchAll(
-        'SELECT * FROM vw_branch_stock WHERE branch_id = ? AND current_stock <= min_stock AND min_stock > 0',
-        [$branchId]
-    );
+    try {
+        $stockValue = Database::fetchOne(
+            "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total
+             FROM vw_branch_stock WHERE branch_id = ?",
+            [$branchId]
+        );
+        $lowStockItems = Database::fetchAll(
+            'SELECT * FROM vw_branch_stock WHERE branch_id = ? AND current_stock <= min_stock AND min_stock > 0',
+            [$branchId]
+        );
+    } catch (\Throwable $e) {
+        error_log('vw_branch_stock error: ' . $e->getMessage());
+        $stockValue    = ['total' => 0];
+        $lowStockItems = [];
+        $viewError     = true;
+    }
 } else {
     $stockValue = Database::fetchOne(
         "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total FROM vw_current_stock"
@@ -90,6 +97,15 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
         <h5><i class="bi bi-speedometer2 me-2 text-danger"></i>ড্যাশবোর্ড</h5>
         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><?= date('d M Y, l') ?></span>
     </div>
+
+    <!-- View error alert (staff only, vw_branch_stock outdated) -->
+    <?php if (!empty($viewError)): ?>
+    <div class="alert alert-danger mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>ডেটাবেস ভিউ আপডেট প্রয়োজন।</strong>
+        phpMyAdmin এ <code>fix_views_after_v6.sql</code> ফাইলটি রান করুন।
+    </div>
+    <?php endif; ?>
 
     <!-- Low stock alert -->
     <?php if ($lowStockItems): ?>
