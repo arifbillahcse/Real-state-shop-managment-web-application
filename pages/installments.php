@@ -28,12 +28,12 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
       <div class="row g-2 align-items-center">
-        <div class="col-auto">
-          <div class="btn-group btn-group-sm" id="statusFilter">
-            <button class="btn btn-danger active" data-status="">সব</button>
-            <button class="btn btn-outline-primary" data-status="active">সক্রিয়</button>
-            <button class="btn btn-outline-success" data-status="completed">সম্পন্ন</button>
-            <button class="btn btn-outline-secondary" data-status="cancelled">বাতিল</button>
+        <div class="col-12 col-sm-auto">
+          <div class="d-flex flex-wrap gap-1" id="statusFilter">
+            <button class="btn btn-sm btn-danger active" data-status="">সব</button>
+            <button class="btn btn-sm btn-outline-primary" data-status="active">সক্রিয়</button>
+            <button class="btn btn-sm btn-outline-success" data-status="completed">সম্পন্ন</button>
+            <button class="btn btn-sm btn-outline-secondary" data-status="cancelled">বাতিল</button>
           </div>
         </div>
         <div class="col">

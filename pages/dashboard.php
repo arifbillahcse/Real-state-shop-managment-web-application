@@ -211,6 +211,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                     <?php if (empty($lowStockItems)): ?>
                     <p class="text-center text-muted py-4 small">সব পণ্যের স্টক ঠিক আছে।</p>
                     <?php else: ?>
+                    <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead><tr><th>পণ্য</th><th>স্টক</th><th>মিনিমাম</th></tr></thead>
                         <tbody>
@@ -223,6 +224,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                         <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>

@@ -3,14 +3,38 @@ const sidebar       = document.getElementById('sidebar');
 const mainContent   = document.getElementById('mainContent');
 const sidebarToggle = document.getElementById('sidebarToggle');
 
+// Mobile backdrop overlay
+const backdrop = document.createElement('div');
+backdrop.id = 'sidebarBackdrop';
+backdrop.style.cssText = 'display:none;position:fixed;inset:0;z-index:1029;background:rgba(0,0,0,.45)';
+document.body.appendChild(backdrop);
+
+function closeMobileSidebar() {
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    backdrop.style.display = 'none';
+}
+
 if (sidebarToggle) {
     sidebarToggle.addEventListener('click', () => {
         if (window.innerWidth <= 768) {
+            const opening = !sidebar.classList.contains('mobile-open');
             sidebar.classList.toggle('mobile-open');
+            backdrop.style.display = opening ? 'block' : 'none';
         } else {
             sidebar.classList.toggle('collapsed');
             if (mainContent) mainContent.classList.toggle('expanded');
         }
+    });
+}
+
+backdrop.addEventListener('click', closeMobileSidebar);
+
+// Close sidebar on nav link tap (mobile)
+if (sidebar) {
+    sidebar.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+            if (window.innerWidth <= 768) closeMobileSidebar();
+        });
     });
 }
 

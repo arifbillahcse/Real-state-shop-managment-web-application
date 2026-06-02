@@ -42,11 +42,11 @@ include __DIR__ . '/../includes/sidebar.php';
           </button>
         </div>
         <div class="col-md-4">
-          <div class="btn-group btn-group-sm w-100" role="group">
-            <button class="btn btn-outline-secondary" onclick="setRange('today')">আজ</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('week')">এ সপ্তাহ</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('month')">এ মাস</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('year')">এ বছর</button>
+          <div class="d-flex flex-wrap gap-1" role="group">
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('today')">আজ</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('week')">এ সপ্তাহ</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('month')">এ মাস</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('year')">এ বছর</button>
           </div>
         </div>
       </div>

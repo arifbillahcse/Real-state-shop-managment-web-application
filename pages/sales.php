@@ -165,15 +165,15 @@ include __DIR__ . '/../includes/sidebar.php';
       <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
           <div class="row g-2 align-items-end">
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
               <label class="form-label small text-muted mb-1">তারিখ থেকে</label>
               <input type="date" class="form-control form-control-sm" id="filterDateFrom">
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
               <label class="form-label small text-muted mb-1">তারিখ পর্যন্ত</label>
               <input type="date" class="form-control form-control-sm" id="filterDateTo">
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
               <label class="form-label small text-muted mb-1">কাস্টমার</label>
               <select class="form-select form-select-sm" id="filterCustomer">
                 <option value="">সকল কাস্টমার</option>
@@ -183,7 +183,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </select>
             </div>
             <?php if (!empty($branches)): ?>
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
               <label class="form-label small text-muted mb-1">ব্রাঞ্চ</label>
               <select class="form-select form-select-sm" id="filterBranch">
                 <option value="">সকল ব্রাঞ্চ</option>
@@ -193,7 +193,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </select>
             </div>
             <?php endif; ?>
-            <div class="col-md-2">
+            <div class="col-8 col-md-2">
               <label class="form-label small text-muted mb-1">স্ট্যাটাস</label>
               <select class="form-select form-select-sm" id="filterStatus">
                 <option value="">সকল</option>
@@ -201,7 +201,7 @@ include __DIR__ . '/../includes/sidebar.php';
                 <option value="cancelled">বাতিল</option>
               </select>
             </div>
-            <div class="col-md-1">
+            <div class="col-4 col-md-1">
               <button class="btn btn-primary btn-sm w-100" onclick="loadSalesHistory()">
                 <i class="bi bi-search"></i>
               </button>

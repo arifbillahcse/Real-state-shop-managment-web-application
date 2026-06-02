@@ -63,13 +63,13 @@ include __DIR__ . '/../includes/sidebar.php';
       <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
           <div class="row g-2 align-items-center">
-            <div class="col-auto">
-              <div class="btn-group btn-group-sm" role="group" id="statusFilter">
-                <button type="button" class="btn btn-danger active" data-status="">সব</button>
-                <button type="button" class="btn btn-outline-warning" data-status="pending">
+            <div class="col-12 col-sm-auto">
+              <div class="d-flex flex-wrap gap-1" role="group" id="statusFilter">
+                <button type="button" class="btn btn-sm btn-danger active" data-status="">সব</button>
+                <button type="button" class="btn btn-sm btn-outline-warning" data-status="pending">
                   <i class="bi bi-hourglass-split me-1"></i>পেন্ডিং
                 </button>
-                <button type="button" class="btn btn-outline-success" data-status="done">
+                <button type="button" class="btn btn-sm btn-outline-success" data-status="done">
                   <i class="bi bi-check-circle me-1"></i>সফল
                 </button>
               </div>

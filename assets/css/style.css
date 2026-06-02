@@ -493,3 +493,30 @@ code { color: var(--brand-dark); background: var(--brand-soft); padding: .1em .4
 
 [data-bs-theme="dark"] .progress { background: #232838; }
 [data-bs-theme="dark"] code { background: var(--brand-soft); color: var(--brand-light); }
+
+/* =====================================================================
+   Mobile / Responsive Helpers
+   ===================================================================== */
+
+/* Sidebar backdrop (created by app.js) */
+#sidebarBackdrop { cursor: pointer; }
+
+/* Page header stacks on very small screens */
+@media (max-width: 480px) {
+    .page-header { flex-wrap: wrap; gap: .5rem; }
+    .page-header > * { flex-shrink: 0; }
+}
+
+/* Overflow protection for cards on small viewports */
+@media (max-width: 576px) {
+    .card { border-radius: var(--radius-sm); }
+    .container-fluid { padding-left: .75rem; padding-right: .75rem; }
+    /* Stat cards: 2-up grid regardless of Bootstrap col */
+    .stat-card { min-width: 0; }
+    /* Stat icons smaller on phones */
+    .stat-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+    /* Pagination wraps cleanly */
+    .pagination { flex-wrap: wrap; gap: .15rem; }
+    /* Nav pills scroll horizontally */
+    .nav.nav-pills { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .25rem; }
+}
