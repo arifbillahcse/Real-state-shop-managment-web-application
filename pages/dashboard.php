@@ -1,7 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 requireLogin();
@@ -11,7 +8,7 @@ $branchId    = getSessionBranchId();   // null for admin
 $_isStaff    = isStaff();
 
 // Branch clause helpers
-$branchWhere = $branchId ? ' AND branch_id = ' . (int)$branchId : '';
+$branchWhere = $branchId ? ' AND branch_id = ?' : '';
 $branchParam = $branchId ? [$branchId] : [];
 
 // --- Quick stats ---
