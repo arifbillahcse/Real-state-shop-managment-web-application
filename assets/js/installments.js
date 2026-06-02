@@ -21,21 +21,41 @@ function loadPlans() {
     }).catch(()=>{ el.innerHTML='<div class="alert alert-danger">সমস্যা হয়েছে।</div>'; });
 }
 
+const INST_PAGE_SIZE = 50;
+let _allPlans        = [];
+let _instPage        = 1;
+
 function renderPlans(plans) {
-    const el = document.getElementById('planList');
-    if (!plans.length) {
-        el.innerHTML='<div class="text-center py-5 text-muted"><i class="bi bi-calendar-x fs-1 d-block opacity-25 mb-2"></i>কোনো কিস্তি পরিকল্পনা নেই</div>';
+    _allPlans = plans;
+    _instPage = 1;
+    renderInstPage(1);
+}
+
+function renderInstPage(page) {
+    _instPage = page;
+    const el  = document.getElementById('planList');
+    const bar = document.getElementById('instPaginationBar');
+
+    if (!_allPlans.length) {
+        el.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-calendar-x fs-1 d-block opacity-25 mb-2"></i>কোনো কিস্তি পরিকল্পনা নেই</div>';
+        bar.style.display = 'none';
         return;
     }
+
+    const totalPages = Math.ceil(_allPlans.length / INST_PAGE_SIZE);
+    const start      = (page - 1) * INST_PAGE_SIZE;
+    const pageData   = _allPlans.slice(start, start + INST_PAGE_SIZE);
+
     const badge = { active:'<span class="badge bg-primary">সক্রিয়</span>',
                     completed:'<span class="badge bg-success">সম্পন্ন</span>',
                     cancelled:'<span class="badge bg-secondary">বাতিল</span>' };
+
     el.innerHTML = `<div class="table-responsive"><table class="table table-hover shadow-sm">
         <thead class="table-dark"><tr>
             <th>কাস্টমার</th><th>শুরু</th><th class="text-end">মোট</th>
             <th class="text-end">পরিশোধ</th><th>অগ্রগতি</th><th>স্ট্যাটাস</th><th></th>
         </tr></thead><tbody>` +
-    plans.map(p => {
+    pageData.map(p => {
         const pct = p.total_inst > 0 ? Math.round((parseInt(p.paid_inst)/parseInt(p.total_inst))*100) : 0;
         return `<tr>
             <td class="fw-semibold">${esc(p.customer_name)}</td>
@@ -55,6 +75,24 @@ function renderPlans(plans) {
                 <i class="bi bi-eye"></i></button></td>
         </tr>`;
     }).join('') + '</tbody></table></div>';
+
+    const from = start + 1;
+    const to   = Math.min(start + INST_PAGE_SIZE, _allPlans.length);
+    document.getElementById('instPageInfo').textContent = `${_allPlans.length} টির মধ্যে ${from}–${to} দেখাচ্ছে`;
+
+    if (totalPages <= 1) { bar.style.display = 'none'; return; }
+    bar.style.removeProperty('display');
+
+    let html = `<li class="page-item ${page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderInstPage(${page-1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages-1 && Math.abs(i-page) > 1) {
+            if (i === 3 || i === totalPages-2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        html += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderInstPage(${i})">${i}</a></li>`;
+    }
+    html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderInstPage(${page+1})">&#8250;</a></li>`;
+    document.getElementById('instPagination').innerHTML = html;
 }
 
 // ── View plan detail ──────────────────────────────────────────────────────────

@@ -45,6 +45,10 @@ include __DIR__ . '/../includes/sidebar.php';
         </tbody>
       </table>
     </div>
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="suppPaginationBar" style="display:none!important">
+      <small class="text-muted" id="suppPageInfo"></small>
+      <nav><ul class="pagination pagination-sm mb-0" id="suppPagination"></ul></nav>
+    </div>
   </div>
 
 </div>

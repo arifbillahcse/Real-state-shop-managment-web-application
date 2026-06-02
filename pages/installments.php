@@ -47,6 +47,10 @@ include __DIR__ . '/../includes/sidebar.php';
   <div id="planList">
     <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
   </div>
+  <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-white rounded-bottom" id="instPaginationBar" style="display:none!important">
+    <small class="text-muted" id="instPageInfo"></small>
+    <nav><ul class="pagination pagination-sm mb-0" id="instPagination"></ul></nav>
+  </div>
 
 </div>
 </div>

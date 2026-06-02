@@ -77,15 +77,35 @@ function loadSuppliers() {
         .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
+const SUPP_PAGE_SIZE = 50;
+let _allSuppliers    = [];
+let _filteredSupp    = [];
+let _suppPage        = 1;
+
 function renderSuppliers(list) {
+    _allSuppliers = list;
+    _filteredSupp = list;
+    _suppPage     = 1;
+    renderSuppPage(1);
+}
+
+function renderSuppPage(page) {
+    _suppPage = page;
     const tbody = document.getElementById('suppliersBody');
-    if (!list.length) {
+
+    if (!_filteredSupp.length) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">কোনো সাপ্লাইয়ার নেই</td></tr>';
+        document.getElementById('suppPaginationBar').style.display = 'none';
         return;
     }
-    tbody.innerHTML = list.map((s, i) => `
+
+    const totalPages = Math.ceil(_filteredSupp.length / SUPP_PAGE_SIZE);
+    const start      = (page - 1) * SUPP_PAGE_SIZE;
+    const pageData   = _filteredSupp.slice(start, start + SUPP_PAGE_SIZE);
+
+    tbody.innerHTML = pageData.map((s, i) => `
         <tr>
-            <td class="text-muted">${i + 1}</td>
+            <td class="text-muted">${start + i + 1}</td>
             <td class="fw-semibold">${esc(s.name)}</td>
             <td>${esc(s.phone || '—')}</td>
             <td class="text-muted small">${esc(s.address || '—')}</td>
@@ -102,13 +122,36 @@ function renderSuppliers(list) {
             </td>
         </tr>
     `).join('');
+
+    const bar  = document.getElementById('suppPaginationBar');
+    const from = start + 1;
+    const to   = Math.min(start + SUPP_PAGE_SIZE, _filteredSupp.length);
+    document.getElementById('suppPageInfo').textContent = `${_filteredSupp.length} জনের মধ্যে ${from}–${to} দেখাচ্ছে`;
+
+    if (totalPages <= 1) { bar.style.display = 'none'; return; }
+    bar.style.removeProperty('display');
+
+    let html = `<li class="page-item ${page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderSuppPage(${page-1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages-1 && Math.abs(i-page) > 1) {
+            if (i === 3 || i === totalPages-2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        html += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderSuppPage(${i})">${i}</a></li>`;
+    }
+    html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderSuppPage(${page+1})">&#8250;</a></li>`;
+    document.getElementById('suppPagination').innerHTML = html;
 }
 
 document.getElementById('searchInput').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('#suppliersBody tr').forEach(tr => {
-        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
+    const q = this.value.toLowerCase().trim();
+    _filteredSupp = q
+        ? _allSuppliers.filter(s =>
+            (s.name    || '').toLowerCase().includes(q) ||
+            (s.phone   || '').toLowerCase().includes(q))
+        : _allSuppliers;
+    _suppPage = 1;
+    renderSuppPage(1);
 });
 
 loadSuppliers();

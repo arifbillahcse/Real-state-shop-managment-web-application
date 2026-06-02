@@ -149,8 +149,11 @@ include __DIR__ . '/../includes/sidebar.php';
                 <span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...
               </td></tr>
             </tbody>
-            <tfoot id="expenseFooter"></tfoot>
           </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="expPaginationBar" style="display:none!important">
+          <small class="text-muted" id="expPageInfo"></small>
+          <nav><ul class="pagination pagination-sm mb-0" id="expPagination"></ul></nav>
         </div>
       </div>
     </div><!-- /expListTab -->

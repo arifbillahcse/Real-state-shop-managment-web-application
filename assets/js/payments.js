@@ -142,6 +142,30 @@ function goToLedger(customerId) {
 }
 
 // ---- Payment History ----
+const PAY_PAGE_SIZE = 50;
+let _allPayments    = [];
+let _payPage        = 1;
+
+function buildPageNav(total, page, pageSize, barId, infoId, navId, onPageFn) {
+    const bar        = document.getElementById(barId);
+    const totalPages = Math.ceil(total / pageSize);
+    const from       = (page - 1) * pageSize + 1;
+    const to         = Math.min(page * pageSize, total);
+    document.getElementById(infoId).textContent = `${total} টির মধ্যে ${from}–${to} দেখাচ্ছে`;
+    if (totalPages <= 1) { bar.style.display = 'none'; return; }
+    bar.style.removeProperty('display');
+    let html = `<li class="page-item ${page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();${onPageFn}(${page-1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages-1 && Math.abs(i-page) > 1) {
+            if (i === 3 || i === totalPages-2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        html += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();${onPageFn}(${i})">${i}</a></li>`;
+    }
+    html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();${onPageFn}(${page+1})">&#8250;</a></li>`;
+    document.getElementById(navId).innerHTML = html;
+}
+
 function loadHistory() {
     const params = new URLSearchParams();
     const df  = document.getElementById('hDateFrom').value;
@@ -153,29 +177,31 @@ function loadHistory() {
 
     document.getElementById('historyBody').innerHTML =
         '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>';
-    document.getElementById('historyFooter').innerHTML = '';
+    document.getElementById('payPaginationBar').style.display = 'none';
 
     fetch(BASE_URL + '/api/get_payments.php?' + params.toString())
         .then(r => r.json())
-        .then(res => { if (res.success) renderHistory(res.data); })
+        .then(res => {
+            if (res.success) { _allPayments = res.data; _payPage = 1; renderPayPage(1); }
+        })
         .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
-function renderHistory(payments) {
+function renderPayPage(page) {
+    _payPage = page;
     const tbody  = document.getElementById('historyBody');
-    const tfoot  = document.getElementById('historyFooter');
     const mLabel = { cash: 'নগদ', mobile_banking: 'মোবাইল ব্যাং', cheque: 'চেক' };
 
-    if (!payments.length) {
+    if (!_allPayments.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">কোনো পেমেন্ট রেকর্ড নেই</td></tr>';
-        tfoot.innerHTML = '';
+        document.getElementById('payPaginationBar').style.display = 'none';
         return;
     }
 
-    let total = 0;
-    tbody.innerHTML = payments.map(p => {
-        total += parseFloat(p.amount);
-        return `
+    const start    = (page - 1) * PAY_PAGE_SIZE;
+    const pageData = _allPayments.slice(start, start + PAY_PAGE_SIZE);
+
+    tbody.innerHTML = pageData.map(p => `
         <tr>
             <td>${p.payment_date}</td>
             <td class="fw-semibold">${esc(p.customer_name)}</td>
@@ -184,15 +210,15 @@ function renderHistory(payments) {
             <td class="text-muted small">${esc(p.reference_no || '—')}</td>
             <td class="text-end fw-semibold text-success">${fmt(p.amount)}</td>
             <td class="text-muted small">${esc(p.note || '—')}</td>
-        </tr>`;
-    }).join('');
+        </tr>`).join('');
 
-    tfoot.innerHTML = `
-        <tr class="table-dark fw-bold">
-            <td colspan="5">মোট (${payments.length} টি)</td>
-            <td class="text-end text-success">${fmt(total)}</td>
-            <td></td>
-        </tr>`;
+    buildPageNav(_allPayments.length, page, PAY_PAGE_SIZE, 'payPaginationBar', 'payPageInfo', 'payPagination', 'renderPayPage');
+}
+
+function renderHistory(payments) {
+    _allPayments = payments;
+    _payPage     = 1;
+    renderPayPage(1);
 }
 
 // ---- Tab event bindings ----

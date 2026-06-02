@@ -23,6 +23,64 @@ function showErr(el, msg) {
     el.classList.remove('d-none');
 }
 
+const EXP_PAGE_SIZE = 50;
+let _allExpenses    = [];
+let _expPage        = 1;
+
+function buildExpPageNav(page) {
+    const total      = _allExpenses.length;
+    const totalPages = Math.ceil(total / EXP_PAGE_SIZE);
+    const from       = (page - 1) * EXP_PAGE_SIZE + 1;
+    const to         = Math.min(page * EXP_PAGE_SIZE, total);
+    const bar        = document.getElementById('expPaginationBar');
+    document.getElementById('expPageInfo').textContent = `${total} টির মধ্যে ${from}–${to} দেখাচ্ছে`;
+    if (totalPages <= 1) { bar.style.display = 'none'; return; }
+    bar.style.removeProperty('display');
+    let html = `<li class="page-item ${page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderExpPage(${page-1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages-1 && Math.abs(i-page) > 1) {
+            if (i === 3 || i === totalPages-2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        html += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderExpPage(${i})">${i}</a></li>`;
+    }
+    html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderExpPage(${page+1})">&#8250;</a></li>`;
+    document.getElementById('expPagination').innerHTML = html;
+}
+
+function renderExpPage(page) {
+    _expPage = page;
+    const cols     = HAS_BRANCHES ? 6 : 5;
+    const tbody    = document.getElementById('expenseBody');
+    const start    = (page - 1) * EXP_PAGE_SIZE;
+    const pageData = _allExpenses.slice(start, start + EXP_PAGE_SIZE);
+
+    tbody.innerHTML = pageData.map(r => {
+        const branchCell = HAS_BRANCHES
+            ? `<td>${r.branch_name ? `<span class="badge bg-secondary">${r.branch_name}</span>` : '<span class="text-muted">—</span>'}</td>`
+            : '';
+        const actions = CAN_WRITE ? `
+            <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditExpense(${r.id})" title="সম্পাদনা">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense(${r.id})" title="ডিলিট">
+                <i class="bi bi-trash"></i>
+            </button>` : '';
+        return `<tr>
+            <td>${r.expense_date}</td>
+            <td>${r.category_name
+                ? `<span class="badge bg-light text-dark border"><i class="bi ${r.category_icon} me-1"></i>${r.category_name}</span>`
+                : '<span class="text-muted">—</span>'}</td>
+            ${branchCell}
+            <td class="text-muted small">${r.description || '—'}</td>
+            <td class="text-end fw-semibold text-danger">${fmtMoney(r.amount)}</td>
+            <td class="text-center text-nowrap">${actions}</td>
+        </tr>`;
+    }).join('');
+
+    buildExpPageNav(page);
+}
+
 // ── Load Expenses ─────────────────────────────────────────────────────────────
 async function loadExpenses() {
     const from   = document.getElementById('eFrom')?.value   || '';
@@ -30,10 +88,10 @@ async function loadExpenses() {
     const cat    = document.getElementById('eCat')?.value    || '';
     const branch = document.getElementById('eBranch')?.value || '';
 
-    const tbody  = document.getElementById('expenseBody');
-    const tfoot  = document.getElementById('expenseFooter');
-    const cols   = HAS_BRANCHES ? 6 : 5;
+    const tbody = document.getElementById('expenseBody');
+    const cols  = HAS_BRANCHES ? 6 : 5;
     tbody.innerHTML = `<tr><td colspan="${cols}" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...</td></tr>`;
+    document.getElementById('expPaginationBar').style.display = 'none';
 
     let url = `${BASE_URL}/api/get_expenses.php?from=${from}&to=${to}`;
     if (cat)    url += `&category_id=${cat}`;
@@ -49,40 +107,12 @@ async function loadExpenses() {
 
         if (!rows.length) {
             tbody.innerHTML = `<tr><td colspan="${cols}" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>কোনো খরচ নেই</td></tr>`;
-            tfoot.innerHTML = '';
             return;
         }
 
-        let total = 0;
-        tbody.innerHTML = rows.map(r => {
-            total += parseFloat(r.amount);
-            const branchCell = HAS_BRANCHES
-                ? `<td>${r.branch_name ? `<span class="badge bg-secondary">${r.branch_name}</span>` : '<span class="text-muted">—</span>'}</td>`
-                : '';
-            const actions = CAN_WRITE ? `
-                <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditExpense(${r.id})" title="সম্পাদনা">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense(${r.id})" title="ডিলিট">
-                    <i class="bi bi-trash"></i>
-                </button>` : '';
-            return `<tr>
-                <td>${r.expense_date}</td>
-                <td>${r.category_name
-                    ? `<span class="badge bg-light text-dark border"><i class="bi ${r.category_icon} me-1"></i>${r.category_name}</span>`
-                    : '<span class="text-muted">—</span>'}</td>
-                ${branchCell}
-                <td class="text-muted small">${r.description || '—'}</td>
-                <td class="text-end fw-semibold text-danger">${fmtMoney(r.amount)}</td>
-                <td class="text-center text-nowrap">${actions}</td>
-            </tr>`;
-        }).join('');
-
-        tfoot.innerHTML = `<tr class="table-dark fw-bold">
-            <td colspan="${cols - 2}">মোট (${rows.length} টি খরচ)</td>
-            <td class="text-end text-warning">${fmtMoney(total)}</td>
-            <td></td>
-        </tr>`;
+        _allExpenses = rows;
+        _expPage     = 1;
+        renderExpPage(1);
     } catch {
         tbody.innerHTML = `<tr><td colspan="${cols}" class="text-center py-4 text-danger">ডাটা লোড হয়নি।</td></tr>`;
     }

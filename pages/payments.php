@@ -212,8 +212,11 @@ include __DIR__ . '/../includes/sidebar.php';
                 </td>
               </tr>
             </tbody>
-            <tfoot id="historyFooter"></tfoot>
           </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="payPaginationBar" style="display:none!important">
+          <small class="text-muted" id="payPageInfo"></small>
+          <nav><ul class="pagination pagination-sm mb-0" id="payPagination"></ul></nav>
         </div>
       </div>
     </div><!-- /historyTab -->
