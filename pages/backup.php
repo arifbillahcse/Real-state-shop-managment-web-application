@@ -85,6 +85,37 @@ include __DIR__ . '/../includes/sidebar.php';
               <i class="bi bi-upload me-2"></i>ইম্পোর্ট ও রিস্টোর করুন
             </button>
           </form>
+
+          <!-- Confirm Import Modal -->
+          <div class="modal fade" id="confirmImportModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>বিপজ্জনক কাজ — নিশ্চিত করুন</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="alert alert-danger mb-3">
+                    <strong>এই কাজটি অপরিবর্তনীয়!</strong> ইম্পোর্ট করলে:
+                    <ul class="mb-0 mt-2">
+                      <li>বর্তমান <strong>সমস্ত ডেটা মুছে যাবে</strong></li>
+                      <li>সব বিক্রয়, পেমেন্ট, স্টক রেকর্ড হারিয়ে যাবে</li>
+                      <li>এই কাজ পূর্বাবস্থায় ফেরানো <strong>সম্ভব নয়</strong></li>
+                    </ul>
+                  </div>
+                  <p class="mb-2 fw-semibold">নিশ্চিত করতে নিচের বাক্সে <code class="text-danger">আমি নিশ্চিত</code> টাইপ করুন:</p>
+                  <input type="text" id="confirmPhrase" class="form-control" placeholder='এখানে টাইপ করুন...' autocomplete="off">
+                  <div class="form-text text-muted mt-1">হুবহু বাংলায় টাইপ করতে হবে</div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল করুন</button>
+                  <button type="button" class="btn btn-danger" id="confirmImportBtn" disabled>
+                    <i class="bi bi-upload me-2"></i>হ্যাঁ, ইম্পোর্ট করুন
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -127,18 +158,44 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
+const CONFIRM_PHRASE = 'আমি নিশ্চিত';
 
+let confirmModal = null;
+
+// Step 1: form submit → open confirmation modal
 document.getElementById('importForm').addEventListener('submit', function(e) {
     e.preventDefault();
-
     const file = document.getElementById('sqlFile').files[0];
     if (!file) return;
 
-    if (!confirm('সতর্কতা: বর্তমান সমস্ত ডেটা মুছে যাবে এবং ব্যাকআপ ফাইলের ডেটা লোড হবে। নিশ্চিত?')) return;
+    // Reset modal state
+    document.getElementById('confirmPhrase').value = '';
+    document.getElementById('confirmImportBtn').disabled = true;
 
-    const btn = document.getElementById('importBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ইম্পোর্ট হচ্ছে...';
+    if (!confirmModal) confirmModal = new bootstrap.Modal(document.getElementById('confirmImportModal'));
+    confirmModal.show();
+
+    // Focus phrase input after modal opens
+    document.getElementById('confirmImportModal').addEventListener('shown.bs.modal', () => {
+        document.getElementById('confirmPhrase').focus();
+    }, { once: true });
+});
+
+// Enable confirm button only when phrase matches exactly
+document.getElementById('confirmPhrase').addEventListener('input', function() {
+    document.getElementById('confirmImportBtn').disabled = (this.value !== CONFIRM_PHRASE);
+});
+
+// Step 2: confirmed — run import
+document.getElementById('confirmImportBtn').addEventListener('click', function() {
+    const file = document.getElementById('sqlFile').files[0];
+    if (!file) return;
+
+    confirmModal.hide();
+
+    const importBtn = document.getElementById('importBtn');
+    importBtn.disabled = true;
+    importBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ইম্পোর্ট হচ্ছে...';
 
     const formData = new FormData();
     formData.append('sql_file', file);
@@ -152,8 +209,8 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
             alertEl.classList.remove('d-none');
             alertEl.scrollIntoView({ behavior: 'smooth' });
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-2"></i>ইম্পোর্ট ও রিস্টোর করুন';
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="bi bi-upload me-2"></i>ইম্পোর্ট ও রিস্টোর করুন';
 
             if (res.success) document.getElementById('sqlFile').value = '';
         })
@@ -163,8 +220,8 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
             alertEl.innerHTML = '<i class="bi bi-x-circle me-2"></i>সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে।';
             alertEl.classList.remove('d-none');
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-2"></i>ইম্পোর্ট ও রিস্টোর করুন';
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="bi bi-upload me-2"></i>ইম্পোর্ট ও রিস্টোর করুন';
         });
 });
 </script>
