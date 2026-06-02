@@ -73,26 +73,51 @@ function deleteCustomer(id, name) {
     });
 }
 
+// ---- Pagination state ----
+const CUST_PAGE_SIZE = 50;
+let _allCustomers    = [];
+let _filteredCust    = [];
+let _custPage        = 1;
+
 // ---- Load & Render ----
 function loadCustomers() {
     fetch(BASE_URL + '/api/get_customers.php')
         .then(r => r.json())
         .then(res => {
-            if (res.success) renderCustomers(res.data);
+            if (res.success) {
+                _allCustomers = res.data;
+                _filteredCust = res.data;
+                _custPage     = 1;
+                renderCustomersPage(1);
+            }
         })
         .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
 function renderCustomers(list) {
+    _allCustomers = list;
+    _filteredCust = list;
+    _custPage     = 1;
+    renderCustomersPage(1);
+}
+
+function renderCustomersPage(page) {
+    _custPage = page;
     const tbody = document.getElementById('customersBody');
-    if (!list.length) {
+
+    if (!_filteredCust.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">কোনো কাস্টমার নেই</td></tr>';
+        document.getElementById('custPaginationBar').style.display = 'none';
         return;
     }
 
-    tbody.innerHTML = list.map((c, i) => `
+    const totalPages = Math.ceil(_filteredCust.length / CUST_PAGE_SIZE);
+    const start      = (page - 1) * CUST_PAGE_SIZE;
+    const pageData   = _filteredCust.slice(start, start + CUST_PAGE_SIZE);
+
+    tbody.innerHTML = pageData.map((c, i) => `
         <tr>
-            <td class="text-muted">${i + 1}</td>
+            <td class="text-muted">${start + i + 1}</td>
             <td class="fw-semibold">${esc(c.name)}</td>
             <td>${esc(c.phone || '—')}</td>
             <td class="text-muted small">${esc(c.address || '—')}</td>
@@ -115,20 +140,48 @@ function renderCustomers(list) {
             </td>
         </tr>
     `).join('');
+
+    // Pagination bar
+    const bar  = document.getElementById('custPaginationBar');
+    const info = document.getElementById('custPageInfo');
+    const nav  = document.getElementById('custPagination');
+    const from = start + 1;
+    const to   = Math.min(start + CUST_PAGE_SIZE, _filteredCust.length);
+    info.textContent = `${_filteredCust.length} জনের মধ্যে ${from}–${to} দেখাচ্ছে`;
+
+    if (totalPages <= 1) {
+        bar.style.display = 'none';
+        return;
+    }
+
+    bar.style.removeProperty('display');
+
+    let pages = '';
+    pages += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="event.preventDefault();renderCustomersPage(${page - 1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - page) > 1) {
+            if (i === 3 || i === totalPages - 2) pages += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        pages += `<li class="page-item ${i === page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault();renderCustomersPage(${i})">${i}</a></li>`;
+    }
+    pages += `<li class="page-item ${page === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="event.preventDefault();renderCustomersPage(${page + 1})">&#8250;</a></li>`;
+    nav.innerHTML = pages;
 }
 
 // ---- Live Search ----
 document.getElementById('searchInput').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('#customersBody tr[id]').forEach(tr => {
-        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-    // if no id on rows, search all
-    if (!document.querySelector('#customersBody tr[id]')) {
-        document.querySelectorAll('#customersBody tr').forEach(tr => {
-            tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-        });
-    }
+    const q = this.value.toLowerCase().trim();
+    _filteredCust = q
+        ? _allCustomers.filter(c =>
+            (c.name  || '').toLowerCase().includes(q) ||
+            (c.phone || '').toLowerCase().includes(q))
+        : _allCustomers;
+    _custPage = 1;
+    renderCustomersPage(1);
 });
 
 // ---- Init ----
