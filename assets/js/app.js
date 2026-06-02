@@ -111,6 +111,29 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(document.body, { childList: true, subtree: true });
 });
 
+// ── Count-up animation for stat numbers ───────────────────────────────────────
+// Any element with data-countup="<number>" animates 0 → number on load.
+// Optional data-suffix appends a unit (e.g. " ৳").
+function runCountUps() {
+    document.querySelectorAll('[data-countup]').forEach(el => {
+        const target = parseFloat(el.getAttribute('data-countup')) || 0;
+        const suffix = el.getAttribute('data-suffix') || '';
+        const dur    = 950;
+        const start  = performance.now();
+        function tick(now) {
+            const p     = Math.min((now - start) / dur, 1);
+            const eased = 1 - Math.pow(1 - p, 3);          // easeOutCubic
+            const val   = target * eased;
+            el.textContent = val.toLocaleString('en-US', {
+                minimumFractionDigits: 2, maximumFractionDigits: 2
+            }) + suffix;
+            if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    });
+}
+document.addEventListener('DOMContentLoaded', runCountUps);
+
 // Toast notification
 function showToast(message, type = 'success') {
     const bg   = { success: '#198754', danger: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };

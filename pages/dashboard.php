@@ -129,7 +129,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">আজকের বিক্রয়</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$todaySales['total']) ?></h5>
+                        <h5 class="fw-bold mb-0" data-countup="<?= (float)$todaySales['total'] ?>" data-suffix=" ৳"><?= money((float)$todaySales['total']) ?></h5>
                         <small class="text-muted"><?= $todaySales['count'] ?>টি লেনদেন</small>
                     </div>
                     <div class="stat-icon bg-danger bg-opacity-10 text-danger">
@@ -145,7 +145,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">আজকের পেমেন্ট আদায়</p>
-                        <h5 class="fw-bold mb-0 text-success"><?= money((float)$todayPayments['total']) ?></h5>
+                        <h5 class="fw-bold mb-0 text-success" data-countup="<?= (float)$todayPayments['total'] ?>" data-suffix=" ৳"><?= money((float)$todayPayments['total']) ?></h5>
                         <small class="text-muted"><?= $todayPayments['count'] ?>টি পেমেন্ট</small>
                     </div>
                     <div class="stat-icon bg-success bg-opacity-10 text-success">
@@ -160,7 +160,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">মোট বাকি</p>
-                        <h5 class="fw-bold text-danger mb-0"><?= money((float)$totalDue['total']) ?></h5>
+                        <h5 class="fw-bold text-danger mb-0" data-countup="<?= (float)$totalDue['total'] ?>" data-suffix=" ৳"><?= money((float)$totalDue['total']) ?></h5>
                         <small class="text-muted">সকল কাস্টমার</small>
                     </div>
                     <div class="stat-icon bg-warning bg-opacity-10 text-warning">
@@ -176,7 +176,7 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">স্টক মূল্য</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$stockValue['total']) ?></h5>
+                        <h5 class="fw-bold mb-0" data-countup="<?= (float)$stockValue['total'] ?>" data-suffix=" ৳"><?= money((float)$stockValue['total']) ?></h5>
                         <small class="text-muted"><?= $_isStaff ? 'ব্রাঞ্চ স্টক' : 'বর্তমান স্টক' ?></small>
                     </div>
                     <div class="stat-icon bg-info bg-opacity-10 text-info">

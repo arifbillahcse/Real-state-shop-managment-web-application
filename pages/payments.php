@@ -38,7 +38,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <i class="bi bi-exclamation-circle fs-4"></i>
           </div>
           <div>
-            <div class="stat-value text-danger"><?= money($totalDue) ?></div>
+            <div class="stat-value text-danger" data-countup="<?= (float)$totalDue ?>" data-suffix=" ৳"><?= money($totalDue) ?></div>
             <div class="stat-label">মোট বাকি</div>
           </div>
         </div>
@@ -64,7 +64,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <i class="bi bi-cart-check fs-4"></i>
           </div>
           <div>
-            <div class="stat-value"><?= money($totalPurchase) ?></div>
+            <div class="stat-value" data-countup="<?= (float)$totalPurchase ?>" data-suffix=" ৳"><?= money($totalPurchase) ?></div>
             <div class="stat-label">মোট বিক্রয়</div>
           </div>
         </div>
