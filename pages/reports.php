@@ -26,23 +26,23 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="card shadow-sm mb-4">
     <div class="card-body py-3">
       <div class="row g-2 align-items-end">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label small text-muted mb-1">তারিখ থেকে</label>
           <input type="date" class="form-control form-control-sm" id="rFrom"
                  value="<?= $defaultFrom ?>">
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label small text-muted mb-1">তারিখ পর্যন্ত</label>
           <input type="date" class="form-control form-control-sm" id="rTo"
                  value="<?= $defaultTo ?>">
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-md-2">
           <button class="btn btn-primary btn-sm w-100" onclick="loadReport()">
             <i class="bi bi-search me-1"></i>রিপোর্ট দেখুন
           </button>
         </div>
-        <div class="col-md-4">
-          <div class="d-flex flex-wrap gap-1" role="group">
+        <div class="col-12 col-md-4">
+          <div class="d-flex flex-wrap gap-1">
             <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('today')">আজ</button>
             <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('week')">এ সপ্তাহ</button>
             <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('month')">এ মাস</button>
