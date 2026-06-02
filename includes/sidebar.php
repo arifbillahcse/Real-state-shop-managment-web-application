@@ -27,16 +27,16 @@ $menuItems = [
     ['icon' => 'bi-gear',          'label' => 'সেটিংস',         'href' => 'settings.php',   'admin' => true,  'manager' => false, 'staff' => false],
 ];
 ?>
-<div id="sidebar" class="sidebar bg-dark">
-    <ul class="nav flex-column px-2 pt-2">
+<div id="sidebar" class="sidebar">
+    <ul class="nav flex-column px-2 pt-3 pb-4">
         <?php foreach ($menuItems as $item): ?>
             <?php if ($item['admin'] && !$isAdmin) continue; ?>
             <?php if ($_isManager && !$item['manager']) continue; ?>
             <?php if ($_isStaff && !$item['staff']) continue; ?>
             <li class="nav-item">
                 <a href="<?= BASE_URL ?>/pages/<?= $item['href'] ?>"
-                   class="nav-link text-white rounded mb-1 <?= $currentPage === $item['href'] ? 'active-menu' : '' ?>">
-                    <i class="<?= $item['icon'] ?> me-2"></i><?= $item['label'] ?>
+                   class="nav-link sidebar-link <?= $currentPage === $item['href'] ? 'active-menu' : '' ?>">
+                    <i class="<?= $item['icon'] ?>"></i><span><?= $item['label'] ?></span>
                 </a>
             </li>
         <?php endforeach; ?>
