@@ -404,6 +404,7 @@ function buildInvoiceHTML(res, forPrint = false) {
             <div style="text-align:right;flex-shrink:0">
                 <div style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">কাস্টমার</div>
                 <div style="font-weight:700;font-size:15px;color:#222">${esc(s.customer_name)}</div>
+                ${s.customer_address ? `<div style="color:#888;font-size:12px;margin-top:2px">${esc(s.customer_address)}</div>` : ''}
                 ${s.customer_phone ? `<div style="color:#888;font-size:13px;margin-top:2px">&#9990; ${esc(s.customer_phone)}</div>` : ''}
                 <div style="margin-top:8px">
                     <span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;

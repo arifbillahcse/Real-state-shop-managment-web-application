@@ -152,8 +152,8 @@ class Sale extends BaseModel
     {
         $sale = Database::fetchOne(
             'SELECT s.*, COALESCE(c.name, \'Walk-in\') AS customer_name,
-                    c.phone AS customer_phone, u.name AS created_by_name,
-                    b.name AS branch_name
+                    c.phone AS customer_phone, c.address AS customer_address,
+                    u.name AS created_by_name, b.name AS branch_name
              FROM sales s
              LEFT JOIN customers c ON c.id = s.customer_id
              LEFT JOIN users     u ON u.id = s.created_by
