@@ -20,7 +20,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-cash-stack me-2 text-danger"></i>খরচ ট্র্যাকিং</h4>
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
       <i class="bi bi-plus-lg me-1"></i>নতুন খরচ

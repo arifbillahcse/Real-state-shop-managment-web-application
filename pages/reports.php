@@ -15,7 +15,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>রিপোর্ট ও বিশ্লেষণ</h4>
     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
       <i class="bi bi-printer me-1"></i>প্রিন্ট করুন

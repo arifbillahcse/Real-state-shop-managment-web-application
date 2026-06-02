@@ -23,7 +23,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-cart-check me-2"></i>বিক্রয়</h4>
     <?php if (!$_isStaff): ?>
     <button class="btn btn-primary" id="btnToggleSaleView" type="button" onclick="toggleSaleView()">

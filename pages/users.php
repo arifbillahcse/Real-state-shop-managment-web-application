@@ -15,7 +15,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i>ব্যবহারকারী ব্যবস্থাপনা</h4>
     <button class="btn btn-primary" onclick="openAddModal()">
       <i class="bi bi-person-plus me-1"></i>নতুন ব্যবহারকারী

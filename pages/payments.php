@@ -17,7 +17,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-cash-stack me-2"></i>বাকি / পেমেন্ট</h4>
     <button class="btn btn-success" onclick="openPaymentModal()">
       <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন

@@ -12,7 +12,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-truck me-2"></i>সাপ্লাইয়ার ব্যবস্থাপনা</h4>
     <button class="btn btn-primary" onclick="openAddModal()">
       <i class="bi bi-plus-circle me-1"></i>নতুন সাপ্লাইয়ার

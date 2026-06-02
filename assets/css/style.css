@@ -191,6 +191,7 @@ a { text-decoration: none; }
 }
 .stat-card > * { position: relative; z-index: 1; }
 .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.stat-card:hover .stat-icon { transform: scale(1.08) rotate(-4deg); transition: var(--t); }
 
 .stat-icon {
     width: 54px; height: 54px; border-radius: 14px;
@@ -214,17 +215,22 @@ a { text-decoration: none; }
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 1rem 1.3rem;
-    margin-bottom: 1.4rem;
+    padding: 1rem 1.3rem 1rem 1.5rem;
+    margin-bottom: 1.4rem !important;
     box-shadow: var(--shadow-sm);
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: .5rem;
+    position: relative; overflow: hidden;
 }
-.page-header h4, .page-header h5 { margin: 0; font-weight: 700; color: var(--ink); }
-
-/* Generic h4 headings used as page titles across pages */
-.main-content > .container-fluid > .d-flex h4,
-.main-content h4 { font-weight: 700; color: var(--ink); }
+/* Brand accent bar on the left edge of every page header */
+.page-header::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 5px; background: var(--brand-grad);
+}
+.page-header h4, .page-header h5 { margin: 0; font-weight: 700; font-size: 1.18rem; color: var(--ink); }
+/* All page-header icons share the brand color for consistency */
+.page-header h4 > i:first-child,
+.page-header h5 > i:first-child { color: var(--brand); }
 
 /* =====================================================================
    Tables

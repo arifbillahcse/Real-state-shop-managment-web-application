@@ -72,8 +72,8 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <h4 class="mb-0"><i class="bi bi-gear-fill me-2 text-secondary"></i>সেটিংস ও সিস্টেম তথ্য</h4>
+  <div class="page-header">
+    <h4 class="mb-0"><i class="bi bi-gear-fill me-2"></i>সেটিংস ও সিস্টেম তথ্য</h4>
     <span class="badge bg-secondary fs-6">v<?= APP_VERSION ?></span>
   </div>
 
