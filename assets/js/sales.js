@@ -361,18 +361,9 @@ function buildInvoiceHTML(res, forPrint = false) {
 
     const discountRow = parseFloat(s.discount) > 0 ? `
         <tr>
-            <td colspan="2" style="padding:6px 14px;text-align:right;color:#888;font-size:13px">ছাড়</td>
-            <td style="padding:6px 14px;text-align:right;color:#e74c3c;font-size:13px">− ${fmt(s.discount)}</td>
+            <td style="padding:5px 16px 5px 0;color:#888;font-size:13px">ছাড়</td>
+            <td style="padding:5px 0;text-align:right;color:#e74c3c;font-size:13px">− ${fmt(s.discount)}</td>
         </tr>` : '';
-
-    const stampColor = isCancelled ? '#95a5a6' : isPaid ? '#27ae60' : '#e74c3c';
-    const stampText  = isCancelled ? 'বাতিল' : isPaid ? 'পরিশোধিত' : 'বাকি আছে';
-    const stampHTML  = `
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
-                    font-size:52px;font-weight:900;color:${stampColor};opacity:0.08;
-                    white-space:nowrap;pointer-events:none;letter-spacing:2px;z-index:0">
-            ${stampText}
-        </div>`;
 
     return `
     <div id="printArea" style="font-family:'Hind Siliguri','Segoe UI',sans-serif;max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:${forPrint?'none':'0 4px 24px rgba(0,0,0,0.13)'}">
@@ -426,9 +417,8 @@ function buildInvoiceHTML(res, forPrint = false) {
         </div>
 
         <!-- Items table -->
-        <div style="padding:0 32px 8px;position:relative">
-            ${stampHTML}
-            <table style="width:100%;border-collapse:collapse;position:relative;z-index:1">
+        <div style="padding:0 32px 8px">
+            <table style="width:100%;border-collapse:collapse">
                 <thead>
                     <tr style="background:linear-gradient(90deg,#c0392b,#e74c3c)">
                         <th style="padding:10px 14px;text-align:left;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:6px 0 0 0">পণ্য</th>
