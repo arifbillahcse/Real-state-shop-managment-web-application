@@ -6,7 +6,7 @@ const sidebarToggle = document.getElementById('sidebarToggle');
 // Mobile backdrop overlay
 const backdrop = document.createElement('div');
 backdrop.id = 'sidebarBackdrop';
-backdrop.style.cssText = 'display:none;position:fixed;inset:0;z-index:1029;background:rgba(0,0,0,.45)';
+backdrop.style.cssText = 'display:none;position:fixed;inset:0;z-index:1015;background:rgba(0,0,0,.45)';
 document.body.appendChild(backdrop);
 
 function closeMobileSidebar() {
