@@ -226,6 +226,11 @@ document.getElementById('historyTabBtn')?.addEventListener('click', () => {
     setTimeout(loadHistory, 50);
 });
 
+// Paginate server-rendered due list
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof paginateTable === 'function') paginateTable('dueListBody', 50);
+});
+
 // Keep due list fresh if revisited (it's server-rendered, but just in case)
 
 // ============================================

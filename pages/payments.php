@@ -105,7 +105,7 @@ include __DIR__ . '/../includes/sidebar.php';
                 <th class="text-center">একশন</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="dueListBody">
               <?php
               $dueList = array_values(array_filter($allCustomers, fn($c) => (float)$c['total_due'] > 0));
               if (empty($dueList)): ?>
@@ -147,15 +147,6 @@ include __DIR__ . '/../includes/sidebar.php';
               <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
-            <?php if (!empty($dueList)): ?>
-            <tfoot>
-              <tr class="table-dark fw-bold">
-                <td colspan="5">মোট বাকি (<?= count($dueList) ?> জন)</td>
-                <td class="text-end text-warning"><?= money($totalDue) ?></td>
-                <td></td>
-              </tr>
-            </tfoot>
-            <?php endif; ?>
           </table>
         </div>
       </div>

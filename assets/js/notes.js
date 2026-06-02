@@ -3,6 +3,10 @@
 let searchTimer  = null;
 let activeStatus = '';   // '' | 'pending' | 'done'
 
+const NOTES_PAGE_SIZE = 20;
+let _allNotes  = [];
+let _notesPage = 1;
+
 function esc(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -30,21 +34,64 @@ function loadNotes() {
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function renderNotes(notes) {
-    const list = document.getElementById('notesList');
-
     notesCache = {};
     notes.forEach(n => { notesCache[n.id] = n; });
+    _allNotes  = notes;
+    _notesPage = 1;
+    renderNotesPage(1);
+}
 
-    if (!notes.length) {
+function renderNotesPage(page) {
+    _notesPage = page;
+    const list = document.getElementById('notesList');
+    let bar    = document.getElementById('notesPaginationBar');
+
+    if (!_allNotes.length) {
         list.innerHTML = `
         <div class="text-center py-5 text-muted">
             <i class="bi bi-journal-x fs-1 d-block mb-2 opacity-25"></i>
             কোনো নোট পাওয়া যায়নি
         </div>`;
+        if (bar) bar.style.display = 'none';
         return;
     }
 
-    list.innerHTML = notes.map(n => noteCard(n)).join('');
+    const totalPages = Math.ceil(_allNotes.length / NOTES_PAGE_SIZE);
+    const start      = (page - 1) * NOTES_PAGE_SIZE;
+    const pageData   = _allNotes.slice(start, start + NOTES_PAGE_SIZE);
+
+    list.innerHTML = pageData.map(n => noteCard(n)).join('');
+
+    // Create bar if missing
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id        = 'notesPaginationBar';
+        bar.className = 'd-flex justify-content-between align-items-center py-2 mt-2';
+        list.insertAdjacentElement('afterend', bar);
+    }
+
+    const from = start + 1;
+    const to   = Math.min(start + NOTES_PAGE_SIZE, _allNotes.length);
+    const infoText = `${_allNotes.length} টির মধ্যে ${from}–${to} দেখাচ্ছে`;
+
+    if (totalPages <= 1) {
+        bar.style.display = 'none';
+        return;
+    }
+    bar.style.removeProperty('display');
+
+    let html = `<small class="text-muted">${infoText}</small><nav><ul class="pagination pagination-sm mb-0">`;
+    html += `<li class="page-item ${page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderNotesPage(${page-1})">&#8249;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages-1 && Math.abs(i-page) > 1) {
+            if (i === 3 || i === totalPages-2) html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        html += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderNotesPage(${i})">${i}</a></li>`;
+    }
+    html += `<li class="page-item ${page===totalPages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();renderNotesPage(${page+1})">&#8250;</a></li>`;
+    html += `</ul></nav>`;
+    bar.innerHTML = html;
 }
 
 function noteCard(n) {
@@ -237,9 +284,8 @@ function deleteNote(id) {
     .then(r => r.json())
     .then(res => {
         if (res.success) {
-            document.getElementById('note-' + id)?.remove();
             showToast(res.message, 'success');
-            if (!document.querySelector('.note-card')) renderNotes([]);
+            loadNotes();
         } else {
             showToast(res.message, 'danger');
         }
