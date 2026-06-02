@@ -237,7 +237,7 @@ function loadSalesHistory() {
 
     document.getElementById('salesBody').innerHTML =
         '<tr><td colspan="9" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>';
-    document.getElementById('salesFooter').innerHTML = '';
+    document.getElementById('salesPaginationBar').style.display = 'none';
 
     fetch(BASE_URL + '/api/get_sales.php?' + params.toString())
         .then(r => r.json())
