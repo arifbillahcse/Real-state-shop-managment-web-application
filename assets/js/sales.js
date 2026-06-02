@@ -215,6 +215,11 @@ function resetSaleForm() {
     addItemRow(); // start with one empty row
 }
 
+// ---- Pagination state ----
+const PAGE_SIZE   = 50;
+let _allSales     = [];
+let _currentPage  = 1;
+
 // ---- Sales History ----
 function loadSalesHistory() {
     const params = new URLSearchParams();
@@ -236,29 +241,33 @@ function loadSalesHistory() {
 
     fetch(BASE_URL + '/api/get_sales.php?' + params.toString())
         .then(r => r.json())
-        .then(res => { if (res.success) renderSalesTable(res.data); })
+        .then(res => {
+            if (res.success) {
+                _allSales    = res.data;
+                _currentPage = 1;
+                renderSalesPage(_currentPage);
+            }
+        })
         .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
-function renderSalesTable(sales) {
+function renderSalesPage(page) {
+    _currentPage = page;
+    const cols  = HAS_BRANCHES ? 10 : 9;
     const tbody = document.getElementById('salesBody');
-    const tfoot = document.getElementById('salesFooter');
 
-    const cols = HAS_BRANCHES ? 10 : 9;
-
-    if (!sales.length) {
+    if (!_allSales.length) {
         tbody.innerHTML = `<tr><td colspan="${cols}" class="text-center py-5 text-muted">কোনো বিক্রয় রেকর্ড নেই</td></tr>`;
-        tfoot.innerHTML = '';
+        document.getElementById('salesPaginationBar').style.display = 'none';
         return;
     }
 
-    let totTotal = 0, totPaid = 0, totDue = 0;
+    const totalPages = Math.ceil(_allSales.length / PAGE_SIZE);
+    const start      = (page - 1) * PAGE_SIZE;
+    const pageData   = _allSales.slice(start, start + PAGE_SIZE);
 
-    tbody.innerHTML = sales.map(s => {
+    tbody.innerHTML = pageData.map(s => {
         const cancelled = s.status === 'cancelled';
-        totTotal += parseFloat(s.total_amount);
-        totPaid  += parseFloat(s.paid_amount);
-        totDue   += parseFloat(s.due_amount);
         const branchCell = HAS_BRANCHES
             ? `<td>${s.branch_name ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(s.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
             : '';
@@ -301,15 +310,45 @@ function renderSalesTable(sales) {
         </tr>`;
     }).join('');
 
-    const footCols = HAS_BRANCHES ? 5 : 4;
-    tfoot.innerHTML = `
-        <tr class="table-dark fw-bold">
-            <td colspan="${footCols}">সর্বমোট (${sales.length} টি বিক্রয়)</td>
-            <td class="text-end">${fmt(totTotal)}</td>
-            <td class="text-end">${fmt(totPaid)}</td>
-            <td class="text-end text-warning">${fmt(totDue)}</td>
-            <td colspan="2"></td>
-        </tr>`;
+    // Pagination bar
+    const bar  = document.getElementById('salesPaginationBar');
+    const info = document.getElementById('salesPageInfo');
+    const nav  = document.getElementById('salesPagination');
+
+    const from = start + 1;
+    const to   = Math.min(start + PAGE_SIZE, _allSales.length);
+    info.textContent = `${_allSales.length} টির মধ্যে ${from}–${to} দেখাচ্ছে`;
+
+    if (totalPages <= 1) {
+        bar.style.display = 'none';
+        return;
+    }
+
+    bar.style.removeProperty('display');
+
+    let pages = '';
+    pages += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="event.preventDefault();renderSalesPage(${page - 1})">&#8249;</a></li>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - page) > 1) {
+            if (i === 3 || i === totalPages - 2) pages += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            continue;
+        }
+        pages += `<li class="page-item ${i === page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault();renderSalesPage(${i})">${i}</a></li>`;
+    }
+
+    pages += `<li class="page-item ${page === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="event.preventDefault();renderSalesPage(${page + 1})">&#8250;</a></li>`;
+
+    nav.innerHTML = pages;
+}
+
+function renderSalesTable(sales) {
+    _allSales    = sales;
+    _currentPage = 1;
+    renderSalesPage(1);
 }
 
 function cancelSale(id, invoiceNo) {

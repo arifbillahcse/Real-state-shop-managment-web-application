@@ -237,8 +237,12 @@ include __DIR__ . '/../includes/sidebar.php';
                 </td>
               </tr>
             </tbody>
-            <tfoot id="salesFooter"></tfoot>
           </table>
+        </div>
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="salesPaginationBar" style="display:none!important">
+          <small class="text-muted" id="salesPageInfo"></small>
+          <nav><ul class="pagination pagination-sm mb-0" id="salesPagination"></ul></nav>
         </div>
       </div>
     </div><!-- /historyTab -->
