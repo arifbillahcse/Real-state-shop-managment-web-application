@@ -111,6 +111,33 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(document.body, { childList: true, subtree: true });
 });
 
+// ── Dark / Light theme toggle ─────────────────────────────────────────────────
+(function () {
+    const toggle = document.getElementById('themeToggle');
+    if (!toggle) return;
+
+    function syncIcon() {
+        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        toggle.innerHTML = dark
+            ? '<i class="bi bi-sun-fill"></i>'
+            : '<i class="bi bi-moon-stars"></i>';
+        toggle.title = dark ? 'লাইট মোড' : 'ডার্ক মোড';
+    }
+
+    syncIcon();
+    toggle.addEventListener('click', () => {
+        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        if (dark) {
+            document.documentElement.removeAttribute('data-bs-theme');
+            try { localStorage.setItem('theme', 'light'); } catch (e) {}
+        } else {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            try { localStorage.setItem('theme', 'dark'); } catch (e) {}
+        }
+        syncIcon();
+    });
+})();
+
 // ── Count-up animation for stat numbers ───────────────────────────────────────
 // Any element with data-countup="<number>" animates 0 → number on load.
 // Optional data-suffix appends a unit (e.g. " ৳").

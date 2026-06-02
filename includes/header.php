@@ -8,6 +8,8 @@ $shopName  = Setting::get('shop_name', APP_NAME);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Apply saved theme before paint to avoid flash -->
+    <script>(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-bs-theme','dark');}catch(e){}})();</script>
     <title><?= e($pageTitle) ?> — <?= e($shopName) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +43,9 @@ $shopName  = Setting::get('shop_name', APP_NAME);
         </span>
     </div>
     <div class="d-flex align-items-center gap-2 gap-md-3">
+        <button class="btn btn-sm theme-toggle" id="themeToggle" title="থিম পরিবর্তন" type="button">
+            <i class="bi bi-moon-stars"></i>
+        </button>
         <div class="user-chip d-none d-md-flex">
             <span class="user-avatar"><?= e($_initial) ?></span>
             <span class="user-meta">

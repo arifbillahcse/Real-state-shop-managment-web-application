@@ -64,30 +64,50 @@ include __DIR__ . '/../includes/sidebar.php';
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">মোট বিক্রয়</p>
-          <h5 class="fw-bold mb-0" id="sumTotalSales">—</h5>
-          <small class="text-muted" id="sumSaleCount">—</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">মোট বিক্রয়</p>
+              <h5 class="fw-bold mb-0" id="sumTotalSales">—</h5>
+              <small class="text-muted" id="sumSaleCount">—</small>
+            </div>
+            <div class="stat-icon bg-danger"><i class="bi bi-cart-check"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">আদায়কৃত পেমেন্ট</p>
-          <h5 class="fw-bold mb-0 text-success" id="sumPayments">—</h5>
-          <small class="text-muted">এই সময়ে</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">আদায়কৃত পেমেন্ট</p>
+              <h5 class="fw-bold mb-0 text-success" id="sumPayments">—</h5>
+              <small class="text-muted">এই সময়ে</small>
+            </div>
+            <div class="stat-icon bg-success"><i class="bi bi-cash-stack"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">নতুন বাকি</p>
-          <h5 class="fw-bold mb-0 text-danger" id="sumDue">—</h5>
-          <small class="text-muted">এই সময়ের বিক্রয়ে</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">নতুন বাকি</p>
+              <h5 class="fw-bold mb-0 text-danger" id="sumDue">—</h5>
+              <small class="text-muted">এই সময়ের বিক্রয়ে</small>
+            </div>
+            <div class="stat-icon bg-warning"><i class="bi bi-wallet2"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">আনুমানিক লাভ</p>
-          <h5 class="fw-bold mb-0 text-primary" id="sumProfit">—</h5>
-          <small class="text-muted">বিক্রয় − ক্রয়মূল্য</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">আনুমানিক লাভ</p>
+              <h5 class="fw-bold mb-0 text-primary" id="sumProfit">—</h5>
+              <small class="text-muted">বিক্রয় − ক্রয়মূল্য</small>
+            </div>
+            <div class="stat-icon bg-primary"><i class="bi bi-graph-up-arrow"></i></div>
+          </div>
         </div>
       </div>
     </div>
