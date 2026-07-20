@@ -356,9 +356,11 @@ class Stock extends BaseModel
         if ($fromStock < $quantity) return 'INSUFFICIENT_STOCK';
 
         $userId = $_SESSION['user_id'] ?? null;
+        // Legacy instant transfer: both sides move immediately → 'received'
         $id = Database::insert(
-            'INSERT INTO stock_transfers (product_id, from_branch_id, to_branch_id, quantity, note, created_by)
-             VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO stock_transfers
+                (product_id, from_branch_id, to_branch_id, quantity, status, transfer_date, note, created_by)
+             VALUES (?, ?, ?, ?, "received", CURDATE(), ?, ?)',
             [$productId, $fromBranchId, $toBranchId, $quantity, trim($note), $userId]
         );
         self::log('transfer_stock', 'stock', (int)$id,

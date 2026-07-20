@@ -11,6 +11,7 @@ $menuItems = [
     ['icon' => 'bi-speedometer2',  'label' => 'ড্যাশবোর্ড',      'href' => 'dashboard.php',  'admin' => false, 'manager' => true,  'staff' => true],
     ['icon' => 'bi-box-seam',      'label' => 'পণ্য',            'href' => 'products.php',   'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-stack',         'label' => 'স্টক',            'href' => 'stock.php',      'admin' => false, 'manager' => true,  'staff' => true],
+    ['icon' => 'bi-arrow-left-right','label' => 'ট্রান্সফার',     'href' => 'transfers.php',  'admin' => false, 'manager' => true,  'staff' => true],
     ['icon' => 'bi-cart-check',    'label' => 'বিক্রয়',          'href' => 'sales.php',       'admin' => false, 'manager' => true,  'staff' => true],
     ['icon' => 'bi-file-earmark-text','label' => 'কোটেশন',       'href' => 'quotations.php',  'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-people',        'label' => 'কাস্টমার',        'href' => 'customers.php',   'admin' => false, 'manager' => true,  'staff' => false],
