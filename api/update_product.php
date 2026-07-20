@@ -11,15 +11,21 @@ if ($id <= 0) {
     jsonResponse(false, 'সঠিক পণ্য নির্বাচন করুন।');
 }
 
-$result = Product::updateProduct($id, [
-    'category_id' => $_POST['category_id'] ?? null,
-    'name'        => $_POST['name']        ?? null,
-    'size_brand'  => $_POST['size_brand']  ?? null,
-    'unit'        => $_POST['unit']        ?? null,
-    'buy_price'   => $_POST['buy_price']   ?? null,
-    'sell_price'  => $_POST['sell_price']  ?? null,
-    'min_stock'   => $_POST['min_stock']   ?? null,
-]);
+$data = [
+    'category_id'     => $_POST['category_id']     ?? null,
+    'name'            => $_POST['name']            ?? null,
+    'size_brand'      => $_POST['size_brand']      ?? null,
+    'unit'            => $_POST['unit']            ?? null,
+    'buy_price'       => $_POST['buy_price']       ?? null,
+    'sell_price'      => $_POST['sell_price']      ?? null,
+    'min_stock'       => $_POST['min_stock']       ?? null,
+    'product_code'    => $_POST['product_code']    ?? null,
+    'wholesale_price' => $_POST['wholesale_price'] ?? null,
+];
+if (isset($_POST['subcategory_id'])) $data['subcategory_id'] = $_POST['subcategory_id'];
+if (isset($_POST['image']))          $data['image']          = $_POST['image'];
+
+$result = Product::updateProduct($id, $data);
 
 if ($result === true) {
     jsonResponse(true, 'পণ্য সফলভাবে আপডেট হয়েছে।');

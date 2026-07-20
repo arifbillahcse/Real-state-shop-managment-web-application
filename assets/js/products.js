@@ -8,7 +8,62 @@ const form          = document.getElementById('productForm');
 const formError     = document.getElementById('formError');
 const modalTitle    = document.getElementById('modalTitle');
 const catSelect     = document.getElementById('productCategory');
+const subcatSelect  = document.getElementById('productSubcategory');
 const unitSelect    = document.getElementById('productUnit');
+
+// Local mutable copy so newly added subcategories show without a reload
+let subcats = Array.isArray(SUBCATEGORIES) ? [...SUBCATEGORIES] : [];
+
+// ── Dependent sub-category dropdown ─────────────────────────────────────────
+function fillSubcatOptions(categoryId, selectedId) {
+    const items = subcats.filter(s => String(s.category_id) === String(categoryId));
+    let html = '<option value="">— নেই —</option>';
+    items.forEach(s => {
+        html += `<option value="${s.id}" ${String(selectedId) === String(s.id) ? 'selected' : ''}>${escHtml(s.name)}</option>`;
+    });
+    if (subcatSelect.tomselect) {
+        const ts = subcatSelect.tomselect;
+        ts.clear(true); ts.clearOptions();
+        items.forEach(s => ts.addOption({ value: String(s.id), text: s.name }));
+        ts.addOption({ value: '', text: '— নেই —' });
+        ts.setValue(selectedId ? String(selectedId) : '', true);
+    } else {
+        subcatSelect.innerHTML = html;
+    }
+}
+
+catSelect.addEventListener('change', () => fillSubcatOptions(catSelect.value, ''));
+
+// ── Image upload ─────────────────────────────────────────────────────────────
+const imageFile   = document.getElementById('imageFile');
+const imageHidden = document.getElementById('productImage');
+const imgPrevWrap = document.getElementById('imagePreviewWrap');
+const imgPrev     = document.getElementById('imagePreview');
+
+imageFile.addEventListener('change', async () => {
+    if (!imageFile.files.length) return;
+    const fd = new FormData();
+    fd.append('image', imageFile.files[0]);
+    imageFile.disabled = true;
+    try {
+        const res  = await fetch(`${BASE}/api/upload_product_image.php`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+            imageHidden.value = data.data.path;
+            imgPrev.src = `${BASE}/${data.data.path}`;
+            imgPrevWrap.classList.remove('d-none');
+            showToast(data.message, 'success');
+        } else {
+            imageFile.value = '';
+            showToast(data.message, 'danger');
+        }
+    } catch {
+        imageFile.value = '';
+        showToast('ছবি আপলোড করা যায়নি।', 'danger');
+    } finally {
+        imageFile.disabled = false;
+    }
+});
 
 // --- Open modal for ADD ---
 document.getElementById('btnAddProduct').addEventListener('click', () => {
@@ -16,6 +71,10 @@ document.getElementById('btnAddProduct').addEventListener('click', () => {
     tsSyncForm(form);
     document.getElementById('productId').value = '';
     document.getElementById('minStock').value  = '0';
+    document.getElementById('wholesalePrice').value = '0';
+    imageHidden.value = '';
+    imgPrevWrap.classList.add('d-none');
+    fillSubcatOptions('', '');
     modalTitle.innerHTML = '<i class="bi bi-box-seam me-1 text-danger"></i> নতুন পণ্য';
     formError.classList.add('d-none');
     productModal.show();
@@ -34,12 +93,23 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
             const p = data.product;
             document.getElementById('productId').value   = p.id;
             tsSet(catSelect,  String(p.category_id), true);
+            fillSubcatOptions(p.category_id, p.subcategory_id || '');
             document.getElementById('productName').value = p.name;
+            document.getElementById('productCode').value = p.product_code || '';
             document.getElementById('sizeBrand').value   = p.size_brand || '';
             tsSet(unitSelect, p.unit, true);
-            document.getElementById('buyPrice').value    = p.buy_price;
-            document.getElementById('sellPrice').value   = p.sell_price;
-            document.getElementById('minStock').value    = p.min_stock;
+            document.getElementById('buyPrice').value       = p.buy_price;
+            document.getElementById('sellPrice').value      = p.sell_price;
+            document.getElementById('wholesalePrice').value = p.wholesale_price || 0;
+            document.getElementById('minStock').value       = p.min_stock;
+            imageHidden.value = p.image || '';
+            imageFile.value   = '';
+            if (p.image) {
+                imgPrev.src = `${BASE}/${p.image}`;
+                imgPrevWrap.classList.remove('d-none');
+            } else {
+                imgPrevWrap.classList.add('d-none');
+            }
 
             modalTitle.innerHTML = '<i class="bi bi-pencil me-1 text-danger"></i> পণ্য সম্পাদনা';
             productModal.show();
@@ -117,6 +187,115 @@ document.querySelectorAll('.btn-delete').forEach(btn => {
     });
 });
 
+// ── QR Code ───────────────────────────────────────────────────────────────────
+const qrModal   = new bootstrap.Modal(document.getElementById('qrModal'));
+const qrCanvas  = document.getElementById('qrCanvas');
+let   qrCurrent = { name: '', code: '' };
+
+document.querySelectorAll('.btn-qr').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const code = btn.dataset.code || `P-${btn.dataset.id}`;
+        qrCurrent = { name: btn.dataset.name, code };
+        qrCanvas.innerHTML = '';
+        new QRCode(qrCanvas, { text: code, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+        document.getElementById('qrProductName').textContent = qrCurrent.name;
+        document.getElementById('qrProductCode').textContent = code;
+        qrModal.show();
+    });
+});
+
+document.getElementById('btnPrintQr').addEventListener('click', () => {
+    const img = qrCanvas.querySelector('img') || qrCanvas.querySelector('canvas');
+    if (!img) return;
+    const src = img.tagName === 'IMG' ? img.src : img.toDataURL();
+    const w = window.open('', '_blank', 'width=400,height=500');
+    w.document.write(`
+        <html><head><title>QR — ${escHtml(qrCurrent.code)}</title>
+        <style>
+            body{font-family:sans-serif;text-align:center;padding:24px}
+            img{width:220px;height:220px}
+            h3{margin:.5rem 0 .1rem} code{font-size:1.05rem}
+            @media print { @page { margin: 8mm; } }
+        </style></head><body>
+        <img src="${src}">
+        <h3>${escHtml(qrCurrent.name)}</h3>
+        <code>${escHtml(qrCurrent.code)}</code>
+        <script>window.onload=()=>{window.print();window.close();}<\/script>
+        </body></html>`);
+    w.document.close();
+});
+
+// ── Branch prices ─────────────────────────────────────────────────────────────
+const bpModalEl = document.getElementById('branchPriceModal');
+if (bpModalEl) {
+    const bpModal = new bootstrap.Modal(bpModalEl);
+    const bpBody  = document.getElementById('bpBody');
+    const bpError = document.getElementById('bpError');
+
+    document.querySelectorAll('.btn-branch-price').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            document.getElementById('bpProductId').value = id;
+            document.getElementById('bpProductName').textContent = btn.dataset.name;
+            bpError.classList.add('d-none');
+            bpBody.innerHTML = '<tr><td colspan="6" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+            bpModal.show();
+            try {
+                const res  = await fetch(`${BASE}/api/get_branch_prices.php?product_id=${id}`);
+                const data = await res.json();
+                if (!data.success) { bpError.textContent = data.message; bpError.classList.remove('d-none'); return; }
+                bpBody.innerHTML = data.data.prices.map(r => `
+                    <tr data-branch-id="${r.branch_id}">
+                        <td class="fw-semibold">${escHtml(r.branch_name)}</td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm bp-buy"       value="${r.buy_price       ?? ''}" placeholder="সেন্ট্রাল"></td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm bp-sell"      value="${r.sell_price      ?? ''}" placeholder="সেন্ট্রাল"></td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm bp-wholesale" value="${r.wholesale_price ?? ''}" placeholder="সেন্ট্রাল"></td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm bp-minstock"  value="${r.min_stock       ?? ''}" placeholder="সেন্ট্রাল"></td>
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input bp-active" ${Number(r.is_active) === 1 ? 'checked' : ''}>
+                        </td>
+                    </tr>`).join('');
+            } catch {
+                bpError.textContent = 'ডাটা লোড হয়নি।';
+                bpError.classList.remove('d-none');
+            }
+        });
+    });
+
+    document.getElementById('btnSaveBranchPrices').addEventListener('click', async () => {
+        const productId = document.getElementById('bpProductId').value;
+        const rows = [...bpBody.querySelectorAll('tr[data-branch-id]')].map(tr => ({
+            branch_id:       tr.dataset.branchId,
+            buy_price:       tr.querySelector('.bp-buy').value,
+            sell_price:      tr.querySelector('.bp-sell').value,
+            wholesale_price: tr.querySelector('.bp-wholesale').value,
+            min_stock:       tr.querySelector('.bp-minstock').value,
+            is_active:       tr.querySelector('.bp-active').checked ? 1 : 0,
+        }));
+        const btn = document.getElementById('btnSaveBranchPrices');
+        btn.disabled = true;
+        try {
+            const res  = await fetch(`${BASE}/api/save_branch_prices.php`, {
+                method: 'POST',
+                body:   new URLSearchParams({ product_id: productId, rows: JSON.stringify(rows) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message, 'success');
+                bpModal.hide();
+            } else {
+                bpError.textContent = data.message;
+                bpError.classList.remove('d-none');
+            }
+        } catch {
+            bpError.textContent = 'সংরক্ষণ করা যায়নি।';
+            bpError.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+
 // ── Category Management ────────────────────────────────────────────────────────
 
 const catError   = document.getElementById('catError');
@@ -166,17 +345,91 @@ function appendCategoryRow(id, name) {
     catList.appendChild(li);
     li.querySelector('.btn-del-cat').addEventListener('click', deleteCategoryHandler);
 
-    // Also append to product modal select
+    // Also append to product modal select + subcat category select
     const opt = document.createElement('option');
     opt.value       = id;
     opt.textContent = name;
     catSelect.appendChild(opt);
     if (catSelect.tomselect) catSelect.tomselect.addOption({ value: String(id), text: name });
+
+    const scSel = document.getElementById('newSubcatCategory');
+    if (scSel) {
+        const o2 = document.createElement('option');
+        o2.value = id; o2.textContent = name;
+        scSel.appendChild(o2);
+        if (scSel.tomselect) scSel.tomselect.addOption({ value: String(id), text: name });
+    }
 }
 
 function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Sub-category management ──────────────────────────────────────────────────
+const subcatList  = document.getElementById('subcategoryList');
+const subcatError = document.getElementById('subcatError');
+
+document.getElementById('btnAddSubcat').addEventListener('click', async () => {
+    const categoryId = document.getElementById('newSubcatCategory').value;
+    const name       = document.getElementById('newSubcatName').value.trim();
+    subcatError.classList.add('d-none');
+    if (!categoryId) { subcatError.textContent = 'ক্যাটাগরি নির্বাচন করুন।'; subcatError.classList.remove('d-none'); return; }
+    if (!name)       { subcatError.textContent = 'সাব-ক্যাটাগরির নাম লিখুন।'; subcatError.classList.remove('d-none'); return; }
+
+    try {
+        const res  = await fetch(`${BASE}/api/add_subcategory.php`, {
+            method: 'POST',
+            body:   new URLSearchParams({ category_id: categoryId, name })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const catName = (CATEGORIES.find(c => String(c.id) === String(categoryId)) || {}).name || '';
+            subcats.push({ id: data.data.id, category_id: categoryId, name });
+            const noMsg = document.getElementById('noSubcatMsg');
+            if (noMsg) noMsg.remove();
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+            li.dataset.subcatId = data.data.id;
+            li.innerHTML = `<span>${escHtml(name)} <small class="text-muted">(${escHtml(catName)})</small></span>
+                <button class="btn btn-sm btn-outline-danger btn-del-subcat" data-id="${data.data.id}">
+                    <i class="bi bi-trash"></i>
+                </button>`;
+            subcatList.appendChild(li);
+            li.querySelector('.btn-del-subcat').addEventListener('click', deleteSubcatHandler);
+            document.getElementById('newSubcatName').value = '';
+            showToast(data.message, 'success');
+        } else {
+            subcatError.textContent = data.message;
+            subcatError.classList.remove('d-none');
+        }
+    } catch {
+        subcatError.textContent = 'সার্ভারে সমস্যা হয়েছে।';
+        subcatError.classList.remove('d-none');
+    }
+});
+
+async function deleteSubcatHandler(e) {
+    const btn = e.currentTarget;
+    const id  = btn.dataset.id;
+    if (!confirm('সাব-ক্যাটাগরিটি ডিলিট করতে চান?')) return;
+    try {
+        const res  = await fetch(`${BASE}/api/delete_subcategory.php`, {
+            method: 'POST',
+            body:   new URLSearchParams({ id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            subcats = subcats.filter(s => String(s.id) !== String(id));
+            btn.closest('li').remove();
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message, 'danger');
+        }
+    } catch {
+        showToast('ডিলিট করা যায়নি।', 'danger');
+    }
+}
+document.querySelectorAll('.btn-del-subcat').forEach(btn => btn.addEventListener('click', deleteSubcatHandler));
 
 // Typed-confirmation delete: user must type the exact category name.
 const delCatModal   = new bootstrap.Modal(document.getElementById('delCatModal'));
@@ -255,4 +508,3 @@ btnConfirmDel.addEventListener('click', async () => {
 document.querySelectorAll('.btn-del-cat').forEach(btn => {
     btn.addEventListener('click', deleteCategoryHandler);
 });
-
