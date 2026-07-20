@@ -131,11 +131,18 @@ class Ledger extends BaseModel
         if ($date === '' || !strtotime($date)) return 'INVALID_DATE';
 
         $noteFull = trim($method) !== '' ? trim("[$method] " . $note) : trim($note);
+
+        // Credit the assigned collector's khata if this customer's due
+        // was transferred to a staff member (§8 হিসাব ট্রান্সফার)
+        require_once __DIR__ . '/Staff.php';
+        $collectedBy = Staff::getActiveCollector($customerId);
+
         $ledgerId = (int)Database::insert(
             'INSERT INTO customer_ledger
-                (customer_id, entry_type, entry_date, debit, credit, note, status, created_by)
-             VALUES (?, "deposit", ?, 0, ?, ?, "final", ?)',
-            [$customerId, $date, $amount, $noteFull ?: null, $userId]
+                (customer_id, entry_type, entry_date, debit, credit, note, status,
+                 created_by, collected_by)
+             VALUES (?, "deposit", ?, 0, ?, ?, "final", ?, ?)',
+            [$customerId, $date, $amount, $noteFull ?: null, $userId, $collectedBy]
         );
 
         // Auto SMS: deposit amount, date, current balance
