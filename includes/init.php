@@ -38,6 +38,12 @@ function isLoggedIn(): bool
     return isset($_SESSION['user_id']);
 }
 
+// Helper: current user id (null when not logged in)
+function getUserId(): ?int
+{
+    return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+}
+
 // Helper: require login (call at top of protected pages)
 function requireLogin(): void
 {

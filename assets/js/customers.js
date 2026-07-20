@@ -374,6 +374,10 @@ function renderCustomersPage(page) {
                     : '<span class="text-success small">পরিশোধিত</span>'}
             </td>
             <td class="text-center text-nowrap">
+                <a class="btn btn-sm btn-outline-dark" title="একাউন্ট/খাতা"
+                   href="${BASE_URL}/pages/customer_account.php?id=${c.id}">
+                    <i class="bi bi-journal-bookmark"></i>
+                </a>
                 ${(c.account_type || 'full') === 'short' && IS_ADMIN ? `
                 <button class="btn btn-sm btn-outline-success" title="ফুল একাউন্টে রূপান্তর"
                     onclick="openUpgradeModal(${c.id}, '${jsEsc(c.name)}', '${jsEsc(c.book_no || '')}')">
