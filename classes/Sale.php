@@ -22,7 +22,14 @@ class Sale extends BaseModel
 
     /**
      * Create a sale with items inside a transaction.
-     * $items: [['product_id'=>int,'quantity'=>float,'unit_price'=>float], ...]
+     * $items: [['product_id'=>int,'quantity'=>float,'unit_price'=>float,
+     *           'rate_type'=>'retail|wholesale|custom',
+     *           'unload_bill'=>float,'labor_bill'=>float,'transport_bill'=>float], ...]
+     * $charges: ['unload'=>f, 'labor'=>f, 'transport'=>f, 'delivery'=>f] (combined)
+     *
+     * Total = subtotal + item charges + combined charges + delivery − discount.
+     * Over-limit credit sales require $approvedBy (manager id) — the API layer
+     * verifies manager credentials before passing it.
      */
     public static function createSale(
         ?int   $customerId,
@@ -32,14 +39,19 @@ class Sale extends BaseModel
         string $paymentMethod = 'cash',
         string $saleDate      = '',
         string $note          = '',
-        ?int   $branchId      = null
+        ?int   $branchId      = null,
+        array  $charges       = [],
+        string $discountNote  = '',
+        ?int   $approvedBy    = null
     ): int|string {
         if (empty($items)) return 'NO_ITEMS';
 
         if ($customerId !== null && $customerId > 0) {
-            if (!Customer::getCustomerById($customerId)) return 'CUSTOMER_NOT_FOUND';
+            $customer = Customer::getCustomerById($customerId);
+            if (!$customer) return 'CUSTOMER_NOT_FOUND';
         } else {
             $customerId = null;
+            $customer   = null;
         }
 
         if ($branchId !== null && $branchId > 0) {
@@ -51,12 +63,15 @@ class Sale extends BaseModel
             $branchId = null;
         }
 
-        $subtotal   = 0;
-        $validItems = [];
+        $subtotal    = 0;
+        $itemCharges = 0;
+        $validItems  = [];
         foreach ($items as $item) {
             $productId = (int)($item['product_id'] ?? 0);
             $qty       = (float)($item['quantity']   ?? 0);
             $price     = (float)($item['unit_price']  ?? 0);
+            $rateType  = in_array($item['rate_type'] ?? '', ['retail', 'wholesale', 'custom'], true)
+                       ? $item['rate_type'] : 'retail';
 
             if ($productId <= 0) return 'INVALID_PRODUCT';
             if ($qty   <= 0)     return 'INVALID_QUANTITY';
@@ -68,38 +83,75 @@ class Sale extends BaseModel
                 : Stock::getCurrentStock($productId);
             if ($currentStock < $qty) return 'INSUFFICIENT_STOCK:' . $productId;
 
+            $u = max(0, (float)($item['unload_bill']    ?? 0));
+            $l = max(0, (float)($item['labor_bill']     ?? 0));
+            $t = max(0, (float)($item['transport_bill'] ?? 0));
+
             $validItems[] = [
                 'product_id' => $productId,
                 'quantity'   => $qty,
                 'unit_price' => $price,
+                'rate_type'  => $rateType,
+                'unload'     => $u, 'labor' => $l, 'transport' => $t,
             ];
-            $subtotal += $qty * $price;
+            $subtotal    += $qty * $price;
+            $itemCharges += $u + $l + $t;
         }
 
+        $unloadBill     = max(0, (float)($charges['unload']    ?? 0));
+        $laborBill      = max(0, (float)($charges['labor']     ?? 0));
+        $transportBill  = max(0, (float)($charges['transport'] ?? 0));
+        $deliveryCharge = max(0, (float)($charges['delivery']  ?? 0));
+
         $discount    = max(0, $discount);
-        $totalAmount = max(0, $subtotal - $discount);
+        $totalAmount = max(0, $subtotal + $itemCharges
+                            + $unloadBill + $laborBill + $transportBill
+                            + $deliveryCharge - $discount);
         $paidAmount  = max(0, min($paidAmount, $totalAmount));
         $dueAmount   = $totalAmount - $paidAmount;
-        $saleDate    = $saleDate !== '' ? $saleDate : today();
-        $invoiceNo   = self::generateInvoiceNumber();
-        $userId      = $_SESSION['user_id'] ?? null;
+
+        // Credit-limit gate: only for named customers with a limit set.
+        // Manager approval (approved_by) bypasses the block and is recorded.
+        if ($dueAmount > 0 && $customer && (float)($customer['due_limit'] ?? 0) > 0) {
+            $currentDue = Database::fetchOne(
+                'SELECT COALESCE(SUM(due_amount),0) AS due
+                 FROM sales WHERE customer_id = ? AND status = "completed"',
+                [$customerId]
+            );
+            $projected = (float)($currentDue['due'] ?? 0) + $dueAmount;
+            if ($projected > (float)$customer['due_limit'] && $approvedBy === null) {
+                return 'LIMIT_EXCEEDED:' . $customer['due_limit'] . ':' . ($currentDue['due'] ?? 0);
+            }
+        }
+
+        $saleDate  = $saleDate !== '' ? $saleDate : today();
+        $invoiceNo = self::generateInvoiceNumber();
+        $userId    = $_SESSION['user_id'] ?? null;
 
         Database::beginTransaction();
         try {
             $saleId = Database::insert(
                 'INSERT INTO sales
                  (invoice_number, customer_id, branch_id, sale_date, subtotal, discount,
-                  total_amount, paid_amount, due_amount, payment_method, note, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  unload_bill, labor_bill, transport_bill, delivery_charge, discount_note,
+                  total_amount, paid_amount, due_amount, payment_method, note,
+                  created_by, approved_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [$invoiceNo, $customerId, $branchId, $saleDate, $subtotal, $discount,
-                 $totalAmount, $paidAmount, $dueAmount, $paymentMethod, trim($note), $userId]
+                 $unloadBill, $laborBill, $transportBill, $deliveryCharge,
+                 trim($discountNote) ?: null,
+                 $totalAmount, $paidAmount, $dueAmount, $paymentMethod, trim($note),
+                 $userId, $approvedBy]
             );
 
             foreach ($validItems as $it) {
                 Database::insert(
-                    'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price)
-                     VALUES (?, ?, ?, ?)',
-                    [$saleId, $it['product_id'], $it['quantity'], $it['unit_price']]
+                    'INSERT INTO sale_items
+                     (sale_id, product_id, quantity, unit_price, rate_type,
+                      unload_bill, labor_bill, transport_bill)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    [$saleId, $it['product_id'], $it['quantity'], $it['unit_price'],
+                     $it['rate_type'], $it['unload'], $it['labor'], $it['transport']]
                 );
             }
             Database::commit();
@@ -267,6 +319,11 @@ class Sale extends BaseModel
     {
         if (str_starts_with($code, 'INSUFFICIENT_STOCK:')) {
             return 'পর্যাপ্ত স্টক নেই।';
+        }
+        if (str_starts_with($code, 'LIMIT_EXCEEDED:')) {
+            $parts = explode(':', $code);
+            return 'বাকির সীমা (' . number_format((float)($parts[1] ?? 0), 2)
+                 . ' ৳) ছাড়িয়ে যাচ্ছে। ম্যানেজার অনুমোদন প্রয়োজন।';
         }
         return [
             'NO_ITEMS'              => 'কমপক্ষে একটি পণ্য যোগ করুন।',

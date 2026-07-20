@@ -81,20 +81,32 @@ include __DIR__ . '/../includes/sidebar.php';
 
         <!-- Items card -->
         <div class="card shadow-sm mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <div class="card-header d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-box-seam me-1"></i>পণ্য তালিকা</span>
-            <button type="button" class="btn btn-sm btn-success" onclick="addItemRow()">
-              <i class="bi bi-plus-circle me-1"></i>পণ্য যোগ করুন
-            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="btn-group btn-group-sm" role="group" title="লেবার/আনলোড/ভাড়া কীভাবে যুক্ত হবে">
+                <input type="radio" class="btn-check" name="saleChargeMode" id="saleChargeCombined" value="combined" checked>
+                <label class="btn btn-outline-secondary" for="saleChargeCombined">একত্রে খরচ</label>
+                <input type="radio" class="btn-check" name="saleChargeMode" id="saleChargePerItem" value="per_item">
+                <label class="btn btn-outline-secondary" for="saleChargePerItem">পণ্যভিত্তিক খরচ</label>
+              </div>
+              <button type="button" class="btn btn-sm btn-success" onclick="addItemRow()">
+                <i class="bi bi-plus-circle me-1"></i>পণ্য যোগ করুন
+              </button>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th style="min-width:220px">পণ্য</th>
-                  <th style="width:120px">পরিমাণ</th>
-                  <th style="width:140px">একক মূল্য (৳)</th>
-                  <th style="width:130px" class="text-end">মোট (৳)</th>
+                  <th style="min-width:200px">পণ্য</th>
+                  <th style="width:110px">রেট টাইপ</th>
+                  <th style="width:100px">পরিমাণ</th>
+                  <th style="width:120px">একক মূল্য (৳)</th>
+                  <th class="sale-charge-col d-none" style="width:100px">আনলোড</th>
+                  <th class="sale-charge-col d-none" style="width:100px">লেবার</th>
+                  <th class="sale-charge-col d-none" style="width:100px">ভাড়া</th>
+                  <th style="width:120px" class="text-end">মোট (৳)</th>
                   <th style="width:46px"></th>
                 </tr>
               </thead>
@@ -108,25 +120,76 @@ include __DIR__ . '/../includes/sidebar.php';
           </div>
         </div>
 
+        <!-- Combined charges (hidden in per-item mode) -->
+        <div class="card shadow-sm mb-3" id="combinedSaleCharges">
+          <div class="card-body py-2">
+            <div class="row g-2">
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">আনলোড বিল (একত্রে)</label>
+                <input type="number" class="form-control form-control-sm" id="saleUnload"
+                       min="0" step="0.01" value="0" oninput="calcGrandTotal()">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">লেবার বিল (একত্রে)</label>
+                <input type="number" class="form-control form-control-sm" id="saleLabor"
+                       min="0" step="0.01" value="0" oninput="calcGrandTotal()">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">গাড়িভাড়া (একত্রে)</label>
+                <input type="number" class="form-control form-control-sm" id="saleTransport"
+                       min="0" step="0.01" value="0" oninput="calcGrandTotal()">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-muted mb-1">ডেলিভারি চার্জ</label>
+                <input type="number" class="form-control form-control-sm" id="saleDelivery"
+                       min="0" step="0.01" value="0" oninput="calcGrandTotal()">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Totals + submit -->
         <div class="row justify-content-end">
-          <div class="col-lg-5 col-md-7">
+          <div class="col-lg-6 col-md-8">
             <table class="table table-sm table-borderless">
               <tr>
                 <td class="text-muted">সাবটোটাল</td>
                 <td class="text-end fw-semibold" id="subtotalDisplay">০.০০ ৳</td>
               </tr>
               <tr>
-                <td class="text-muted align-middle">ছাড় (৳)</td>
+                <td class="text-muted">খরচ (আনলোড/লেবার/ভাড়া/ডেলিভারি)</td>
+                <td class="text-end fw-semibold" id="chargesDisplay">০.০০ ৳</td>
+              </tr>
+              <tr>
+                <td class="text-muted align-middle">
+                  ছাড়
+                  <div class="btn-group btn-group-sm ms-1" role="group">
+                    <input type="radio" class="btn-check" name="discountType" id="discTaka" value="amount" checked>
+                    <label class="btn btn-outline-secondary btn-sm py-0 px-2" for="discTaka">৳</label>
+                    <input type="radio" class="btn-check" name="discountType" id="discPercent" value="percent">
+                    <label class="btn btn-outline-secondary btn-sm py-0 px-2" for="discPercent">%</label>
+                  </div>
+                </td>
                 <td class="text-end">
                   <input type="number" class="form-control form-control-sm text-end ms-auto"
                          style="width:130px" id="discount" name="discount"
                          value="0" min="0" step="0.01" oninput="calcGrandTotal()">
+                  <small class="text-muted" id="discountCalcHint"></small>
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted align-middle small">ছাড়ের কারণ (নোট)</td>
+                <td class="text-end">
+                  <input type="text" class="form-control form-control-sm" id="discountNote"
+                         maxlength="300" placeholder="ঐচ্ছিক">
                 </td>
               </tr>
               <tr class="table-dark">
                 <td class="fw-bold">মোট</td>
                 <td class="text-end fw-bold fs-6" id="totalDisplay">০.০০ ৳</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="text-end text-muted small" id="totalInWords"></td>
               </tr>
               <tr>
                 <td class="text-muted align-middle">নগদ প্রদান (৳)</td>
@@ -141,6 +204,7 @@ include __DIR__ . '/../includes/sidebar.php';
                 <td class="text-end fw-bold text-danger" id="dueDisplay">০.০০ ৳</td>
               </tr>
             </table>
+            <div id="dueLimitWarning" class="alert alert-warning py-2 d-none small mb-2"></div>
             <div class="mb-3">
               <label class="form-label text-muted small">নোট</label>
               <textarea class="form-control form-control-sm" id="saleNote" name="note"
@@ -264,7 +328,13 @@ include __DIR__ . '/../includes/sidebar.php';
           <div class="spinner-border text-primary"></div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer flex-wrap">
+        <button type="button" class="btn btn-success" id="btnShareWhatsApp" onclick="shareInvoice('whatsapp')">
+          <i class="bi bi-whatsapp me-1"></i>WhatsApp
+        </button>
+        <button type="button" class="btn btn-info text-white" id="btnShareSms" onclick="shareInvoice('sms')">
+          <i class="bi bi-chat-dots me-1"></i>SMS
+        </button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
         <?php if (User::isAdminOrManager()): ?>
         <button type="button" class="btn btn-warning" id="btnEditInvoice" onclick="openEditSale()">
@@ -273,6 +343,32 @@ include __DIR__ . '/../includes/sidebar.php';
         <?php endif; ?>
         <button type="button" class="btn btn-primary" onclick="printInvoice()">
           <i class="bi bi-printer me-1"></i>প্রিন্ট করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Manager Approval Modal (over-limit credit sale) -->
+<div class="modal fade" id="approvalModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning">
+        <h6 class="modal-title"><i class="bi bi-shield-lock me-1"></i>ম্যানেজার অনুমোদন</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small mb-2" id="approvalInfo"></p>
+        <label class="form-label small fw-semibold">ম্যানেজার ইউজারনেম</label>
+        <input type="text" class="form-control form-control-sm mb-2" id="approverUsername" autocomplete="off">
+        <label class="form-label small fw-semibold">পাসওয়ার্ড</label>
+        <input type="password" class="form-control form-control-sm" id="approverPassword" autocomplete="new-password">
+        <div class="alert alert-danger py-1 px-2 small mt-2 d-none" id="approvalError"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">বাতিল</button>
+        <button type="button" class="btn btn-warning btn-sm" id="btnConfirmApproval" onclick="confirmApproval()">
+          <i class="bi bi-check-lg me-1"></i>অনুমোদন দিন
         </button>
       </div>
     </div>

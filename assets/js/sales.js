@@ -23,11 +23,13 @@ function buildProductOpts(stockList) {
         const pid   = p.product_id  ?? p.product_id;
         const name  = p.product_name;
         const price = p.sell_price;
+        const wholesale = parseFloat(p.wholesale_price ?? 0) || 0;
         const stock = parseFloat(p.current_stock ?? 0);
         const unit  = p.unit;
         const disabled = stock <= 0 ? 'disabled' : '';
         return `<option value="${pid}" ${disabled}
                      data-price="${price}"
+                     data-wholesale="${wholesale}"
                      data-stock="${stock}"
                      data-unit="${esc(unit)}">
             ${esc(name)} (স্টক: ${stock} ${esc(unit)})
@@ -61,10 +63,34 @@ if (HAS_BRANCHES) {
     });
 }
 
+// ---- Charge mode (combined vs per-item) ----
+function salePerItemMode() {
+    return document.getElementById('saleChargePerItem')?.checked === true;
+}
+
+function applySaleChargeMode() {
+    const perItem = salePerItemMode();
+    document.querySelectorAll('.sale-charge-col, .sale-charge-cell').forEach(el =>
+        el.classList.toggle('d-none', !perItem));
+    const combined = document.getElementById('combinedSaleCharges');
+    if (combined) {
+        // Delivery charge stays visible in both modes; hide only the 3 charge inputs
+        combined.querySelectorAll('input').forEach(inp => {
+            if (inp.id !== 'saleDelivery') {
+                inp.closest('div.col-6, div.col-md-3, div[class*=col]')?.classList.toggle('d-none', perItem);
+            }
+        });
+    }
+    calcGrandTotal();
+}
+document.getElementById('saleChargeCombined')?.addEventListener('change', applySaleChargeMode);
+document.getElementById('saleChargePerItem')?.addEventListener('change', applySaleChargeMode);
+
 // ---- Item Rows ----
 function addItemRow() {
     rowCounter++;
     const id = rowCounter;
+    const perItem = salePerItemMode();
 
     const tr = document.createElement('tr');
     tr.id = 'item_row_' + id;
@@ -77,6 +103,14 @@ function addItemRow() {
             </select>
         </td>
         <td>
+            <select class="form-select form-select-sm rate-type-select" data-no-search="1"
+                    onchange="onRateTypeChange(this, ${id})">
+                <option value="retail">খুচরা</option>
+                <option value="wholesale">পাইকারি</option>
+                <option value="custom">কাস্টম</option>
+            </select>
+        </td>
+        <td>
             <input type="number" class="form-control form-control-sm qty-input"
                    min="0.01" step="0.01" placeholder="০" required
                    oninput="calcRow(${id})">
@@ -86,6 +120,18 @@ function addItemRow() {
             <input type="number" class="form-control form-control-sm price-input"
                    min="0.01" step="0.01" placeholder="০.০০" required
                    oninput="calcRow(${id})">
+        </td>
+        <td class="sale-charge-cell ${perItem ? '' : 'd-none'}">
+            <input type="number" class="form-control form-control-sm item-unload"
+                   min="0" step="0.01" value="0" oninput="calcRow(${id})">
+        </td>
+        <td class="sale-charge-cell ${perItem ? '' : 'd-none'}">
+            <input type="number" class="form-control form-control-sm item-labor"
+                   min="0" step="0.01" value="0" oninput="calcRow(${id})">
+        </td>
+        <td class="sale-charge-cell ${perItem ? '' : 'd-none'}">
+            <input type="number" class="form-control form-control-sm item-transport"
+                   min="0" step="0.01" value="0" oninput="calcRow(${id})">
         </td>
         <td class="text-end fw-semibold row-total-cell" id="row_total_${id}">—</td>
         <td>
@@ -110,44 +156,147 @@ function checkEmptyState() {
     document.getElementById('noItemsAlert').classList.toggle('d-none', hasRows);
 }
 
+// Resolve price from the selected rate type (retail/wholesale/custom)
+function applyRatePrice(row) {
+    const sel  = row.querySelector('.product-select');
+    const opt  = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return;
+    const rateType   = row.querySelector('.rate-type-select').value;
+    const priceInput = row.querySelector('.price-input');
+    if (rateType === 'retail') {
+        priceInput.value = opt.dataset.price || '';
+        priceInput.readOnly = false;
+    } else if (rateType === 'wholesale') {
+        const w = parseFloat(opt.dataset.wholesale || 0);
+        if (w > 0) {
+            priceInput.value = w;
+        } else {
+            showToast('এই পণ্যের পাইকারি দাম সেট করা নেই — খুচরা দাম ব্যবহার হচ্ছে', 'warning');
+            priceInput.value = opt.dataset.price || '';
+        }
+        priceInput.readOnly = false;
+    } else {
+        priceInput.readOnly = false;
+        priceInput.focus();
+    }
+}
+
 function onProductSelect(sel, id) {
     const opt = sel.options[sel.selectedIndex];
     const row = document.getElementById('item_row_' + id);
     if (!row || !opt.value) return;
-    row.querySelector('.price-input').value = opt.dataset.price || '';
+    applyRatePrice(row);
     row.querySelector('.unit-label').textContent =
         opt.dataset.unit ? '(' + opt.dataset.unit + ')' : '';
     calcRow(id);
 }
 
+function onRateTypeChange(sel, id) {
+    const row = document.getElementById('item_row_' + id);
+    if (!row) return;
+    applyRatePrice(row);
+    calcRow(id);
+}
+
+function rowLineTotal(tr) {
+    const qty   = parseFloat(tr.querySelector('.qty-input')?.value)   || 0;
+    const price = parseFloat(tr.querySelector('.price-input')?.value) || 0;
+    let line = qty * price;
+    if (salePerItemMode()) {
+        line += (parseFloat(tr.querySelector('.item-unload')?.value)    || 0)
+              + (parseFloat(tr.querySelector('.item-labor')?.value)     || 0)
+              + (parseFloat(tr.querySelector('.item-transport')?.value) || 0);
+    }
+    return line;
+}
+
 function calcRow(id) {
     const row = document.getElementById('item_row_' + id);
     if (!row) return;
-    const qty   = parseFloat(row.querySelector('.qty-input').value) || 0;
-    const price = parseFloat(row.querySelector('.price-input').value) || 0;
-    const total = qty * price;
+    const total = rowLineTotal(row);
     document.getElementById('row_total_' + id).textContent = total > 0 ? fmt(total) : '—';
     calcGrandTotal();
 }
 
 function calcGrandTotal() {
-    let subtotal = 0;
+    let subtotal = 0;       // items only (qty × price)
+    let itemCharges = 0;    // per-item charges
     document.querySelectorAll('#itemsBody tr').forEach(tr => {
-        const qty   = parseFloat(tr.querySelector('.qty-input')?.value) || 0;
+        const qty   = parseFloat(tr.querySelector('.qty-input')?.value)   || 0;
         const price = parseFloat(tr.querySelector('.price-input')?.value) || 0;
         subtotal += qty * price;
+        if (salePerItemMode()) {
+            itemCharges += (parseFloat(tr.querySelector('.item-unload')?.value)    || 0)
+                         + (parseFloat(tr.querySelector('.item-labor')?.value)     || 0)
+                         + (parseFloat(tr.querySelector('.item-transport')?.value) || 0);
+        }
     });
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const total    = Math.max(0, subtotal - discount);
-    const paid     = parseFloat(document.getElementById('paidAmount').value) || 0;
-    const due      = Math.max(0, total - paid);
+
+    const perItem = salePerItemMode();
+    const combinedCharges = perItem ? 0 :
+          (parseFloat(document.getElementById('saleUnload')?.value)    || 0)
+        + (parseFloat(document.getElementById('saleLabor')?.value)     || 0)
+        + (parseFloat(document.getElementById('saleTransport')?.value) || 0);
+    const delivery = parseFloat(document.getElementById('saleDelivery')?.value) || 0;
+    const charges  = itemCharges + combinedCharges + delivery;
+
+    // Discount: taka or percent of (subtotal + charges)
+    const discInput = parseFloat(document.getElementById('discount').value) || 0;
+    const isPercent = document.getElementById('discPercent')?.checked === true;
+    const base      = subtotal + charges;
+    const discountAmt = isPercent
+        ? Math.min(base, base * Math.min(discInput, 100) / 100)
+        : Math.min(base, discInput);
+    const hint = document.getElementById('discountCalcHint');
+    if (hint) hint.textContent = isPercent && discInput > 0 ? `= ${fmt(discountAmt)}` : '';
+
+    const total = Math.max(0, base - discountAmt);
+    const paid  = parseFloat(document.getElementById('paidAmount').value) || 0;
+    const due   = Math.max(0, total - paid);
 
     document.getElementById('subtotalDisplay').textContent = fmt(subtotal);
-    document.getElementById('totalDisplay').textContent    = fmt(total);
-    document.getElementById('dueDisplay').textContent      = fmt(due);
+    const chargesEl = document.getElementById('chargesDisplay');
+    if (chargesEl) chargesEl.textContent = fmt(charges);
+    document.getElementById('totalDisplay').textContent = fmt(total);
+    document.getElementById('dueDisplay').textContent   = fmt(due);
+
+    const wordsEl = document.getElementById('totalInWords');
+    if (wordsEl) {
+        wordsEl.textContent = (total > 0 && typeof bnMoneyWords === 'function')
+            ? 'কথায়: ' + bnMoneyWords(total) : '';
+    }
+
+    updateDueLimitWarning(due);
+    return { subtotal, charges, discountAmt, total, paid, due };
 }
 
+// Live due-limit hint under the totals
+function updateDueLimitWarning(newDue) {
+    const box = document.getElementById('dueLimitWarning');
+    if (!box) return;
+    const custId = document.getElementById('saleCustomerId')?.value;
+    box.classList.add('d-none');
+    if (!custId || newDue <= 0) return;
+    const cust = (CUSTOMERS || []).find(c => String(c.id) === String(custId));
+    if (!cust) return;
+    const limit      = parseFloat(cust.due_limit || 0);
+    const currentDue = parseFloat(cust.total_due || 0);
+    if (limit <= 0) return;
+    const projected = currentDue + newDue;
+    if (projected > limit) {
+        box.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>
+            সতর্কতা: বর্তমান বাকি ${fmt(currentDue)} + নতুন বাকি ${fmt(newDue)}
+            = ${fmt(projected)}, যা নির্ধারিত সীমা ${fmt(limit)} ছাড়িয়ে যাচ্ছে।
+            বিক্রয় সম্পন্ন করতে ম্যানেজার অনুমোদন লাগবে।`;
+        box.classList.remove('d-none');
+    }
+}
+document.getElementById('saleCustomerId')?.addEventListener('change', () => calcGrandTotal());
+document.getElementById('discTaka')?.addEventListener('change', () => calcGrandTotal());
+document.getElementById('discPercent')?.addEventListener('change', () => calcGrandTotal());
+
 function collectItems() {
+    const perItem = salePerItemMode();
     const items = [];
     document.querySelectorAll('#itemsBody tr').forEach(tr => {
         const sel   = tr.querySelector('.product-select');
@@ -158,6 +307,10 @@ function collectItems() {
                 product_id: parseInt(sel.value),
                 quantity:   parseFloat(qty.value),
                 unit_price: parseFloat(price.value),
+                rate_type:  tr.querySelector('.rate-type-select')?.value || 'retail',
+                unload_bill:    perItem ? (parseFloat(tr.querySelector('.item-unload')?.value)    || 0) : 0,
+                labor_bill:     perItem ? (parseFloat(tr.querySelector('.item-labor')?.value)     || 0) : 0,
+                transport_bill: perItem ? (parseFloat(tr.querySelector('.item-transport')?.value) || 0) : 0,
             });
         }
     });
@@ -165,28 +318,34 @@ function collectItems() {
 }
 
 // ---- Submit Sale ----
-function submitSale(e) {
-    e.preventDefault();
+let _pendingApproval = null; // sale payload awaiting manager approval
+
+function buildSalePayload() {
     const items = collectItems();
-    if (items.length === 0) {
-        showToast('কমপক্ষে একটি পণ্য যোগ করুন', 'danger');
-        return;
-    }
-
-    const btn = document.getElementById('submitSaleBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>অপেক্ষা করুন...';
-
-    const data = {
+    if (items.length === 0) return null;
+    const totals    = calcGrandTotal();
+    const perItem   = salePerItemMode();
+    return {
         customer_id:    document.getElementById('saleCustomerId').value,
         branch_id:      document.getElementById('saleBranchId')?.value || '',
         sale_date:      document.getElementById('saleDate').value,
-        discount:       document.getElementById('discount').value,
+        discount:       totals.discountAmt.toFixed(2),
+        discount_note:  document.getElementById('discountNote')?.value || '',
         paid_amount:    document.getElementById('paidAmount').value,
         payment_method: document.getElementById('paymentMethod').value,
         note:           document.getElementById('saleNote').value,
+        unload_bill:    perItem ? 0 : (document.getElementById('saleUnload')?.value    || 0),
+        labor_bill:     perItem ? 0 : (document.getElementById('saleLabor')?.value     || 0),
+        transport_bill: perItem ? 0 : (document.getElementById('saleTransport')?.value || 0),
+        delivery_charge: document.getElementById('saleDelivery')?.value || 0,
         items:          JSON.stringify(items),
     };
+}
+
+function sendSale(data) {
+    const btn = document.getElementById('submitSaleBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>অপেক্ষা করুন...';
 
     ajaxPost(BASE_URL + '/api/create_sale.php', data, res => {
         btn.disabled = false;
@@ -196,10 +355,75 @@ function submitSale(e) {
             showToast(res.message + (res.invoice_number ? ' — ' + res.invoice_number : ''), 'success');
             resetSaleForm();
             if (res.sale_id) showInvoice(res.sale_id);
-        } else {
-            showToast(res.message, 'danger');
+            return;
         }
+        // Over-limit credit sale → ask for manager approval, then retry
+        if (res.data && res.data.code === 'LIMIT_EXCEEDED') {
+            _pendingApproval = data;
+            document.getElementById('approvalInfo').innerHTML =
+                `বর্তমান বাকি: <strong>${fmt(res.data.current_due)}</strong><br>
+                 নির্ধারিত সীমা: <strong>${fmt(res.data.due_limit)}</strong><br>
+                 সীমার বেশি বাকিতে বিক্রয় করতে ম্যানেজারের অনুমোদন দিন।`;
+            document.getElementById('approverUsername').value = '';
+            document.getElementById('approverPassword').value = '';
+            document.getElementById('approvalError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('approvalModal')).show();
+            return;
+        }
+        showToast(res.message, 'danger');
     });
+}
+
+function submitSale(e) {
+    e.preventDefault();
+    const data = buildSalePayload();
+    if (!data) {
+        showToast('কমপক্ষে একটি পণ্য যোগ করুন', 'danger');
+        return;
+    }
+    sendSale(data);
+}
+
+function confirmApproval() {
+    if (!_pendingApproval) return;
+    const username = document.getElementById('approverUsername').value.trim();
+    const password = document.getElementById('approverPassword').value;
+    const errBox   = document.getElementById('approvalError');
+    if (!username || !password) {
+        errBox.textContent = 'ইউজারনেম ও পাসওয়ার্ড দিন।';
+        errBox.classList.remove('d-none');
+        return;
+    }
+    const data = { ..._pendingApproval, approver_username: username, approver_password: password };
+    bootstrap.Modal.getInstance(document.getElementById('approvalModal'))?.hide();
+    _pendingApproval = null;
+    sendSale(data);
+}
+
+// ---- Share invoice via WhatsApp / SMS ----
+function shareInvoice(channel) {
+    const res = window._lastInvoiceRes;
+    if (!res || !res.data) { showToast('আগে ইনভয়েস লোড করুন', 'warning'); return; }
+    const s = res.data;
+    const lines = [
+        `${res.shop_name}`,
+        `ইনভয়েস: ${s.invoice_number}`,
+        `তারিখ: ${s.sale_date}`,
+        `কাস্টমার: ${s.customer_name}`,
+        ...s.items.map(it => `- ${it.product_name} ${parseFloat(it.quantity)} ${it.unit} × ${parseFloat(it.unit_price)} = ${parseFloat(it.total_price)}`),
+        `মোট: ${parseFloat(s.total_amount)} ৳`,
+        `পরিশোধ: ${parseFloat(s.paid_amount)} ৳`,
+        `বাকি: ${parseFloat(s.due_amount)} ৳`,
+    ];
+    const text  = encodeURIComponent(lines.join('\n'));
+    const phone = String(s.customer_phone || '').replace(/[^0-9]/g, '');
+
+    if (channel === 'whatsapp') {
+        const target = phone ? (phone.startsWith('88') ? phone : '88' + phone) : '';
+        window.open(`https://wa.me/${target}?text=${text}`, '_blank');
+    } else if (channel === 'sms') {
+        window.open(`sms:${phone}?body=${text}`, '_self');
+    }
 }
 
 function resetSaleForm() {
@@ -398,11 +622,27 @@ function buildInvoiceHTML(res, forPrint = false) {
             <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#c0392b">${fmt(item.total_price)}</td>
         </tr>`).join('');
 
+    const chargeRows = [
+        ['আনলোড বিল',    s.unload_bill],
+        ['লেবার বিল',     s.labor_bill],
+        ['গাড়িভাড়া',      s.transport_bill],
+        ['ডেলিভারি চার্জ', s.delivery_charge],
+    ].filter(([, v]) => parseFloat(v || 0) > 0).map(([label, v]) => `
+        <tr>
+            <td style="padding:5px 16px 5px 0;color:#888;font-size:13px">${label}</td>
+            <td style="padding:5px 0;text-align:right;color:#555;font-size:13px">+ ${fmt(v)}</td>
+        </tr>`).join('');
+
     const discountRow = parseFloat(s.discount) > 0 ? `
         <tr>
-            <td style="padding:5px 16px 5px 0;color:#888;font-size:13px">ছাড়</td>
+            <td style="padding:5px 16px 5px 0;color:#888;font-size:13px">ছাড়${s.discount_note ? ` <span style="color:#bbb">(${esc(s.discount_note)})</span>` : ''}</td>
             <td style="padding:5px 0;text-align:right;color:#e74c3c;font-size:13px">− ${fmt(s.discount)}</td>
         </tr>` : '';
+
+    const totalWords = (typeof bnMoneyWords === 'function')
+        ? `<tr><td colspan="2" style="padding:4px 0;text-align:right;color:#999;font-size:11px;font-style:italic">
+             কথায়: ${bnMoneyWords(parseFloat(s.total_amount))}</td></tr>`
+        : '';
 
     return `
     <div id="printArea" style="font-family:'Hind Siliguri','Segoe UI',sans-serif;max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:${forPrint?'none':'0 4px 24px rgba(0,0,0,0.13)'}">
@@ -478,11 +718,13 @@ function buildInvoiceHTML(res, forPrint = false) {
                     <td style="padding:5px 16px 5px 0;color:#888">সাবটোটাল</td>
                     <td style="padding:5px 0;text-align:right;color:#333">${fmt(s.subtotal)}</td>
                 </tr>
+                ${chargeRows}
                 ${discountRow}
                 <tr style="border-top:2px solid #eee">
                     <td style="padding:8px 16px 8px 0;font-weight:800;font-size:15px;color:#222">মোট</td>
                     <td style="padding:8px 0;text-align:right;font-weight:800;font-size:15px;color:#222">${fmt(s.total_amount)}</td>
                 </tr>
+                ${totalWords}
                 <tr>
                     <td style="padding:5px 16px 5px 0;color:#27ae60;font-weight:600">পরিশোধ</td>
                     <td style="padding:5px 0;text-align:right;color:#27ae60;font-weight:600">${fmt(s.paid_amount)}</td>

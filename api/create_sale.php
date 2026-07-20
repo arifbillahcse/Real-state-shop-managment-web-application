@@ -14,13 +14,40 @@ $paidAmount    = (float)($_POST['paid_amount']   ?? 0);
 $paymentMethod = trim($_POST['payment_method']   ?? 'cash');
 $saleDate      = trim($_POST['sale_date']         ?? '');
 $note          = trim($_POST['note']              ?? '');
+$discountNote  = trim($_POST['discount_note']     ?? '');
+
+$charges = [
+    'unload'    => (float)($_POST['unload_bill']     ?? 0),
+    'labor'     => (float)($_POST['labor_bill']      ?? 0),
+    'transport' => (float)($_POST['transport_bill']  ?? 0),
+    'delivery'  => (float)($_POST['delivery_charge'] ?? 0),
+];
 
 $items = json_decode($itemsJson, true);
 if (!is_array($items)) {
     jsonResponse(false, 'পণ্যের তালিকা সঠিক নয়।');
 }
 
-$result = Sale::createSale($customerId, $items, $discount, $paidAmount, $paymentMethod, $saleDate, $note, $branchId);
+// Over-limit credit sales: a manager can approve inline with their credentials.
+$approvedBy = null;
+if (!empty($_POST['approver_username']) && !empty($_POST['approver_password'])) {
+    $approver = Database::fetchOne(
+        'SELECT id, password, role FROM users
+         WHERE username = ? AND is_active = 1 LIMIT 1',
+        [trim($_POST['approver_username'])]
+    );
+    if (!$approver
+        || !password_verify($_POST['approver_password'], $approver['password'])
+        || !in_array($approver['role'], ['admin', 'manager'], true)) {
+        jsonResponse(false, 'ম্যানেজার অনুমোদন ব্যর্থ — ভুল ইউজারনেম/পাসওয়ার্ড বা অনুমতি নেই।');
+    }
+    $approvedBy = (int)$approver['id'];
+}
+
+$result = Sale::createSale(
+    $customerId, $items, $discount, $paidAmount, $paymentMethod,
+    $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy
+);
 
 if (is_int($result)) {
     $sale = Sale::getSaleById($result);
@@ -28,6 +55,15 @@ if (is_int($result)) {
         'sale_id'        => $result,
         'invoice_number' => $sale['invoice_number'] ?? '',
     ]);
-} else {
-    jsonResponse(false, Sale::errorMessage($result));
 }
+
+if (str_starts_with($result, 'LIMIT_EXCEEDED:')) {
+    $parts = explode(':', $result);
+    jsonResponse(false, Sale::errorMessage($result), [
+        'code'        => 'LIMIT_EXCEEDED',
+        'due_limit'   => (float)($parts[1] ?? 0),
+        'current_due' => (float)($parts[2] ?? 0),
+    ]);
+}
+
+jsonResponse(false, Sale::errorMessage($result));
