@@ -1,7 +1,7 @@
 <?php
 
 define('APP_NAME', 'রড সিমেন্ট ম্যানেজমেন্ট');
-define('APP_VERSION', '2.2.1');
+define('APP_VERSION', '3.0.0');
 // Auto-detect base URL; override with env var BASE_URL if set
 if (!defined('BASE_URL')) {
     $detectedUrl = (isset($_SERVER['BASE_URL']))
