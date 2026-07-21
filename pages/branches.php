@@ -5,7 +5,10 @@ require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 requireManagerOrAdmin();
 
-$pageTitle = 'ব্রাঞ্চ';
+$pageTitle    = 'ব্রাঞ্চ';
+// Branch entity management (create/edit/delete) is admin-only.
+// Managers can view the branch list but not modify it.
+$canManageBranches = User::isAdmin();
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
 ?>
@@ -14,9 +17,11 @@ include __DIR__ . '/../includes/sidebar.php';
 
   <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-shop me-2 text-danger"></i>ব্রাঞ্চ ব্যবস্থাপনা</h4>
+    <?php if ($canManageBranches): ?>
     <button class="btn btn-primary" onclick="openAddModal()">
       <i class="bi bi-plus-circle me-1"></i>নতুন ব্রাঞ্চ
     </button>
+    <?php endif; ?>
   </div>
 
   <!-- Info note -->
@@ -103,7 +108,8 @@ include __DIR__ . '/../includes/sidebar.php';
 </div>
 
 <script>
-const BASE_URL = '<?= BASE_URL ?>';
+const BASE_URL   = '<?= BASE_URL ?>';
+const CAN_MANAGE = <?= $canManageBranches ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/branches.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

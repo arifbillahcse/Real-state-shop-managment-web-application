@@ -14,6 +14,7 @@ function jsEsc(str) {
 }
 
 function openAddModal() {
+    if (typeof CAN_MANAGE !== 'undefined' && !CAN_MANAGE) return; // admin-only
     document.getElementById('branchModalTitle').textContent = 'নতুন ব্রাঞ্চ';
     document.getElementById('branchForm').reset();
     document.getElementById('branchId').value = '';
@@ -76,12 +77,14 @@ function loadBranches() {
 
 function renderBranches(list) {
     const tbody = document.getElementById('branchesBody');
+    const canManage = (typeof CAN_MANAGE === 'undefined') ? false : CAN_MANAGE;
+
     if (!list.length) {
         tbody.innerHTML = `
             <tr>
               <td colspan="8" class="text-center py-5 text-muted">
                 <i class="bi bi-shop fs-1 d-block mb-2 opacity-25"></i>
-                কোনো ব্রাঞ্চ নেই। "নতুন ব্রাঞ্চ" বাটনে ক্লিক করুন।
+                কোনো ব্রাঞ্চ নেই।${canManage ? ' "নতুন ব্রাঞ্চ" বাটনে ক্লিক করুন।' : ''}
               </td>
             </tr>`;
         return;
@@ -105,6 +108,7 @@ function renderBranches(list) {
                 <span class="badge bg-success">${b.sales_count}</span>
             </td>
             <td class="text-center">
+                ${canManage ? `
                 <button class="btn btn-sm btn-outline-primary me-1"
                     onclick="openEditModal(${b.id}, '${jsEsc(b.name)}', '${jsEsc(b.phone || '')}', '${jsEsc(b.address || '')}')">
                     <i class="bi bi-pencil"></i>
@@ -112,7 +116,7 @@ function renderBranches(list) {
                 <button class="btn btn-sm btn-outline-danger"
                     onclick="deleteBranch(${b.id}, '${jsEsc(b.name)}')">
                     <i class="bi bi-trash"></i>
-                </button>
+                </button>` : '<span class="text-muted">—</span>'}
             </td>
         </tr>
     `).join('');
