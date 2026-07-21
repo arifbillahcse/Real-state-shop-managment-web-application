@@ -1,9 +1,10 @@
 # Ignore sensitive config
 config/db_credentials.php
 
-# Ignore uploaded files (but keep the folder structure itself in git)
+# Ignore uploaded files (but keep the folder structure + protection in git)
 uploads/*
 !uploads/.gitkeep
+!uploads/.htaccess
 !uploads/products/
 !uploads/products/.gitkeep
 !uploads/customers/

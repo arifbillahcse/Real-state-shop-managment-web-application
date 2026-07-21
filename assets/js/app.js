@@ -202,3 +202,49 @@ function showToast(message, type = 'success') {
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .5s'; }, 3000);
     setTimeout(() => toast.remove(), 3500);
 }
+
+// ── Shared image upload helper ────────────────────────────────────────────────
+// Validates type/size on the client, then reads the response defensively so a
+// non-JSON reply (e.g. a server 413 "too large" or 500 page that never reached
+// PHP) produces a clear, specific message instead of a generic failure.
+// Returns { success: bool, message: string, path?: string }.
+async function uploadImageFile(url, fieldName, file) {
+    const okTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (file && file.type && !okTypes.includes(file.type)) {
+        return { success: false, message: 'শুধু JPG / PNG / WebP ছবি দেওয়া যাবে।' };
+    }
+    if (file && file.size > 3 * 1024 * 1024) {
+        return { success: false, message: 'ছবির সাইজ সর্বোচ্চ ৩ MB। ছোট ছবি দিন।' };
+    }
+
+    const fd = new FormData();
+    fd.append(fieldName, file);
+
+    let res;
+    try {
+        res = await fetch(url, { method: 'POST', body: fd });
+    } catch (e) {
+        return { success: false, message: 'নেটওয়ার্ক সমস্যা — সার্ভারে পৌঁছানো যায়নি।' };
+    }
+
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        // Response was not JSON → the request likely failed at the web-server
+        // level before/around PHP. Surface the real reason by HTTP status.
+        if (res.status === 413) {
+            return { success: false, message: 'ছবির সাইজ সার্ভারের সীমার চেয়ে বড় (413)। ছোট ছবি দিন, অথবা হোস্টিং-এ upload_max_filesize বাড়ান।' };
+        }
+        if (res.status === 500) {
+            return { success: false, message: 'সার্ভার ত্রুটি (500)। uploads/products ও uploads/customers ফোল্ডারের পারমিশন 755 করুন।' };
+        }
+        if (res.status === 404) {
+            return { success: false, message: 'আপলোড স্ক্রিপ্ট পাওয়া যায়নি (404)। কোড ঠিকমতো আপলোড হয়েছে কিনা দেখুন।' };
+        }
+        if (res.status === 403) {
+            return { success: false, message: 'অনুমতি নেই (403)। আবার লগইন করুন অথবা হোস্টিং সিকিউরিটি (mod_security) চেক করুন।' };
+        }
+        return { success: false, message: `সার্ভার ত্রুটি (HTTP ${res.status})।` };
+    }
+}

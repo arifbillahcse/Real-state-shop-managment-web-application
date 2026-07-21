@@ -42,12 +42,9 @@ const imgPrev     = document.getElementById('imagePreview');
 
 imageFile.addEventListener('change', async () => {
     if (!imageFile.files.length) return;
-    const fd = new FormData();
-    fd.append('image', imageFile.files[0]);
     imageFile.disabled = true;
     try {
-        const res  = await fetch(`${BASE}/api/upload_product_image.php`, { method: 'POST', body: fd });
-        const data = await res.json();
+        const data = await uploadImageFile(`${BASE}/api/upload_product_image.php`, 'image', imageFile.files[0]);
         if (data.success) {
             imageHidden.value = data.data.path;
             imgPrev.src = `${BASE}/${data.data.path}`;
@@ -57,9 +54,6 @@ imageFile.addEventListener('change', async () => {
             imageFile.value = '';
             showToast(data.message, 'danger');
         }
-    } catch {
-        imageFile.value = '';
-        showToast('ছবি আপলোড করা যায়নি।', 'danger');
     } finally {
         imageFile.disabled = false;
     }

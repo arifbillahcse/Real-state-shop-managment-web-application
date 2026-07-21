@@ -60,12 +60,9 @@ const custPhotoHidden = document.getElementById('customerPhoto');
 
 custPhotoFile.addEventListener('change', async () => {
     if (!custPhotoFile.files.length) return;
-    const fd = new FormData();
-    fd.append('photo', custPhotoFile.files[0]);
     custPhotoFile.disabled = true;
     try {
-        const res  = await fetch(`${BASE_URL}/api/upload_customer_photo.php`, { method: 'POST', body: fd });
-        const data = await res.json();
+        const data = await uploadImageFile(`${BASE_URL}/api/upload_customer_photo.php`, 'photo', custPhotoFile.files[0]);
         if (data.success) {
             custPhotoHidden.value = data.data.path;
             document.getElementById('custPhotoPreview').src = `${BASE_URL}/${data.data.path}`;
@@ -74,9 +71,6 @@ custPhotoFile.addEventListener('change', async () => {
             custPhotoFile.value = '';
             showToast(data.message, 'danger');
         }
-    } catch {
-        custPhotoFile.value = '';
-        showToast('ছবি আপলোড করা যায়নি।', 'danger');
     } finally {
         custPhotoFile.disabled = false;
     }
@@ -247,13 +241,14 @@ document.getElementById('btnSaveRef').addEventListener('click', async () => {
     let photoPath = '';
     const photoFile = document.getElementById('refPhotoFile');
     if (photoFile.files.length) {
-        const fd = new FormData();
-        fd.append('photo', photoFile.files[0]);
-        try {
-            const upRes  = await fetch(`${BASE_URL}/api/upload_customer_photo.php`, { method: 'POST', body: fd });
-            const upData = await upRes.json();
-            if (upData.success) photoPath = upData.data.path;
-        } catch { /* photo optional — continue without it */ }
+        const upData = await uploadImageFile(`${BASE_URL}/api/upload_customer_photo.php`, 'photo', photoFile.files[0]);
+        if (upData.success) {
+            photoPath = upData.data.path;
+        } else {
+            err.textContent = upData.message;
+            err.classList.remove('d-none');
+            return;
+        }
     }
 
     ajaxPost(`${BASE_URL}/api/add_customer_reference.php`, {
