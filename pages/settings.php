@@ -172,6 +172,46 @@ include __DIR__ . '/../includes/sidebar.php';
                   </div>
                 </div>
 
+                <hr class="my-4">
+                <h6 class="fw-semibold mb-1"><i class="bi bi-chat-dots me-2 text-primary"></i>নোটিফিকেশন / SMS গেটওয়ে</h6>
+                <p class="text-muted small mb-3">
+                  টাকা জমার অটো SMS এবং স্টক সতর্কতা পাঠানোর জন্য SMS গেটওয়ে সেট করুন।
+                  খালি রাখলে বার্তাগুলো শুধু সিস্টেমে জমা থাকবে, পাঠানো হবে না।
+                </p>
+
+                <div class="mb-3">
+                  <label class="form-label fw-semibold text-muted small text-uppercase" style="letter-spacing:.5px">SMS গেটওয়ে URL</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                    <input type="text" class="form-control" name="sms_gateway_url"
+                           value="<?= e($s['sms_gateway_url'] ?? '') ?>" maxlength="255"
+                           placeholder="https://api.example-sms.com/send">
+                  </div>
+                  <small class="text-muted">প্রোভাইডার POST প্যারামিটার হিসেবে পাবে: api_key, number, message।</small>
+                </div>
+
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold text-muted small text-uppercase" style="letter-spacing:.5px">SMS API Key</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="bi bi-key"></i></span>
+                      <input type="text" class="form-control" name="sms_api_key"
+                             value="<?= e($s['sms_api_key'] ?? '') ?>" maxlength="255"
+                             placeholder="আপনার SMS API কী">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold text-muted small text-uppercase" style="letter-spacing:.5px">স্টক সতর্কতা ফোন</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="bi bi-bell"></i></span>
+                      <input type="text" class="form-control" name="alert_phone"
+                             value="<?= e($s['alert_phone'] ?? '') ?>" maxlength="20"
+                             placeholder="01XXXXXXXXX">
+                    </div>
+                    <small class="text-muted">খালি রাখলে দোকানের ফোন ব্যবহার হবে।</small>
+                  </div>
+                </div>
+
                 <div class="d-grid">
                   <button type="submit" class="btn btn-primary btn-lg" id="settingsSaveBtn">
                     <i class="bi bi-check-circle me-2"></i>সেটিংস সংরক্ষণ করুন

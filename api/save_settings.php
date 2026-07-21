@@ -7,6 +7,8 @@ requireStrictAdminApi();
 $allowed = [
     'shop_name', 'shop_address', 'shop_phone',
     'shop_email', 'currency', 'invoice_prefix',
+    // Notification / SMS gateway (used by deposit SMS + low-stock alerts)
+    'sms_gateway_url', 'sms_api_key', 'alert_phone',
 ];
 
 $saved = 0;
