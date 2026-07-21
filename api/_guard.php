@@ -5,7 +5,16 @@
  * - boots the app
  * - requires login
  * - requires POST for write actions (caller may relax for GET reads)
+ *
+ * API responses must always be valid JSON. A stray PHP warning/notice
+ * printed to the output (e.g. from mkdir()/getimagesize() failing on a
+ * host with display_errors on) breaks res.json() on the client and
+ * shows a generic "failed" toast with no real reason. So: never echo
+ * errors here — log them instead, and let jsonResponse() be the only
+ * thing that ever writes to the response body.
  */
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
