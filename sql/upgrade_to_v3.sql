@@ -301,6 +301,34 @@ INSERT IGNORE INTO branch_products (branch_id, product_id)
 SELECT b.id, p.id FROM branches b CROSS JOIN products p
 WHERE b.is_active = 1 AND p.is_active = 1;
 -- ── Rebuild views (final, need the new columns above) ──────
+-- Some deployments accidentally have these as real TABLEs instead of
+-- VIEWs (e.g. from an interrupted import). CREATE OR REPLACE VIEW
+-- refuses to touch a table, so rename any stray table out of the way
+-- first (renamed, never dropped — nothing is deleted).
+
+DROP PROCEDURE IF EXISTS _up_movetable;
+DELIMITER $$
+CREATE PROCEDURE _up_movetable(IN v VARCHAR(64))
+BEGIN
+  DECLARE otype VARCHAR(20) DEFAULT NULL;
+  SELECT TABLE_TYPE INTO otype FROM information_schema.TABLES
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = v LIMIT 1;
+  IF otype = 'BASE TABLE' THEN
+    SET @bak = CONCAT(v, '_stray_table_backup');
+    SET @drop_old = CONCAT('DROP TABLE IF EXISTS `', @bak, '`');
+    PREPARE st1 FROM @drop_old; EXECUTE st1; DEALLOCATE PREPARE st1;
+    SET @s = CONCAT('RENAME TABLE `', v, '` TO `', @bak, '`');
+    PREPARE st2 FROM @s; EXECUTE st2; DEALLOCATE PREPARE st2;
+  END IF;
+END $$
+DELIMITER ;
+
+CALL _up_movetable('vw_current_stock');
+CALL _up_movetable('vw_branch_stock');
+CALL _up_movetable('vw_customer_ledger_balance');
+CALL _up_movetable('vw_customer_dues');
+
+DROP PROCEDURE IF EXISTS _up_movetable;
 
 CREATE OR REPLACE VIEW vw_current_stock AS
 SELECT
@@ -415,6 +443,22 @@ LEFT   JOIN product_subcategories psc ON psc.id = p.subcategory_id
 LEFT   JOIN branch_products bp ON bp.branch_id = b.id AND bp.product_id = p.id
 WHERE  p.is_active = 1
   AND  b.is_active = 1;
+
+-- Also rebuild vw_customer_dues (used by Customer/Payment/Report) in case
+-- it was the same kind of stray table — moved aside above, recreated here
+-- so nothing is left broken.
+CREATE OR REPLACE VIEW vw_customer_dues AS
+SELECT
+    c.id   AS customer_id,
+    c.name AS customer_name,
+    c.phone,
+    COALESCE(SUM(s.due_amount),   0) AS total_due,
+    COALESCE(SUM(s.total_amount), 0) AS total_purchase,
+    COALESCE(SUM(s.paid_amount),  0) AS total_paid
+FROM   customers c
+LEFT JOIN sales s ON s.customer_id = c.id AND s.status = 'completed'
+GROUP BY c.id;
+
 -- ── Cleanup ────────────────────────────────────────────────
 DROP PROCEDURE IF EXISTS _up_addcol;
 DROP PROCEDURE IF EXISTS _up_addidx;
