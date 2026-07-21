@@ -6,15 +6,51 @@
  * - requires login
  * - requires POST for write actions (caller may relax for GET reads)
  *
- * API responses must always be valid JSON. A stray PHP warning/notice
- * printed to the output (e.g. from mkdir()/getimagesize() failing on a
- * host with display_errors on) breaks res.json() on the client and
- * shows a generic "failed" toast with no real reason. So: never echo
- * errors here — log them instead, and let jsonResponse() be the only
- * thing that ever writes to the response body.
+ * API responses must always be pure JSON. On some hosts a stray PHP
+ * warning/notice/deprecation (e.g. from a PHP-version difference) gets
+ * printed to the output before jsonResponse() runs. That breaks
+ * res.json() on the client, which then shows a generic "server error"
+ * toast — even though the database change underneath already
+ * succeeded. This is confusing: the action "failed" on screen but
+ * actually worked.
+ *
+ * Three layers of defense so this class of bug can never reach the
+ * client, regardless of the host's php.ini:
+ *   1. Output buffering — nothing physically reaches the browser until
+ *      we decide to flush it, so headers can always be set cleanly.
+ *   2. A custom error handler that logs warnings/notices instead of
+ *      letting PHP print them, no matter what display_errors is set to.
+ *   3. A shutdown handler that, if a fatal error slips through, discards
+ *      whatever partial output exists and replaces it with one clean
+ *      JSON error instead of a broken response or a PHP error page.
  */
+ob_start();
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
+
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    error_log("API warning [$errno] $errstr in $errfile:$errline");
+    return true; // tell PHP not to run its own (possibly printing) handler
+});
+
+register_shutdown_function(function () {
+    $error = error_get_last();
+    $fatal = $error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true);
+
+    if ($fatal) {
+        error_log('API fatal: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode(['success' => false, 'message' => 'সার্ভারে একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।']);
+        return;
+    }
+
+    // Normal completion — release the buffered response body to the client.
+    while (ob_get_level() > 0) { ob_end_flush(); }
+});
 
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
