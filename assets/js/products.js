@@ -181,6 +181,69 @@ document.querySelectorAll('.btn-delete').forEach(btn => {
     });
 });
 
+// ── Product View ──────────────────────────────────────────────────────────────
+const viewModal = new bootstrap.Modal(document.getElementById('productViewModal'));
+
+function money(n) {
+    return parseFloat(n || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }) + ' ৳';
+}
+
+document.querySelectorAll('.btn-view').forEach(el => {
+    el.addEventListener('click', async () => {
+        const id = el.dataset.id;
+        try {
+            const res  = await fetch(`${BASE}/api/get_products.php?id=${id}`);
+            const data = await res.json();
+            if (!data.success) { showToast(data.message, 'danger'); return; }
+            const p = data.product;
+
+            // Image
+            const img = document.getElementById('pvImage');
+            const noImg = document.getElementById('pvNoImage');
+            if (p.image) {
+                img.src = `${BASE}/${p.image}`;
+                img.classList.remove('d-none');
+                noImg.classList.add('d-none');
+                img.onclick = () => window.open(`${BASE}/${p.image}`, '_blank');
+            } else {
+                img.classList.add('d-none');
+                noImg.classList.remove('d-none');
+            }
+
+            // Details
+            document.getElementById('pvName').textContent        = p.name;
+            document.getElementById('pvCode').textContent        = p.product_code || '—';
+            document.getElementById('pvCategory').textContent    = p.category_name || '—';
+            document.getElementById('pvSubcategory').textContent = p.subcategory_name || '—';
+            document.getElementById('pvSizeBrand').textContent   = p.size_brand || '—';
+            document.getElementById('pvUnit').textContent        = p.unit || '—';
+            document.getElementById('pvBuy').textContent         = money(p.buy_price);
+            document.getElementById('pvSell').textContent        = money(p.sell_price);
+            document.getElementById('pvWholesale').textContent   = parseFloat(p.wholesale_price) > 0 ? money(p.wholesale_price) : '—';
+            document.getElementById('pvMinStock').textContent    = `${parseFloat(p.min_stock)} ${p.unit || ''}`;
+
+            // QR
+            const qrBox = document.getElementById('pvQr');
+            qrBox.innerHTML = '';
+            const code = p.product_code || `P-${p.id}`;
+            new QRCode(qrBox, { text: code, width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
+
+            // Edit button jumps straight to the edit modal
+            document.getElementById('pvEditBtn').onclick = () => {
+                viewModal.hide();
+                const editBtn = document.querySelector(`.btn-edit[data-id="${id}"]`);
+                if (editBtn) editBtn.click();
+            };
+
+            viewModal.show();
+        } catch {
+            showToast('বিস্তারিত লোড করা যায়নি।', 'danger');
+        }
+    });
+});
+
 // ── QR Code ───────────────────────────────────────────────────────────────────
 const qrModal   = new bootstrap.Modal(document.getElementById('qrModal'));
 const qrCanvas  = document.getElementById('qrCanvas');

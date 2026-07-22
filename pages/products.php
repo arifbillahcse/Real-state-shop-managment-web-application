@@ -100,7 +100,8 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             <td>
                                 <?php if (!empty($p['image'])): ?>
                                 <img src="<?= BASE_URL . '/' . e($p['image']) ?>" alt=""
-                                     class="rounded border" style="width:42px;height:42px;object-fit:cover">
+                                     class="rounded border btn-view" style="width:42px;height:42px;object-fit:cover;cursor:pointer"
+                                     data-id="<?= $p['id'] ?>" title="বড় করে দেখুন">
                                 <?php else: ?>
                                 <span class="d-inline-flex align-items-center justify-content-center rounded border bg-light text-muted"
                                       style="width:42px;height:42px"><i class="bi bi-image"></i></span>
@@ -116,6 +117,10 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             <td class="text-end"><?= (float)$p['wholesale_price'] > 0 ? money((float)$p['wholesale_price']) : '—' ?></td>
                             <td class="text-end"><?= rtrim(rtrim($p['min_stock'], '0'), '.') ?> <?= e($p['unit']) ?></td>
                             <td class="text-center text-nowrap">
+                                <button class="btn btn-sm btn-outline-info btn-view"
+                                        data-id="<?= $p['id'] ?>" title="বিস্তারিত দেখুন">
+                                    <i class="bi bi-eye"></i>
+                                </button>
                                 <button class="btn btn-sm btn-outline-secondary btn-qr"
                                         data-id="<?= $p['id'] ?>" data-code="<?= e($p['product_code'] ?? '') ?>"
                                         data-name="<?= e($p['name']) ?>" title="QR কোড">
@@ -277,6 +282,56 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">বন্ধ</button>
                 <button type="button" class="btn btn-primary btn-sm" id="btnPrintQr">
                     <i class="bi bi-printer me-1"></i>প্রিন্ট
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ PRODUCT VIEW MODAL ============ -->
+<div class="modal fade" id="productViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="bi bi-eye me-1 text-info"></i> পণ্যের বিস্তারিত</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-4">
+                    <!-- Image -->
+                    <div class="col-md-5 text-center">
+                        <div id="pvImageWrap" class="border rounded bg-light d-flex align-items-center justify-content-center"
+                             style="min-height:240px;overflow:hidden">
+                            <img src="" id="pvImage" alt="" class="img-fluid d-none"
+                                 style="max-height:320px;object-fit:contain;cursor:zoom-in"
+                                 title="পূর্ণ আকারে দেখতে ক্লিক করুন">
+                            <span id="pvNoImage" class="text-muted"><i class="bi bi-image fs-1"></i><br>ছবি নেই</span>
+                        </div>
+                        <div id="pvQr" class="d-inline-block p-2 bg-white border rounded mt-3"></div>
+                    </div>
+                    <!-- Details -->
+                    <div class="col-md-7">
+                        <h4 class="fw-bold mb-1" id="pvName">—</h4>
+                        <p class="mb-3"><code id="pvCode" class="fs-6"></code></p>
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><td class="text-muted" style="width:45%">ক্যাটাগরি</td><td class="fw-semibold" id="pvCategory">—</td></tr>
+                                <tr><td class="text-muted">সাব-ক্যাটাগরি</td><td id="pvSubcategory">—</td></tr>
+                                <tr><td class="text-muted">সাইজ / ব্র্যান্ড</td><td id="pvSizeBrand">—</td></tr>
+                                <tr><td class="text-muted">ইউনিট</td><td id="pvUnit">—</td></tr>
+                                <tr><td class="text-muted">ক্রয় দাম</td><td class="fw-semibold" id="pvBuy">—</td></tr>
+                                <tr><td class="text-muted">বিক্রয় দাম</td><td class="fw-semibold text-success" id="pvSell">—</td></tr>
+                                <tr><td class="text-muted">পাইকারি দাম</td><td id="pvWholesale">—</td></tr>
+                                <tr><td class="text-muted">মিনিমাম স্টক (Alert)</td><td id="pvMinStock">—</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">বন্ধ</button>
+                <button type="button" class="btn btn-primary btn-sm" id="pvEditBtn">
+                    <i class="bi bi-pencil me-1"></i>সম্পাদনা
                 </button>
             </div>
         </div>
