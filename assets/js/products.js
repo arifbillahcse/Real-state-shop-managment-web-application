@@ -224,12 +224,6 @@ document.querySelectorAll('.btn-view').forEach(el => {
             document.getElementById('pvWholesale').textContent   = parseFloat(p.wholesale_price) > 0 ? money(p.wholesale_price) : '—';
             document.getElementById('pvMinStock').textContent    = `${parseFloat(p.min_stock)} ${p.unit || ''}`;
 
-            // QR
-            const qrBox = document.getElementById('pvQr');
-            qrBox.innerHTML = '';
-            const code = p.product_code || `P-${p.id}`;
-            new QRCode(qrBox, { text: code, width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
-
             // Edit button jumps straight to the edit modal
             document.getElementById('pvEditBtn').onclick = () => {
                 viewModal.hide();

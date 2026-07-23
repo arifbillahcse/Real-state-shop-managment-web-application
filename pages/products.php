@@ -307,7 +307,6 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                                  title="পূর্ণ আকারে দেখতে ক্লিক করুন">
                             <span id="pvNoImage" class="text-muted"><i class="bi bi-image fs-1"></i><br>ছবি নেই</span>
                         </div>
-                        <div id="pvQr" class="d-inline-block p-2 bg-white border rounded mt-3"></div>
                     </div>
                     <!-- Details -->
                     <div class="col-md-7">

@@ -38,12 +38,22 @@ if (!is_writable($dir)) {
     error_log('upload_product_image: dir not writable: ' . $dir);
     jsonResponse(false, 'আপলোড ফোল্ডারে লেখার অনুমতি নেই। হোস্টিং-এ uploads/products ফোল্ডারের পারমিশন 755 করুন।');
 }
+@chmod($dir, 0755); // normalize in case the folder pre-existed with stricter perms
 
 $name = 'p_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-if (!@move_uploaded_file($file['tmp_name'], "$dir/$name")) {
+$dest = "$dir/$name";
+if (!@move_uploaded_file($file['tmp_name'], $dest)) {
     $err = error_get_last();
     error_log('upload_product_image: move_uploaded_file failed — ' . ($err['message'] ?? 'unknown'));
     jsonResponse(false, 'ছবি সংরক্ষণ করা যায়নি।');
+}
+
+// On some cPanel/PHP-FPM setups, uploaded files land with permissions the
+// web server's own static-file process can't read (upload succeeds, but
+// the image 404s/403s when the browser requests it). Force world-readable.
+@chmod($dest, 0644);
+if (!is_readable($dest)) {
+    error_log("upload_product_image: $dest not readable after chmod — check hosting file ownership");
 }
 
 jsonResponse(true, 'ছবি আপলোড হয়েছে।', ['path' => 'uploads/products/' . $name]);
