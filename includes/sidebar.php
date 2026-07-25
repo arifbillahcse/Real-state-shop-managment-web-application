@@ -19,7 +19,9 @@ $menuItems = [
     ['icon' => 'bi-wallet2',       'label' => 'বাকি / পেমেন্ট', 'href' => 'payments.php',    'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-calendar-check','label' => 'কিস্তি',          'href' => 'installments.php','admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-shop',          'label' => 'ব্রাঞ্চ',         'href' => 'branches.php',   'admin' => false, 'manager' => true,  'staff' => false],
-    ['icon' => 'bi-truck',         'label' => 'সাপ্লাইয়ার',      'href' => 'suppliers.php',  'admin' => false, 'manager' => true,  'staff' => false],
+    // সাপ্লাইয়ার: temporarily hidden from the menu per request — page/feature
+    // untouched, may be needed again later (just flip 'hidden' to false).
+    ['icon' => 'bi-truck',         'label' => 'সাপ্লাইয়ার',      'href' => 'suppliers.php',  'admin' => false, 'manager' => true,  'staff' => false, 'hidden' => true],
     ['icon' => 'bi-journal-text', 'label' => 'খাতা',            'href' => 'khata.php',      'admin' => false, 'manager' => true,  'staff' => false],
     ['icon' => 'bi-journal-check', 'label' => 'ডেইলি স্টেটমেন্ট','href' => 'daily_statement.php', 'admin' => false, 'manager' => true, 'staff' => false],
     ['icon' => 'bi-person-workspace','label' => 'স্টাফ প্যানেল', 'href' => 'staff_panel.php', 'admin' => false, 'manager' => true, 'staff' => true],
@@ -34,6 +36,7 @@ $menuItems = [
 <div id="sidebar" class="sidebar">
     <ul class="nav flex-column px-2 pt-3 pb-4">
         <?php foreach ($menuItems as $item): ?>
+            <?php if (!empty($item['hidden'])) continue; ?>
             <?php if ($item['admin'] && !$isAdmin) continue; ?>
             <?php if ($_isManager && !$item['manager']) continue; ?>
             <?php if ($_isStaff && !$item['staff']) continue; ?>

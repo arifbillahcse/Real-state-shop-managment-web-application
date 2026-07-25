@@ -231,6 +231,52 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof paginateTable === 'function') paginateTable('dueListBody', 50);
 });
 
+// ---- Due list search ----
+// pagination.js hides off-page rows via inline style.display; while a search
+// is active we bypass pagination entirely (show every match, hide its nav),
+// and restore normal paging once the search is cleared.
+const dueSearch = document.getElementById('dueSearch');
+
+function duePaginationNav() {
+    const tbody = document.getElementById('dueListBody');
+    const table = tbody?.closest('table');
+    const anchor = table?.closest('.table-responsive') || table;
+    return anchor?.parentElement?.querySelector(':scope > .table-pagination') || null;
+}
+
+function applyDueFilter() {
+    const q = (dueSearch?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('#dueListBody tr.due-row');
+    let anyVisible = false;
+
+    if (q) {
+        rows.forEach(r => {
+            const match = r.dataset.name.includes(q) || r.dataset.phone.includes(q);
+            r.style.display = '';
+            r.classList.toggle('d-none', !match);
+            if (match) anyVisible = true;
+        });
+        const nav = duePaginationNav();
+        if (nav) nav.style.display = 'none';
+    } else {
+        rows.forEach(r => r.classList.remove('d-none'));
+        if (typeof paginateTable === 'function') paginateTable('dueListBody', 50);
+        anyVisible = rows.length > 0;
+    }
+
+    const noMatch = document.getElementById('dueNoMatch');
+    const showNoMatch = !!q && !anyVisible;
+    if (noMatch) noMatch.classList.toggle('d-none', !showNoMatch);
+    const table = document.getElementById('dueListBody')?.closest('table');
+    if (table) table.classList.toggle('d-none', showNoMatch);
+}
+
+dueSearch?.addEventListener('input', applyDueFilter);
+document.getElementById('btnClearDueSearch')?.addEventListener('click', () => {
+    if (dueSearch) dueSearch.value = '';
+    applyDueFilter();
+});
+
 // Keep due list fresh if revisited (it's server-rendered, but just in case)
 
 // ============================================

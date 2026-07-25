@@ -10,6 +10,7 @@ $pageTitle = 'বাকি / পেমেন্ট';
 $allCustomers = Customer::getCustomers();
 // Only customers who have outstanding dues
 $dueCustomers = array_filter($allCustomers, fn($c) => (float)$c['total_due'] > 0);
+$dueList      = array_values($dueCustomers);
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -91,6 +92,20 @@ include __DIR__ . '/../includes/sidebar.php';
 
     <!-- ===== DUE LIST TAB ===== -->
     <div class="tab-pane fade show active" id="dueListTab">
+      <?php if (!empty($dueList)): ?>
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="dueSearch"
+                   placeholder="কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন...">
+            <button type="button" class="btn btn-outline-secondary" id="btnClearDueSearch" title="মুছুন">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
       <div class="card shadow-sm">
         <div class="table-responsive">
           <table class="table table-hover mb-0">
@@ -106,9 +121,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </tr>
             </thead>
             <tbody id="dueListBody">
-              <?php
-              $dueList = array_values(array_filter($allCustomers, fn($c) => (float)$c['total_due'] > 0));
-              if (empty($dueList)): ?>
+              <?php if (empty($dueList)): ?>
               <tr>
                 <td colspan="7" class="text-center py-5 text-success">
                   <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
@@ -117,7 +130,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </tr>
               <?php else: ?>
               <?php foreach ($dueList as $i => $c): ?>
-              <tr>
+              <tr class="due-row" data-name="<?= e(mb_strtolower($c['name'])) ?>" data-phone="<?= e(mb_strtolower((string)($c['phone'] ?? ''))) ?>">
                 <td class="text-muted"><?= $i + 1 ?></td>
                 <td class="fw-semibold"><?= e($c['name']) ?></td>
                 <td><?= e($c['phone'] ?: '—') ?></td>
@@ -148,6 +161,9 @@ include __DIR__ . '/../includes/sidebar.php';
               <?php endif; ?>
             </tbody>
           </table>
+          <div id="dueNoMatch" class="text-center text-muted py-4 d-none">
+            <i class="bi bi-search me-1"></i>খোঁজার সাথে মিলে এমন কোনো গ্রাহক নেই।
+          </div>
         </div>
       </div>
     </div><!-- /dueListTab -->
