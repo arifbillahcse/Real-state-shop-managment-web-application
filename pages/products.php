@@ -43,6 +43,33 @@ require_once __DIR__ . '/../includes/sidebar.php';
     </div>
     <?php else: ?>
 
+    <!-- Search + Sub-category filter -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-7">
+                    <label class="form-label small text-muted mb-1">পণ্য খুঁজুন</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="productSearch"
+                               placeholder="পণ্যের নাম, কোড বা সাইজ/ব্র্যান্ড দিয়ে খুঁজুন...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">সাব-ক্যাটাগরি ফিল্টার</label>
+                    <select class="form-select form-select-sm" id="subcatFilter" data-no-search="1">
+                        <option value="">সব সাব-ক্যাটাগরি</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnClearFilter" title="ফিল্টার মুছুন">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Category Tabs -->
     <ul class="nav nav-tabs mb-3" id="productTabs">
         <?php foreach ($categories as $i => $cat): ?>
@@ -60,7 +87,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 
     <div class="tab-content">
         <?php foreach ($categories as $i => $cat): ?>
-        <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="catTab<?= $cat['id'] ?>">
+        <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="catTab<?= $cat['id'] ?>" data-category-id="<?= $cat['id'] ?>">
             <?php renderProductTable($productsByCategory[$cat['id']], !empty($branches)); ?>
         </div>
         <?php endforeach; ?>
@@ -92,11 +119,15 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                     </thead>
                     <tbody>
                     <?php if (empty($items)): ?>
-                        <tr><td colspan="11" class="text-center text-muted py-4">
+                        <tr class="row-empty"><td colspan="11" class="text-center text-muted py-4">
                             কোন পণ্য নেই। "নতুন পণ্য" বাটনে ক্লিক করুন।
                         </td></tr>
                     <?php else: foreach ($items as $p): ?>
-                        <tr>
+                        <tr class="product-row"
+                            data-name="<?= e(mb_strtolower($p['name'])) ?>"
+                            data-code="<?= e(mb_strtolower((string)($p['product_code'] ?? ''))) ?>"
+                            data-size="<?= e(mb_strtolower((string)($p['size_brand'] ?? ''))) ?>"
+                            data-subcat-id="<?= $p['subcategory_id'] ?? '' ?>">
                             <td>
                                 <?php if (!empty($p['image'])): ?>
                                 <img src="<?= BASE_URL . '/' . e($p['image']) ?>" alt=""
@@ -143,6 +174,11 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             </td>
                         </tr>
                     <?php endforeach; endif; ?>
+                    <tr class="row-no-match d-none">
+                        <td colspan="11" class="text-center text-muted py-4">
+                            <i class="bi bi-search me-1"></i>ফিল্টারের সাথে মিলে এমন কোনো পণ্য নেই।
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
             </div>

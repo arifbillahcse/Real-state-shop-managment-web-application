@@ -34,6 +34,77 @@ function fillSubcatOptions(categoryId, selectedId) {
 
 catSelect.addEventListener('change', () => fillSubcatOptions(catSelect.value, ''));
 
+// ── Search + sub-category filter (products table) ───────────────────────────
+const productSearch = document.getElementById('productSearch');
+const subcatFilter  = document.getElementById('subcatFilter');
+const btnClearFilter = document.getElementById('btnClearFilter');
+
+function activeTabPane() {
+    return document.querySelector('#productTabs .nav-link.active')?.dataset.bsTarget
+        ? document.querySelector(document.querySelector('#productTabs .nav-link.active').dataset.bsTarget)
+        : document.querySelector('.tab-pane.active');
+}
+
+// Populate the filter dropdown with only the sub-categories that belong to
+// the currently active category tab.
+function fillSubcatFilterOptions() {
+    if (!subcatFilter) return;
+    const pane = activeTabPane();
+    const categoryId = pane ? pane.dataset.categoryId : null;
+    const items = subcats.filter(s => String(s.category_id) === String(categoryId));
+
+    const prevValue = subcatFilter.value;
+    let html = '<option value="">সব সাব-ক্যাটাগরি</option>';
+    items.forEach(s => { html += `<option value="${s.id}">${escHtml(s.name)}</option>`; });
+    subcatFilter.innerHTML = html;
+    // Keep the previous selection only if it still exists for this category
+    if (items.some(s => String(s.id) === prevValue)) subcatFilter.value = prevValue;
+}
+
+function applyProductFilter() {
+    const pane = activeTabPane();
+    if (!pane) return;
+    const q         = (productSearch?.value || '').trim().toLowerCase();
+    const subcatId  = subcatFilter?.value || '';
+    let anyVisible  = false;
+
+    pane.querySelectorAll('tbody tr.product-row').forEach(row => {
+        const matchesText = !q
+            || row.dataset.name.includes(q)
+            || row.dataset.code.includes(q)
+            || row.dataset.size.includes(q);
+        const matchesSubcat = !subcatId || row.dataset.subcatId === subcatId;
+        const visible = matchesText && matchesSubcat;
+        row.classList.toggle('d-none', !visible);
+        if (visible) anyVisible = true;
+    });
+
+    const noMatchRow = pane.querySelector('tr.row-no-match');
+    if (noMatchRow) {
+        const hasAnyRows = pane.querySelectorAll('tbody tr.product-row').length > 0;
+        noMatchRow.classList.toggle('d-none', !hasAnyRows || anyVisible);
+    }
+}
+
+productSearch?.addEventListener('input', applyProductFilter);
+subcatFilter?.addEventListener('change', applyProductFilter);
+btnClearFilter?.addEventListener('click', () => {
+    if (productSearch) productSearch.value = '';
+    if (subcatFilter)  subcatFilter.value  = '';
+    applyProductFilter();
+});
+
+// Re-scope the sub-category dropdown and re-apply filters when switching tabs
+document.querySelectorAll('#productTabs .nav-link').forEach(tabBtn => {
+    tabBtn.addEventListener('shown.bs.tab', () => {
+        fillSubcatFilterOptions();
+        applyProductFilter();
+    });
+});
+
+fillSubcatFilterOptions();
+applyProductFilter();
+
 // ── Image upload ─────────────────────────────────────────────────────────────
 const imageFile   = document.getElementById('imageFile');
 const imageHidden = document.getElementById('productImage');
@@ -436,6 +507,7 @@ document.getElementById('btnAddSubcat').addEventListener('click', async () => {
         if (data.success) {
             const catName = (CATEGORIES.find(c => String(c.id) === String(categoryId)) || {}).name || '';
             subcats.push({ id: data.data.id, category_id: categoryId, name });
+            fillSubcatFilterOptions();
             const noMsg = document.getElementById('noSubcatMsg');
             if (noMsg) noMsg.remove();
             const li = document.createElement('li');
@@ -471,6 +543,7 @@ async function deleteSubcatHandler(e) {
         const data = await res.json();
         if (data.success) {
             subcats = subcats.filter(s => String(s.id) !== String(id));
+            fillSubcatFilterOptions();
             btn.closest('li').remove();
             showToast(data.message, 'success');
         } else {
