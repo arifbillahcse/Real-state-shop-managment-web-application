@@ -11,15 +11,30 @@ require_once __DIR__ . '/BaseModel.php';
  */
 class DailyStatement
 {
+    // Each section is independent — if one query fails (e.g. a table from a
+    // not-yet-applied migration is missing), the rest of the statement still
+    // loads instead of the whole page dying. Failures are logged so the real
+    // cause is visible in the error log.
     public static function build(string $date): array
     {
+        $safe = function (callable $fn, $fallback) use ($date) {
+            try {
+                return $fn($date);
+            } catch (\Throwable $e) {
+                error_log('DailyStatement section failed for ' . $date . ': ' . $e->getMessage());
+                return $fallback;
+            }
+        };
+
         return [
             'date'          => $date,
-            'full_account'  => self::accountSection($date, 'full'),
-            'short_account' => self::accountSection($date, 'short'),
-            'cash_sales'    => self::cashSales($date),
-            'product_stock' => self::deliveredProductStock($date),
-            'summary'       => self::summary($date),
+            'full_account'  => $safe(fn($d) => self::accountSection($d, 'full'),  []),
+            'short_account' => $safe(fn($d) => self::accountSection($d, 'short'), []),
+            'cash_sales'    => $safe([self::class, 'cashSales'],             []),
+            'product_stock' => $safe([self::class, 'deliveredProductStock'], []),
+            'summary'       => $safe([self::class, 'summary'], [
+                'product_kinds' => 0, 'total_value' => 0, 'cash_received' => 0, 'due' => 0,
+            ]),
         ];
     }
 
