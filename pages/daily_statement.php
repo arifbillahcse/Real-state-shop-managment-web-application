@@ -175,7 +175,18 @@ async function loadStatement() {
     document.getElementById('stContent').classList.add('d-none');
     try {
         const res  = await fetch(`${BASE_URL}/api/get_daily_statement.php?date=${date}`);
-        const data = await res.json();
+        const raw  = await res.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (parseErr) {
+            // The server didn't return JSON — surface the real reason instead
+            // of a generic message, so the actual server-side error is visible.
+            console.error('get_daily_statement.php non-JSON response:', raw);
+            const snippet = raw.trim().slice(0, 200) || '(খালি রেসপন্স)';
+            showToast(`স্টেটমেন্ট লোড করা যায়নি (HTTP ${res.status}): ${snippet}`, 'danger');
+            return;
+        }
         if (!data.success) { showToast(data.message, 'danger'); return; }
         const st = data.data.statement;
 
