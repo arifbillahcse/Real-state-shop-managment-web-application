@@ -76,6 +76,9 @@ class Quotation extends BaseModel
     {
         $sql    = 'SELECT * FROM quotations WHERE 1=1';
         $params = [];
+        // Branch-locked users only see their own branch's quotations.
+        $branchId = lockedBranchId() ?? ($f['branch_id'] ?? null);
+        if ($branchId) { $sql .= ' AND branch_id = ?'; $params[] = (int)$branchId; }
         if (!empty($f['status'])) { $sql .= ' AND status = ?'; $params[] = $f['status']; }
         if (!empty($f['search'])) {
             $sql .= ' AND (customer_name LIKE ? OR quote_number LIKE ?)';

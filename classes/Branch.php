@@ -22,6 +22,34 @@ class Branch extends BaseModel
         return (int)$id;
     }
 
+    /**
+     * Branches the CURRENT user may pick from.
+     *
+     * Branch-locked users (staff, assistant manager) get only their own
+     * branch, so every branch dropdown on a data-entry page is limited to
+     * what they're allowed to touch. Admin/manager get the full list.
+     *
+     * Use this for dropdowns on operational pages; use getBranches() where
+     * the full list is genuinely needed (user management, branch pricing).
+     */
+    public static function getVisibleBranches(): array
+    {
+        $locked = lockedBranchId();
+        if ($locked === null) return self::getBranches();
+
+        return Database::fetchAll(
+            'SELECT b.*,
+                    (SELECT COUNT(*) FROM users        WHERE branch_id = b.id) AS staff_count,
+                    (SELECT COUNT(*) FROM stock_inbound WHERE branch_id = b.id) AS stock_entries,
+                    (SELECT COUNT(*) FROM sales         WHERE branch_id = b.id
+                      AND status = \'completed\') AS sales_count
+             FROM   branches b
+             WHERE  b.is_active = 1 AND b.id = ?
+             ORDER BY b.name',
+            [$locked]
+        );
+    }
+
     public static function getBranches(): array
     {
         return Database::fetchAll(

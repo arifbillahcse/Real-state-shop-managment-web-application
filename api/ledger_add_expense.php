@@ -5,8 +5,11 @@ require_once __DIR__ . '/../classes/Ledger.php';
 requireMethod('POST');
 requireBranchWriteApi();
 
+$customerId = (int)($_POST['customer_id'] ?? 0);
+requireVisibleCustomer($customerId);
+
 $result = Ledger::addExpense(
-    (int)($_POST['customer_id'] ?? 0),
+    $customerId,
     $_POST['entry_date'] ?? '',
     (float)($_POST['amount'] ?? 0),
     $_POST['description'] ?? '',

@@ -8,7 +8,7 @@ requireBranchStaffOrAbove();
 
 $pageTitle  = 'খরচ ট্র্যাকিং';
 $categories = Expense::getCategories();
-$branches   = Branch::getBranches();
+$branches   = Branch::getVisibleBranches();
 
 $thisMonth  = Expense::getTotalExpenses(date('Y-m-01'), date('Y-m-d'));
 $thisYear   = Expense::getTotalExpenses(date('Y-01-01'), date('Y-m-d'));
@@ -326,7 +326,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL  = '<?= BASE_URL ?>';
-const CAN_WRITE = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
+const CAN_WRITE = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/expenses.js"></script>

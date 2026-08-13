@@ -4,8 +4,11 @@ require_once __DIR__ . '/../classes/Customer.php';
 
 requireMethod('POST');
 
+$customerId = (int)($_POST['customer_id'] ?? 0);
+requireVisibleCustomer($customerId);
+
 $result = Customer::addReference(
-    (int)($_POST['customer_id'] ?? 0),
+    $customerId,
     $_POST['name']    ?? '',
     $_POST['address'] ?? '',
     $_POST['phone']   ?? '',

@@ -43,14 +43,20 @@ class Payment extends BaseModel
                 [$newPaid, $newDue, $saleId]
             );
         } else {
-            // No specific sale — apply to oldest outstanding sales (FIFO)
+            // No specific sale — apply to oldest outstanding sales (FIFO).
+            // A branch-locked user may only settle their own branch's dues,
+            // otherwise their payment would silently clear another branch's
+            // invoice.
             $saleId    = null;
             $remaining = $amount;
+            $branchId  = lockedBranchId();
             $pending   = Database::fetchAll(
                 'SELECT id, paid_amount, due_amount, total_amount FROM sales
-                 WHERE customer_id = ? AND status = ? AND due_amount > 0
+                 WHERE customer_id = ? AND status = ? AND due_amount > 0' .
+                 ($branchId !== null ? ' AND branch_id = ?' : '') . '
                  ORDER BY sale_date ASC, id ASC',
-                [$customerId, 'completed']
+                $branchId !== null ? [$customerId, 'completed', $branchId]
+                                   : [$customerId, 'completed']
             );
             foreach ($pending as $sale) {
                 if ($remaining <= 0) break;
@@ -90,6 +96,20 @@ class Payment extends BaseModel
                    WHERE 1=1';
         $params = [];
 
+        // A branch-locked user sees only payments that belong to their branch:
+        // either the payment is tied to one of their sales, or it is a loose
+        // (FIFO) payment from a customer who trades with their branch.
+        $branchId = lockedBranchId();
+        if ($branchId !== null) {
+            $sql .= ' AND (s.branch_id = ?
+                           OR (p.sale_id IS NULL AND EXISTS (
+                                 SELECT 1 FROM sales s2
+                                 WHERE s2.customer_id = p.customer_id
+                                   AND s2.branch_id = ? AND s2.status = "completed")))';
+            $params[] = $branchId;
+            $params[] = $branchId;
+        }
+
         if (!empty($filters['customer_id'])) {
             $sql .= ' AND p.customer_id = ?'; $params[] = (int)$filters['customer_id'];
         }
@@ -109,12 +129,15 @@ class Payment extends BaseModel
      */
     public static function getOutstandingSales(int $customerId): array
     {
+        $branchId = lockedBranchId();
         return Database::fetchAll(
             'SELECT id, invoice_number, sale_date, total_amount, paid_amount, due_amount
              FROM sales
-             WHERE customer_id = ? AND status = ? AND due_amount > 0
+             WHERE customer_id = ? AND status = ? AND due_amount > 0' .
+             ($branchId !== null ? ' AND branch_id = ?' : '') . '
              ORDER BY sale_date ASC, id ASC',
-            [$customerId, 'completed']
+            $branchId !== null ? [$customerId, 'completed', $branchId]
+                               : [$customerId, 'completed']
         );
     }
 
@@ -126,32 +149,50 @@ class Payment extends BaseModel
         $customer = Customer::getCustomerById($customerId);
         if (!$customer) return [];
 
+        // Branch-locked users see only the part of the ledger that happened at
+        // their branch, and a summary computed from that same slice — so the
+        // totals always agree with the rows shown above them.
+        $branchId = lockedBranchId();
+
         $sales = Database::fetchAll(
             'SELECT id, invoice_number, sale_date AS txn_date,
                     total_amount, paid_amount, due_amount, payment_method, status
              FROM sales
-             WHERE customer_id = ? AND status = ?
+             WHERE customer_id = ? AND status = ?' .
+             ($branchId !== null ? ' AND branch_id = ?' : '') . '
              ORDER BY sale_date ASC, id ASC',
-            [$customerId, 'completed']
+            $branchId !== null ? [$customerId, 'completed', $branchId]
+                               : [$customerId, 'completed']
         );
 
-        $payments = Database::fetchAll(
-            'SELECT p.id, p.payment_date AS txn_date, p.amount,
-                    p.payment_method, p.reference_no, p.note,
-                    s.invoice_number AS linked_invoice
-             FROM payments p
-             LEFT JOIN sales s ON s.id = p.sale_id
-             WHERE p.customer_id = ?
-             ORDER BY p.payment_date ASC, p.id ASC',
-            [$customerId]
-        );
+        $payParams = [$customerId];
+        $paySql    = 'SELECT p.id, p.payment_date AS txn_date, p.amount,
+                             p.payment_method, p.reference_no, p.note,
+                             s.invoice_number AS linked_invoice
+                      FROM payments p
+                      LEFT JOIN sales s ON s.id = p.sale_id
+                      WHERE p.customer_id = ?';
+        if ($branchId !== null) {
+            $paySql .= ' AND (s.branch_id = ? OR p.sale_id IS NULL)';
+            $payParams[] = $branchId;
+        }
+        $paySql .= ' ORDER BY p.payment_date ASC, p.id ASC';
+        $payments = Database::fetchAll($paySql, $payParams);
 
-        // Summary from the view
-        $summary = Database::fetchOne(
-            'SELECT total_purchase, total_paid, total_due
-             FROM vw_customer_dues WHERE customer_id = ?',
-            [$customerId]
-        );
+        if ($branchId !== null) {
+            $summary = [
+                'total_purchase' => array_sum(array_column($sales, 'total_amount')),
+                'total_paid'     => array_sum(array_column($sales, 'paid_amount')),
+                'total_due'      => array_sum(array_column($sales, 'due_amount')),
+            ];
+        } else {
+            // Summary from the view
+            $summary = Database::fetchOne(
+                'SELECT total_purchase, total_paid, total_due
+                 FROM vw_customer_dues WHERE customer_id = ?',
+                [$customerId]
+            );
+        }
 
         return compact('customer', 'sales', 'payments', 'summary');
     }

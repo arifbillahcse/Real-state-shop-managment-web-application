@@ -14,7 +14,7 @@ $allStock    = Stock::getAllStock();
 $history     = Stock::getStockInbound(null, $_isStaff ? $staffBranch : null);
 $suppliers   = Supplier::getSuppliers();
 $products    = Product::getProducts();
-$branches    = Branch::getBranches();
+$branches    = Branch::getVisibleBranches();
 
 $lowStock = array_filter($allStock, fn($r) => $r['min_stock'] > 0 && $r['current_stock'] <= $r['min_stock']);
 
@@ -608,7 +608,7 @@ const BASE_URL        = '<?= BASE_URL ?>';
 const STAFF_BRANCH_ID = <?= $staffBranch ?? 'null' ?>;
 const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
 const HAS_BRANCHES    = <?= !empty($branches) ? 'true' : 'false' ?>;
-const CAN_WRITE       = <?= (!$_isStaff && User::isAdminOrManager()) ? 'true' : 'false' ?>;
+const CAN_WRITE       = <?= (!$_isStaff && canWriteBranchData()) ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

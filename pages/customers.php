@@ -236,7 +236,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
-const IS_ADMIN = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
+const IS_ADMIN = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/customers.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -67,6 +67,9 @@ class Installment extends BaseModel
                           (SELECT COALESCE(SUM(paid_amount),0) FROM installments WHERE plan_id = p.id) AS total_paid
                    FROM installment_plans p WHERE 1=1';
         $params = [];
+        // Branch-locked users only see their own branch's plans.
+        $branchId = lockedBranchId() ?? ($f['branch_id'] ?? null);
+        if ($branchId) { $sql .= ' AND p.branch_id = ?'; $params[] = (int)$branchId; }
         if (!empty($f['status'])) { $sql .= ' AND p.status = ?'; $params[] = $f['status']; }
         if (!empty($f['search'])) {
             $sql .= ' AND p.customer_name LIKE ?'; $params[] = '%'.$f['search'].'%';

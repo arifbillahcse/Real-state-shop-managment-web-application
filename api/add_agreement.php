@@ -5,11 +5,14 @@ require_once __DIR__ . '/../classes/Agreement.php';
 requireMethod('POST');
 requireBranchWriteApi();
 
+$customerId = (int)($_POST['customer_id'] ?? 0);
+requireVisibleCustomer($customerId);
+
 $items = json_decode($_POST['items'] ?? '[]', true);
 if (!is_array($items)) $items = [];
 
 $result = Agreement::create(
-    (int)($_POST['customer_id'] ?? 0),
+    $customerId,
     $_POST['agreement_date'] ?? '',
     $items,
     (float)($_POST['deposit_amount'] ?? 0),

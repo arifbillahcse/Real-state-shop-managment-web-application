@@ -8,13 +8,14 @@ requireLogin();
 
 $customerId = (int)($_GET['id'] ?? 0);
 $customer   = $customerId > 0 ? Customer::getCustomerById($customerId) : false;
-if (!$customer) {
+// Branch-locked users must not reach another branch's customer by URL.
+if (!$customer || !Customer::isVisibleToCurrentUser($customerId)) {
     redirect(BASE_URL . '/pages/customers.php');
 }
 
 $pageTitle = 'একাউন্ট — ' . $customer['name'];
 $products  = Product::getProducts();
-$canWrite  = User::isAdminOrManager();
+$canWrite  = canWriteBranchData();
 $balance   = Ledger::balance($customerId);
 
 include __DIR__ . '/../includes/header.php';

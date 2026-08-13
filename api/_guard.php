@@ -158,6 +158,21 @@ function requireOwnTransferSide(int $id, string $side): void
 }
 
 /**
+ * For any customer-scoped endpoint: a branch-locked user must not reach a
+ * customer that belongs solely to another branch. See
+ * Customer::isVisibleToCurrentUser() for the exact rule.
+ */
+function requireVisibleCustomer(int $customerId): void
+{
+    if (lockedBranchId() === null) return; // admin / manager — unrestricted
+
+    require_once __DIR__ . '/../classes/Customer.php';
+    if (!Customer::isVisibleToCurrentUser($customerId)) {
+        jsonResponse(false, 'এটি আপনার ব্রাঞ্চের কাস্টমার নয়।');
+    }
+}
+
+/**
  * Ensure current user is strictly admin (user management, settings).
  */
 function requireStrictAdminApi(): void

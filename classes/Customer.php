@@ -73,8 +73,36 @@ class Customer extends BaseModel
         return $bookNo . '/' . $next;
     }
 
+    /**
+     * Customer list.
+     *
+     * Customers themselves are shared across the whole business (there is no
+     * customers.branch_id, and the same person may buy from several
+     * branches). So for a branch-locked user we don't filter the customer
+     * record — we filter by RELATIONSHIP: only customers who have actually
+     * transacted with their branch, with the totals limited to that branch's
+     * sales. The result reads as "my branch's customers" while the
+     * underlying customer data stays shared and intact.
+     */
     public static function getCustomers(): array
     {
+        $branchId = lockedBranchId();
+
+        if ($branchId !== null) {
+            return Database::fetchAll(
+                'SELECT c.*,
+                        COALESCE(SUM(s.due_amount), 0)   AS total_due,
+                        COALESCE(SUM(s.total_amount), 0) AS total_purchase
+                 FROM customers c
+                 JOIN sales s ON s.customer_id = c.id
+                              AND s.status = "completed" AND s.branch_id = ?
+                 WHERE c.is_active = 1
+                 GROUP BY c.id
+                 ORDER BY c.name',
+                [$branchId]
+            );
+        }
+
         return Database::fetchAll(
             'SELECT c.*, COALESCE(d.total_due, 0) AS total_due,
                     COALESCE(d.total_purchase, 0) AS total_purchase
@@ -83,6 +111,30 @@ class Customer extends BaseModel
              WHERE c.is_active = 1
              ORDER BY c.name'
         );
+    }
+
+    /**
+     * May the current user open this customer's account page?
+     *
+     * Unrestricted users always may. A branch-locked user may open a customer
+     * that has traded with their branch — and also one that has no sales
+     * anywhere yet, because that is exactly the customer they just created and
+     * are about to bill. Only customers who trade solely with OTHER branches
+     * are hidden from them.
+     */
+    public static function isVisibleToCurrentUser(int $id): bool
+    {
+        $branchId = lockedBranchId();
+        if ($branchId === null) return true;
+
+        $row = Database::fetchOne(
+            'SELECT
+                COUNT(*) AS total,
+                SUM(branch_id = ?) AS mine
+             FROM sales WHERE customer_id = ? AND status = "completed"',
+            [$branchId, $id]
+        );
+        return (int)($row['total'] ?? 0) === 0 || (int)($row['mine'] ?? 0) > 0;
     }
 
     public static function getCustomerById(int $id): array|false

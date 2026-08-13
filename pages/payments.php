@@ -324,7 +324,7 @@ include __DIR__ . '/../includes/sidebar.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <?php if (User::isAdminOrManager()): ?>
+        <?php if (canWriteBranchData()): ?>
         <form id="noteForm" class="mb-3" onsubmit="submitNote(event)">
           <input type="hidden" id="noteCustomerId">
           <label class="form-label fw-semibold">নতুন নোট যোগ করুন</label>
@@ -346,7 +346,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
-const IS_ADMIN = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
+const IS_ADMIN = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/payments.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

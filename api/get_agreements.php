@@ -4,6 +4,7 @@ require_once __DIR__ . '/../classes/Agreement.php';
 
 $id         = (int)($_GET['id'] ?? 0);
 $customerId = (int)($_GET['customer_id'] ?? 0);
+requireVisibleCustomer($customerId);
 
 if ($id > 0) {
     $agreement = Agreement::getById($id);

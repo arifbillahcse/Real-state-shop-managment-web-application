@@ -14,6 +14,9 @@ $saleId        = isset($_POST['sale_id']) && $_POST['sale_id'] !== ''
                  ? (int)$_POST['sale_id'] : null;
 
 if ($customerId <= 0) jsonResponse(false, 'সঠিক কাস্টমার নির্বাচন করুন।');
+requireVisibleCustomer($customerId);
+// Settling a specific invoice must be one of our own branch's invoices.
+if ($saleId !== null) requireOwnBranchRecord('sales', $saleId);
 
 $result = Payment::addPayment(
     $customerId, $amount, $paymentMethod,

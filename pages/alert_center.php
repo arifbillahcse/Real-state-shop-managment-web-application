@@ -5,8 +5,8 @@ require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
 $pageTitle = 'স্টক সতর্কতা কেন্দ্র';
-$branches  = Branch::getBranches();
-$canWrite  = User::isAdminOrManager();
+$branches  = Branch::getVisibleBranches();
+$canWrite  = canWriteBranchData();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -30,10 +30,13 @@ include __DIR__ . '/../includes/sidebar.php';
         <?php if (!empty($branches)): ?>
         <div class="col-12 col-md-4">
           <label class="form-label small text-muted mb-1">ব্রাঞ্চ</label>
-          <select class="form-select form-select-sm" id="alertBranch" onchange="loadAlerts()">
+          <select class="form-select form-select-sm" id="alertBranch" onchange="loadAlerts()"
+                  <?= lockedBranchId() !== null ? 'disabled' : '' ?>>
+            <?php if (lockedBranchId() === null): ?>
             <option value="">সব ব্রাঞ্চ একসাথে (গ্লোবাল স্টক)</option>
+            <?php endif; ?>
             <?php foreach ($branches as $b): ?>
-            <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+            <option value="<?= $b['id'] ?>" <?= lockedBranchId() !== null ? 'selected' : '' ?>><?= e($b['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>

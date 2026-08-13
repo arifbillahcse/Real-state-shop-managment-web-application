@@ -10,7 +10,7 @@ $_isStaff     = isStaff();
 $staffBranch  = getSessionBranchId();
 
 $customers = Customer::getCustomers();
-$branches  = Branch::getBranches();
+$branches  = Branch::getVisibleBranches();
 $products  = Database::fetchAll(
     'SELECT product_id, product_name, product_type, unit, sell_price, current_stock
      FROM vw_current_stock
@@ -336,7 +336,7 @@ include __DIR__ . '/../includes/sidebar.php';
           <i class="bi bi-chat-dots me-1"></i>SMS
         </button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
-        <?php if (User::isAdminOrManager()): ?>
+        <?php if (canWriteBranchData()): ?>
         <button type="button" class="btn btn-warning" id="btnEditInvoice" onclick="openEditSale()">
           <i class="bi bi-pencil-square me-1"></i>সম্পাদনা
         </button>
@@ -471,7 +471,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL      = '<?= BASE_URL ?>';
-const IS_ADMIN      = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
+const IS_ADMIN      = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const IS_STAFF      = <?= $_isStaff ? 'true' : 'false' ?>;
 const STAFF_BRANCH  = <?= $staffBranch ?? 'null' ?>;
 const PRODUCTS      = <?= json_encode(array_values($products)) ?>;

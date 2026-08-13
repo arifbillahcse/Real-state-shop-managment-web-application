@@ -15,11 +15,11 @@ class DailyStatement
     // not-yet-applied migration is missing), the rest of the statement still
     // loads instead of the whole page dying. Failures are logged so the real
     // cause is visible in the error log.
-    public static function build(string $date): array
+    public static function build(string $date, ?int $branchId = null): array
     {
-        $safe = function (callable $fn, $fallback) use ($date) {
+        $safe = function (callable $fn, $fallback) use ($date, $branchId) {
             try {
-                return $fn($date);
+                return $fn($date, $branchId);
             } catch (\Throwable $e) {
                 error_log('DailyStatement section failed for ' . $date . ': ' . $e->getMessage());
                 return $fallback;
@@ -28,8 +28,8 @@ class DailyStatement
 
         return [
             'date'          => $date,
-            'full_account'  => $safe(fn($d) => self::accountSection($d, 'full'),  []),
-            'short_account' => $safe(fn($d) => self::accountSection($d, 'short'), []),
+            'full_account'  => $safe(fn($d, $b) => self::accountSection($d, 'full',  $b), []),
+            'short_account' => $safe(fn($d, $b) => self::accountSection($d, 'short', $b), []),
             'cash_sales'    => $safe([self::class, 'cashSales'],             []),
             'product_stock' => $safe([self::class, 'deliveredProductStock'], []),
             'summary'       => $safe([self::class, 'summary'], [
@@ -39,7 +39,7 @@ class DailyStatement
     }
 
     // Customers (by account type) with any ledger activity on the date
-    private static function accountSection(string $date, string $type): array
+    private static function accountSection(string $date, string $type, ?int $branchId = null): array
     {
         $rows = Database::fetchAll(
             'SELECT c.id, c.name, c.phone, c.address, c.account_no,
@@ -102,7 +102,7 @@ class DailyStatement
     }
 
     // Cash sales of the day (§8.3) — invoice-based sales
-    private static function cashSales(string $date): array
+    private static function cashSales(string $date, ?int $branchId = null): array
     {
         return Database::fetchAll(
             'SELECT s.invoice_number, s.total_amount, s.paid_amount, s.due_amount,
@@ -113,14 +113,15 @@ class DailyStatement
                      WHERE si.sale_id = s.id) AS items
              FROM sales s
              LEFT JOIN customers c ON c.id = s.customer_id
-             WHERE s.sale_date = ? AND s.status = "completed"
+             WHERE s.sale_date = ? AND s.status = "completed"' .
+             ($branchId ? ' AND s.branch_id = ?' : '') . '
              ORDER BY s.id',
-            [$date]
+            $branchId ? [$date, $branchId] : [$date]
         );
     }
 
     // Delivered product stock (ডেলিভারি পণ্যর স্টক): day movement + current stock
-    private static function deliveredProductStock(string $date): array
+    private static function deliveredProductStock(string $date, ?int $branchId = null): array
     {
         return Database::fetchAll(
             'SELECT v.product_name, v.unit, v.current_stock, v.sell_price,
@@ -147,7 +148,7 @@ class DailyStatement
     }
 
     // Day summary (সারাংশ)
-    private static function summary(string $date): array
+    private static function summary(string $date, ?int $branchId = null): array
     {
         $ledger = Database::fetchOne(
             'SELECT COALESCE(SUM(CASE WHEN entry_type = "goods"   THEN debit  END), 0) AS goods_value,
@@ -160,8 +161,9 @@ class DailyStatement
                     COALESCE(SUM(paid_amount),  0) AS paid,
                     COALESCE(SUM(due_amount),   0) AS due,
                     COUNT(DISTINCT id)             AS invoice_count
-             FROM sales WHERE sale_date = ? AND status = "completed"',
-            [$date]
+             FROM sales WHERE sale_date = ? AND status = "completed"' .
+             ($branchId ? ' AND branch_id = ?' : ''),
+            $branchId ? [$date, $branchId] : [$date]
         );
         $kinds = Database::fetchOne(
             'SELECT COUNT(DISTINCT product_id) AS kinds FROM (

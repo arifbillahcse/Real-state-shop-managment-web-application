@@ -6,6 +6,7 @@ requireMethod('POST');
 requireBranchWriteApi();   // admin + manager only
 
 $customerId = (int)($_POST['customer_id'] ?? 0);
+requireVisibleCustomer($customerId);
 $note       = trim($_POST['note'] ?? '');
 
 if ($customerId <= 0) jsonResponse(false, 'সঠিক গ্রাহক নির্বাচন করুন।');

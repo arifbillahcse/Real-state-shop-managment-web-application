@@ -7,10 +7,15 @@ requireLogin();
 
 $pageTitle = 'পণ্য ট্রান্সফার';
 $products  = Product::getProducts();
-$branches  = Branch::getBranches();
-$canWrite  = User::isAdminOrManager();
-$_isStaff  = isStaff();
-$staffBranch = getSessionBranchId();
+// Transfers need BOTH sides: a branch-locked user may only send FROM their
+// own branch, but must still be able to send TO any other branch — so the
+// full list is needed for the destination and for display/labels.
+$branches       = Branch::getBranches();
+$sourceBranches = Branch::getVisibleBranches();
+$canWrite       = canWriteBranchData();
+$_isStaff       = isStaff();
+$staffBranch    = getSessionBranchId();
+$lockedBranch   = lockedBranchId();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -60,10 +65,13 @@ include __DIR__ . '/../includes/sidebar.php';
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold small">প্রেরক ব্রাঞ্চ <span class="text-danger">*</span></label>
-                <select class="form-select form-select-sm" id="tFromBranch" required>
+                <select class="form-select form-select-sm" id="tFromBranch" required
+                        <?= $lockedBranch !== null ? 'disabled' : '' ?>>
+                  <?php if ($lockedBranch === null): ?>
                   <option value="">— নির্বাচন —</option>
-                  <?php foreach ($branches as $b): ?>
-                  <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+                  <?php endif; ?>
+                  <?php foreach ($sourceBranches as $b): ?>
+                  <option value="<?= $b['id'] ?>" <?= $lockedBranch !== null ? 'selected' : '' ?>><?= e($b['name']) ?></option>
                   <?php endforeach; ?>
                 </select>
               </div>
@@ -72,6 +80,7 @@ include __DIR__ . '/../includes/sidebar.php';
                 <select class="form-select form-select-sm" id="tToBranch" required>
                   <option value="">— নির্বাচন —</option>
                   <?php foreach ($branches as $b): ?>
+                  <?php if ($lockedBranch !== null && (int)$b['id'] === $lockedBranch) continue; ?>
                   <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
                   <?php endforeach; ?>
                 </select>
@@ -243,9 +252,11 @@ include __DIR__ . '/../includes/sidebar.php';
           <div class="row g-2 align-items-end">
             <div class="col-12 col-md-5">
               <label class="form-label small fw-semibold">গ্রহণকারী ব্রাঞ্চ</label>
-              <select class="form-select form-select-sm" id="rcvBranch">
-                <?php foreach ($branches as $b): ?>
-                <option value="<?= $b['id'] ?>" <?= $_isStaff && $staffBranch == $b['id'] ? 'selected' : '' ?>>
+              <select class="form-select form-select-sm" id="rcvBranch"
+                      <?= $lockedBranch !== null ? 'disabled' : '' ?>>
+                <?php foreach (($lockedBranch !== null ? $sourceBranches : $branches) as $b): ?>
+                <option value="<?= $b['id'] ?>"
+                        <?= ($lockedBranch !== null || ($_isStaff && $staffBranch == $b['id'])) ? 'selected' : '' ?>>
                   <?= e($b['name']) ?>
                 </option>
                 <?php endforeach; ?>

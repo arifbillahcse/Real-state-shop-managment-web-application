@@ -7,7 +7,7 @@ requireBranchStaffOrAbove();
 
 $pageTitle = 'কিস্তি ট্র্যাকিং';
 $customers = Customer::getCustomers();
-$canWrite  = User::isAdminOrManager();
+$canWrite  = canWriteBranchData();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';

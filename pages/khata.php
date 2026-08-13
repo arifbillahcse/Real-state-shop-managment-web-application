@@ -59,7 +59,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL  = '<?= BASE_URL ?>';
-const IS_ADMIN  = <?= User::isAdminOrManager() ? 'true' : 'false' ?>;
+const IS_ADMIN  = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const PRE_SEL   = <?= $preSelected ?>;
 const SHOP_NAME = '<?= e(Setting::get('shop_name', 'দোকানের খাতা')) ?>';
 </script>
