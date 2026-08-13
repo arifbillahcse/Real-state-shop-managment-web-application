@@ -2,11 +2,12 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Expense.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $result = Expense::addExpense([
     'category_id'  => $_POST['category_id']  ?? null,
-    'branch_id'    => $_POST['branch_id']    ?? null,
+    // Branch-locked users always book expenses against their own branch.
+    'branch_id'    => resolveBranchId($_POST['branch_id'] ?? null),
     'amount'       => $_POST['amount']       ?? 0,
     'expense_date' => $_POST['expense_date'] ?? '',
     'description'  => $_POST['description']  ?? '',

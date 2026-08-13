@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Installment.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $id     = (int)($_POST['id']     ?? 0);
 $amount = (float)($_POST['amount'] ?? 0);

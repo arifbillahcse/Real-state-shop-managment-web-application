@@ -96,6 +96,68 @@ function requireBranchWriteApi(): void
 }
 
 /**
+ * For edit/delete of an EXISTING row: make sure a branch-locked user owns it.
+ *
+ * resolveBranchId() alone only fixes the branch a write is stamped with — it
+ * can't stop someone passing another branch's record id. This closes that
+ * hole by checking the stored row's branch before the write proceeds.
+ *
+ * @param string $table         table holding the record
+ * @param int    $id            record id
+ * @param string $branchColumn  column holding its branch (default branch_id)
+ */
+function requireOwnBranchRecord(string $table, int $id, string $branchColumn = 'branch_id'): void
+{
+    $locked = lockedBranchId();
+    if ($locked === null) return; // admin / manager — unrestricted
+
+    // Only allow known table names through — never interpolate caller input.
+    $allowed = [
+        'sales', 'stock_inbound', 'stock_adjustments', 'stock_transfers',
+        'expenses', 'quotations', 'installment_plans',
+    ];
+    if (!in_array($table, $allowed, true) || !preg_match('/^[a-z_]+$/', $branchColumn)) {
+        jsonResponse(false, 'এই কাজের অনুমতি নেই।');
+    }
+
+    $row = Database::fetchOne(
+        "SELECT `$branchColumn` AS bid FROM `$table` WHERE id = ? LIMIT 1",
+        [$id]
+    );
+    if (!$row) {
+        jsonResponse(false, 'রেকর্ডটি খুঁজে পাওয়া যায়নি।');
+    }
+    if ((int)$row['bid'] !== $locked) {
+        jsonResponse(false, 'এটি আপনার ব্রাঞ্চের রেকর্ড নয়।');
+    }
+}
+
+/**
+ * Transfers have two branch sides, so ownership depends on the action:
+ *   'from' — creating/editing/sending: user must own the sending branch
+ *   'to'   — receiving (In/Return):    user must own the destination branch
+ */
+function requireOwnTransferSide(int $id, string $side): void
+{
+    $locked = lockedBranchId();
+    if ($locked === null) return; // admin / manager — unrestricted
+
+    $column = $side === 'to' ? 'to_branch_id' : 'from_branch_id';
+    $row = Database::fetchOne(
+        "SELECT `$column` AS bid FROM stock_transfers WHERE id = ? LIMIT 1",
+        [$id]
+    );
+    if (!$row) {
+        jsonResponse(false, 'ট্রান্সফার এন্ট্রি খুঁজে পাওয়া যায়নি।');
+    }
+    if ((int)$row['bid'] !== $locked) {
+        jsonResponse(false, $side === 'to'
+            ? 'এই ট্রান্সফারটি আপনার ব্রাঞ্চে আসেনি।'
+            : 'এটি আপনার ব্রাঞ্চের ট্রান্সফার নয়।');
+    }
+}
+
+/**
  * Ensure current user is strictly admin (user management, settings).
  */
 function requireStrictAdminApi(): void

@@ -6,8 +6,9 @@ requireMethod('POST');
 
 $customerId    = (isset($_POST['customer_id']) && $_POST['customer_id'] !== '')
                  ? (int)$_POST['customer_id'] : null;
-$branchId      = (isset($_POST['branch_id']) && $_POST['branch_id'] !== '')
-                 ? (int)$_POST['branch_id'] : null;
+// Branch-locked users (staff, assistant manager) always sell from their own
+// branch — the submitted branch_id is ignored for them.
+$branchId      = resolveBranchId($_POST['branch_id'] ?? null);
 $itemsJson     = $_POST['items']          ?? '[]';
 $discount      = (float)($_POST['discount']      ?? 0);
 $paidAmount    = (float)($_POST['paid_amount']   ?? 0);

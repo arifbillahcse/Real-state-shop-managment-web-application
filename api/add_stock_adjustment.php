@@ -2,14 +2,15 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Stock.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $productId = (int)($_POST['product_id'] ?? 0);
 $qty       = (float)($_POST['quantity'] ?? 0);
 $dir       = $_POST['direction'] ?? 'add';   // 'add' or 'subtract'
 $reason    = trim($_POST['reason'] ?? 'other');
 $note      = trim($_POST['note']   ?? '');
-$branchId  = isset($_POST['branch_id']) && $_POST['branch_id'] !== '' ? (int)$_POST['branch_id'] : null;
+// Branch-locked users can only adjust their own branch's stock.
+$branchId  = resolveBranchId($_POST['branch_id'] ?? null);
 
 $finalQty = $dir === 'subtract' ? -abs($qty) : abs($qty);
 

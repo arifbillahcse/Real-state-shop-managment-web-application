@@ -4,8 +4,12 @@ require_once __DIR__ . '/../classes/Transfer.php';
 
 requireMethod('POST');
 
+// Receiving side: a branch-locked user may only receive what was sent to them.
+$id = (int)($_POST['id'] ?? 0);
+requireOwnTransferSide($id, 'to');
+
 $result = Transfer::receive(
-    (int)($_POST['id'] ?? 0),
+    $id,
     $_POST['action'] ?? '',
     $_POST['note']   ?? '',
     getUserId()

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Quotation.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $id     = (int)($_POST['id']     ?? 0);
 $status = trim($_POST['status']  ?? '');

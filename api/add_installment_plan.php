@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Installment.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $result = Installment::createPlan($_POST);
 if (is_int($result)) jsonResponse(true, 'কিস্তি পরিকল্পনা তৈরি হয়েছে।', ['id' => $result]);

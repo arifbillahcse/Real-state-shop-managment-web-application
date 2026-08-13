@@ -3,7 +3,7 @@ require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Ledger.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $result = Ledger::addMoneyReturn(
     (int)($_POST['customer_id'] ?? 0),

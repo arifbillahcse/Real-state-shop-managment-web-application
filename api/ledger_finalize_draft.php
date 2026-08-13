@@ -3,7 +3,7 @@ require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Ledger.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $result = Ledger::finalizeDraft(
     (int)($_POST['id'] ?? 0),

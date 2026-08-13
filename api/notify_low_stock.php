@@ -3,7 +3,7 @@ require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/AlertCenter.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $branchId = (int)($_POST['branch_id'] ?? 0) ?: null;
 $result   = AlertCenter::notifyManager($branchId);

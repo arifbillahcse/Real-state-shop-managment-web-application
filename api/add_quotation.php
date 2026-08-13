@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Quotation.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $data  = $_POST;
 $items = json_decode($_POST['items'] ?? '[]', true);

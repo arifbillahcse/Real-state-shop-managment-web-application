@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Report.php';
 
-requireAdminApi();
+requireBranchWriteApi();
 
 $from = trim($_GET['from'] ?? date('Y-m-01'));
 $to   = trim($_GET['to']   ?? today());

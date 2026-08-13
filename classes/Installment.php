@@ -24,15 +24,17 @@ class Installment extends BaseModel
         $remaining   = $total - $down;
         $installAmt  = round($remaining / $count, 2);
         $userId      = $_SESSION['user_id'] ?? null;
+        // Branch-locked users always create plans for their own branch.
+        $branchId    = resolveBranchId($data['branch_id'] ?? null);
 
         Database::beginTransaction();
         try {
             $planId = Database::insert(
                 'INSERT INTO installment_plans
-                 (customer_name, customer_id, sale_id, total_amount, down_payment,
+                 (customer_name, customer_id, sale_id, branch_id, total_amount, down_payment,
                   installment_count, installment_amount, start_date, note, created_by)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)',
-                [$customerName, $customerId, $saleId, $total, $down,
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                [$customerName, $customerId, $saleId, $branchId, $total, $down,
                  $count, $installAmt, $startDate, $note, $userId]
             );
 

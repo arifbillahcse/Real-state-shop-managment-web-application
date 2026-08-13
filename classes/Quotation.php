@@ -42,15 +42,17 @@ class Quotation extends BaseModel
         $total    = max(0, $subtotal - $discount);
         $qNo      = self::generateNumber();
         $userId   = $_SESSION['user_id'] ?? null;
+        // Branch-locked users always quote for their own branch.
+        $branchId = resolveBranchId($data['branch_id'] ?? null);
 
         Database::beginTransaction();
         try {
             $qId = Database::insert(
                 'INSERT INTO quotations
-                 (quote_number, customer_name, customer_id, quote_date, valid_days,
+                 (quote_number, customer_name, customer_id, branch_id, quote_date, valid_days,
                   subtotal, discount, total_amount, note, created_by)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)',
-                [$qNo, $customerName, $customerId, $quoteDate, $validDays,
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                [$qNo, $customerName, $customerId, $branchId, $quoteDate, $validDays,
                  $subtotal, $discount, $total, $note, $userId]
             );
             foreach ($valid as $it) {

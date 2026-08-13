@@ -2,10 +2,11 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Stock.php';
 requireMethod('POST');
-requireAdminApi();
+requireBranchWriteApi();
 
 $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) jsonResponse(false, 'সঠিক রেকর্ড নির্বাচন করুন।');
+requireOwnBranchRecord('stock_adjustments', $id);
 
 $qty = (float)($_POST['quantity'] ?? 0);
 $dir = $_POST['direction'] ?? 'add';   // 'add' or 'subtract'
@@ -16,7 +17,7 @@ $result = Stock::updateAdjustment($id, [
     'quantity'   => $finalQty,
     'reason'     => $_POST['reason']    ?? null,
     'note'       => $_POST['note']      ?? null,
-    'branch_id'  => $_POST['branch_id'] ?? null,
+    'branch_id'  => resolveBranchId($_POST['branch_id'] ?? null),
 ]);
 
 if ($result === true) {
