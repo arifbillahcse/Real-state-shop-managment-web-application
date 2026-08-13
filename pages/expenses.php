@@ -4,7 +4,7 @@ require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Expense.php';
 require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
-requireManagerOrAdmin();
+requireBranchStaffOrAbove();
 
 $pageTitle  = 'খরচ ট্র্যাকিং';
 $categories = Expense::getCategories();

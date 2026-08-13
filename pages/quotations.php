@@ -4,7 +4,7 @@ require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Product.php';
 require_once __DIR__ . '/../classes/Customer.php';
 requireLogin();
-requireManagerOrAdmin();
+requireBranchStaffOrAbove();
 
 $pageTitle  = 'কোটেশন';
 $products   = Product::getProducts();

@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
     name       VARCHAR(100) NOT NULL,
     username   VARCHAR(50)  NOT NULL UNIQUE,
     password   VARCHAR(255) NOT NULL,
-    role       ENUM('admin','manager','staff') NOT NULL DEFAULT 'staff',
-    branch_id  INT UNSIGNED DEFAULT NULL COMMENT 'staff only — which branch they belong to',
+    role       ENUM('admin','manager','assistant_manager','staff') NOT NULL DEFAULT 'staff',
+    branch_id  INT UNSIGNED DEFAULT NULL COMMENT 'required for staff + assistant_manager — the branch they are tied to',
     is_active  TINYINT(1)   NOT NULL DEFAULT 1,
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -365,6 +365,7 @@ CREATE TABLE IF NOT EXISTS quotations (
     quote_number  VARCHAR(30)   NOT NULL,
     customer_name VARCHAR(150)  NOT NULL DEFAULT '',
     customer_id   INT UNSIGNED  DEFAULT NULL,
+    branch_id     INT UNSIGNED  DEFAULT NULL,
     quote_date    DATE          NOT NULL,
     valid_days    INT           NOT NULL DEFAULT 7,
     subtotal      DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -373,7 +374,10 @@ CREATE TABLE IF NOT EXISTS quotations (
     status        ENUM('active','converted','cancelled') NOT NULL DEFAULT 'active',
     note          TEXT,
     created_by    INT UNSIGNED  DEFAULT NULL,
-    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_quotation_branch (branch_id),
+    CONSTRAINT fk_quotation_branch FOREIGN KEY (branch_id)
+        REFERENCES branches(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quotation_items (
@@ -417,6 +421,7 @@ CREATE TABLE IF NOT EXISTS installment_plans (
     customer_name      VARCHAR(150)  NOT NULL,
     customer_id        INT UNSIGNED  DEFAULT NULL,
     sale_id            INT UNSIGNED  DEFAULT NULL,
+    branch_id          INT UNSIGNED  DEFAULT NULL,
     total_amount       DECIMAL(12,2) NOT NULL,
     down_payment       DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     installment_count  INT           NOT NULL,
@@ -425,7 +430,10 @@ CREATE TABLE IF NOT EXISTS installment_plans (
     status             ENUM('active','completed','cancelled') NOT NULL DEFAULT 'active',
     note               TEXT,
     created_by         INT UNSIGNED  DEFAULT NULL,
-    created_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_installment_branch (branch_id),
+    CONSTRAINT fk_installment_branch FOREIGN KEY (branch_id)
+        REFERENCES branches(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS installments (

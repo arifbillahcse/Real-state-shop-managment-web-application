@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 requireLogin();
-requireManagerOrAdmin();
+requireBranchStaffOrAbove();
 
 $pageTitle = 'ডেইলি স্টেটমেন্ট';
 

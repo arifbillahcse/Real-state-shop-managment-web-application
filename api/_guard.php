@@ -73,10 +73,24 @@ function requireMethod(string $method): void
 
 /**
  * Ensure current user is admin or manager (most privileged endpoints).
+ * Deliberately excludes assistant_manager — see requireBranchWriteApi().
  */
 function requireAdminApi(): void
 {
     if (!isAdminOrManager()) {
+        jsonResponse(false, 'এই কাজের অনুমতি নেই।');
+    }
+}
+
+/**
+ * Ensure current user may write branch-level data (admin, manager or
+ * assistant manager). Endpoints using this MUST also scope the write to
+ * resolveBranchId(), so an assistant manager can only ever touch their
+ * own branch.
+ */
+function requireBranchWriteApi(): void
+{
+    if (!canWriteBranchData()) {
         jsonResponse(false, 'এই কাজের অনুমতি নেই।');
     }
 }

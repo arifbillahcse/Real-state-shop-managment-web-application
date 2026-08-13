@@ -3,6 +3,11 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Customer.php';
 requireLogin();
+// Staff panel manages other people's tasks/dues and shows a cross-branch
+// collection ranking — not for a branch-scoped assistant manager.
+if (isAssistantManager()) {
+    redirect(BASE_URL . '/pages/dashboard.php');
+}
 
 $pageTitle = 'স্টাফ প্যানেল';
 $canWrite  = User::isAdminOrManager();

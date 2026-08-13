@@ -459,6 +459,36 @@ FROM   customers c
 LEFT JOIN sales s ON s.customer_id = c.id AND s.status = 'completed'
 GROUP BY c.id;
 
+-- ── v18: Assistant Manager role (branch-scoped manager) ────
+-- Re-runnable: MODIFY COLUMN is idempotent, and the columns are guarded.
+
+ALTER TABLE users
+    MODIFY COLUMN role ENUM('admin','manager','assistant_manager','staff')
+    NOT NULL DEFAULT 'staff';
+
+CALL _up_addcol('quotations','branch_id',        "branch_id INT UNSIGNED NULL DEFAULT NULL AFTER customer_id");
+CALL _up_addcol('installment_plans','branch_id', "branch_id INT UNSIGNED NULL DEFAULT NULL AFTER sale_id");
+
+CALL _up_addidx('quotations','idx_quotation_branch',         "INDEX idx_quotation_branch (branch_id)");
+CALL _up_addidx('installment_plans','idx_installment_branch', "INDEX idx_installment_branch (branch_id)");
+
+CALL _up_addfk('quotations','fk_quotation_branch',
+  "FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL");
+CALL _up_addfk('installment_plans','fk_installment_branch',
+  "FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL");
+
+-- Backfill branch from the linked sale so existing rows stay visible to
+-- branch-scoped users.
+UPDATE quotations q
+JOIN sales s ON s.customer_id = q.customer_id
+SET q.branch_id = s.branch_id
+WHERE q.branch_id IS NULL AND q.customer_id IS NOT NULL AND s.branch_id IS NOT NULL;
+
+UPDATE installment_plans ip
+JOIN sales s ON s.id = ip.sale_id
+SET ip.branch_id = s.branch_id
+WHERE ip.branch_id IS NULL AND ip.sale_id IS NOT NULL AND s.branch_id IS NOT NULL;
+
 -- ── Cleanup ────────────────────────────────────────────────
 DROP PROCEDURE IF EXISTS _up_addcol;
 DROP PROCEDURE IF EXISTS _up_addidx;

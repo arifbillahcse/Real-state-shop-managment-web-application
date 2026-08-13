@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Customer.php';
 requireLogin();
-requireManagerOrAdmin();
+requireBranchStaffOrAbove();
 
 $pageTitle = 'কিস্তি ট্র্যাকিং';
 $customers = Customer::getCustomers();
