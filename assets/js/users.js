@@ -14,10 +14,24 @@ function jsEsc(str) {
     return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+// Roles pinned to one branch — for these the branch field is shown AND required.
+// Must stay in step with User::BRANCH_ROLES on the server.
+const BRANCH_ROLES = ['staff', 'assistant_manager'];
+
 function toggleBranchField() {
     const role  = document.getElementById('userRole')?.value;
     const group = document.getElementById('branchFieldGroup');
-    if (group) group.style.display = role === 'staff' ? '' : 'none';
+    const sel   = document.getElementById('userBranch');
+    const hint  = document.getElementById('branchFieldHint');
+    const needsBranch = BRANCH_ROLES.includes(role);
+
+    if (group) group.style.display = needsBranch ? '' : 'none';
+    if (sel)   sel.required = needsBranch;
+    if (hint) {
+        hint.textContent = role === 'assistant_manager'
+            ? 'সহকারী ম্যানেজার শুধুমাত্র এই ব্রাঞ্চের বিক্রয় ও স্টক ম্যানেজ করতে পারবেন।'
+            : 'স্টাফ ব্যবহারকারীর জন্য ব্রাঞ্চ নির্বাচন করুন।';
+    }
 }
 
 // ---- Add / Edit Modal ----
@@ -65,8 +79,13 @@ function submitUser(e) {
         id:        id,
         name:      document.getElementById('userName').value,
         role:      role,
-        branch_id: role === 'staff' ? (document.getElementById('userBranch')?.value || '') : '',
+        branch_id: BRANCH_ROLES.includes(role)
+            ? (document.getElementById('userBranch')?.value || '') : '',
     };
+    if (BRANCH_ROLES.includes(role) && HAS_BRANCHES && !data.branch_id) {
+        showToast('এই রোলের জন্য ব্রাঞ্চ নির্বাচন করুন।', 'danger');
+        return;
+    }
     if (!id) {
         data.username = document.getElementById('userUsername').value;
         data.password = document.getElementById('userPassword').value;
@@ -140,12 +159,21 @@ function renderUsers(list) {
     }
     tbody.innerHTML = list.map((u, i) => {
         const active    = parseInt(u.is_active) === 1;
-        const isAdmin   = u.role === 'admin';
-        const isManager = u.role === 'manager';
         const isSelf    = parseInt(u.id) === CURRENT_UID;
-        const roleLabel = isAdmin ? 'অ্যাডমিন' : isManager ? 'ম্যানেজার' : 'স্টাফ';
-        const roleBg    = isAdmin ? 'danger' : isManager ? 'warning text-dark' : 'secondary';
-        const hasNoBranch = isAdmin || isManager;
+        const roleLabel = {
+            admin:             'অ্যাডমিন',
+            manager:           'ম্যানেজার',
+            assistant_manager: 'সহকারী ম্যানেজার',
+            staff:             'স্টাফ',
+        }[u.role] || 'স্টাফ';
+        const roleBg = {
+            admin:             'danger',
+            manager:           'warning text-dark',
+            assistant_manager: 'primary',
+            staff:             'secondary',
+        }[u.role] || 'secondary';
+        // Only branch-pinned roles show a branch; admin/manager span all branches.
+        const hasNoBranch = !BRANCH_ROLES.includes(u.role);
         const branchCell = HAS_BRANCHES
             ? `<td>${u.branch_name && !hasNoBranch ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(u.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
             : '';

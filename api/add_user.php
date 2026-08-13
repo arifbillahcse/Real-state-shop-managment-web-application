@@ -13,7 +13,7 @@ $branchId = isset($_POST['branch_id']) && $_POST['branch_id'] !== '' ? (int)$_PO
 if ($name === '')              jsonResponse(false, 'নাম দিন।');
 if ($username === '')          jsonResponse(false, 'ইউজারনেম দিন।');
 if (strlen($password) < 4)     jsonResponse(false, 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।');
-if (!in_array($role, ['admin', 'manager', 'staff'], true)) jsonResponse(false, 'সঠিক রোল নির্বাচন করুন।');
+if (!in_array($role, User::ROLES, true)) jsonResponse(false, 'সঠিক রোল নির্বাচন করুন।');
 
 $result = User::create($name, $username, $password, $role, $branchId);
 if (is_int($result)) {

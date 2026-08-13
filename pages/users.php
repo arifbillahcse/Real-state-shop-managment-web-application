@@ -82,20 +82,21 @@ include __DIR__ . '/../includes/sidebar.php';
             <label class="form-label fw-semibold">রোল</label>
             <select class="form-select" id="userRole" name="role" onchange="toggleBranchField()">
               <option value="staff">স্টাফ (Staff)</option>
+              <option value="assistant_manager">সহকারী ম্যানেজার (Assistant Manager)</option>
               <option value="manager">ম্যানেজার (Manager)</option>
               <option value="admin">অ্যাডমিন (Admin)</option>
             </select>
           </div>
           <?php if (!empty($branches)): ?>
           <div class="mb-3" id="branchFieldGroup">
-            <label class="form-label fw-semibold">ব্রাঞ্চ</label>
+            <label class="form-label fw-semibold">ব্রাঞ্চ <span class="text-danger">*</span></label>
             <select class="form-select" id="userBranch" name="branch_id">
               <option value="">— ব্রাঞ্চ নির্বাচন করুন —</option>
               <?php foreach ($branches as $b): ?>
               <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
               <?php endforeach; ?>
             </select>
-            <small class="text-muted">স্টাফ ব্যবহারকারীর জন্য ব্রাঞ্চ নির্বাচন করুন।</small>
+            <small class="text-muted" id="branchFieldHint">স্টাফ ব্যবহারকারীর জন্য ব্রাঞ্চ নির্বাচন করুন।</small>
           </div>
           <?php endif; ?>
         </div>
