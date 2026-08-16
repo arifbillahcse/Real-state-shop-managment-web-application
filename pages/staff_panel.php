@@ -199,7 +199,7 @@ async function loadTasks() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_staff_tasks.php`);
         const data = await res.json();
-        const tasks = (data.data && data.data.tasks) || [];
+        const tasks = (data.tasks) || [];
         tbody.innerHTML = tasks.length ? tasks.map(t => `
             <tr class="${t.status === 'done' ? 'text-muted' : ''}">
                 <td><strong>${esc(t.title)}</strong>
@@ -265,7 +265,7 @@ async function loadAssignments() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_due_assignments.php`);
         const data = await res.json();
-        const rows = (data.data && data.data.assignments) || [];
+        const rows = (data.assignments) || [];
         tbody.innerHTML = rows.length ? rows.map(a => `
             <tr>
                 <td><strong>${esc(a.customer_name)}</strong>
@@ -319,7 +319,7 @@ async function loadRanking() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_staff_ranking.php?month=${month}`);
         const data = await res.json();
-        const rows = (data.data && data.data.ranking) || [];
+        const rows = (data.ranking) || [];
         const medal = ['🥇', '🥈', '🥉'];
         tbody.innerHTML = rows.length ? rows.map((r, i) => `
             <tr>

@@ -155,7 +155,7 @@ async function loadAlerts() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_low_stock_alerts.php?branch_id=${branchId}&all=${all}`);
         const data = await res.json();
-        const alerts = (data.data && data.data.alerts) || [];
+        const alerts = (data.alerts) || [];
         const urgent = alerts.filter(a => a.tier !== 'green').length;
         document.getElementById('alertCount').textContent = urgent;
 
@@ -188,7 +188,7 @@ async function loadHistory() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_low_stock_history.php?days=${days}`);
         const data = await res.json();
-        const rows = (data.data && data.data.history) || [];
+        const rows = (data.history) || [];
         tbody.innerHTML = rows.length ? rows.map(h => `
             <tr>
                 <td class="fw-semibold">${esc(h.product_name)}</td>

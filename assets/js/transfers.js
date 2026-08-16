@@ -151,7 +151,7 @@ async function loadTodaySheet() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_transfer_sheet.php?date=${TODAY}`);
         const data = await res.json();
-        const entries = (data.data && data.data.entries) || [];
+        const entries = (data.entries) || [];
         tbody.innerHTML = entries.length
             ? entries.map(t => sheetRow(t, false)).join('')
             : '<tr><td colspan="8" class="text-center text-muted py-3">আজ কোনো এন্ট্রি নেই</td></tr>';
@@ -167,7 +167,7 @@ async function loadDateList() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_transfer_dates.php`);
         const data = await res.json();
-        const dates = (data.data && data.data.dates) || [];
+        const dates = (data.dates) || [];
         if (!dates.length) {
             wrap.innerHTML = '<p class="text-muted text-center mb-0">কোনো ট্রান্সফার নেই</p>';
             return;
@@ -197,7 +197,7 @@ async function openSheet(date) {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_transfer_sheet.php?date=${date}`);
         const data = await res.json();
-        const entries = (data.data && data.data.entries) || [];
+        const entries = (data.entries) || [];
         tbody.innerHTML = entries.length
             ? entries.map(t => sheetRow(t, true)).join('')
             : '<tr><td colspan="8" class="text-center text-muted py-3">এন্ট্রি নেই</td></tr>';
@@ -225,7 +225,7 @@ async function runTransferSearch() {
     try {
         const res  = await fetch(`${BASE_URL}/api/search_transfers.php?q=${encodeURIComponent(q)}&type=${type}`);
         const data = await res.json();
-        const entries = (data.data && data.data.entries) || [];
+        const entries = (data.entries) || [];
         tbody.innerHTML = entries.length
             ? entries.map(t => `
                 <tr>
@@ -253,7 +253,7 @@ async function loadIncoming() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_incoming_transfers.php?branch_id=${branchId}&date=${date}`);
         const data = await res.json();
-        const entries = (data.data && data.data.entries) || [];
+        const entries = (data.entries) || [];
         document.getElementById('incomingCount').textContent = entries.length;
         document.getElementById('incomingCount').classList.toggle('d-none', !entries.length);
         tbody.innerHTML = entries.length

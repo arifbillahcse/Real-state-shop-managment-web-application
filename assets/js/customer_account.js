@@ -33,11 +33,11 @@ async function loadLedger() {
         const data = await res.json();
         if (!data.success) return;
 
-        _entries = data.data.entries || [];
+        _entries = data.entries || [];
         renderLedger();
         renderDrafts();
-        renderSummary(data.data.product_summary || []);
-        updateBalance(parseFloat(data.data.balance || 0));
+        renderSummary(data.product_summary || []);
+        updateBalance(parseFloat(data.balance || 0));
     } catch { /* keep old view */ }
 }
 
@@ -407,7 +407,7 @@ document.getElementById('prProduct').addEventListener('change', async function (
     try {
         const res  = await fetch(`${BASE_URL}/api/ledger_product_rates.php?customer_id=${CUSTOMER_ID}&product_id=${productId}`);
         const data = await res.json();
-        const rates = (data.data && data.data.rates) || [];
+        const rates = (data.rates) || [];
         let html = '';
         if (rates.length) {
             html = rates.map(r =>
@@ -542,7 +542,7 @@ async function loadAgreements() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_agreements.php?customer_id=${CUSTOMER_ID}`);
         const data = await res.json();
-        _agreements = (data.data && data.data.agreements) || [];
+        _agreements = (data.agreements) || [];
         document.getElementById('agrCount').textContent = _agreements.length;
         renderAgreements();
     } catch { /* noop */ }

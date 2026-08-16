@@ -117,8 +117,8 @@ imageFile.addEventListener('change', async () => {
     try {
         const data = await uploadImageFile(`${BASE}/api/upload_product_image.php`, 'image', imageFile.files[0]);
         if (data.success) {
-            imageHidden.value = data.data.path;
-            imgPrev.src = `${BASE}/${data.data.path}`;
+            imageHidden.value = data.path;
+            imgPrev.src = `${BASE}/${data.path}`;
             imgPrevWrap.classList.remove('d-none');
             showToast(data.message, 'success');
         } else {
@@ -366,7 +366,7 @@ if (bpModalEl) {
                 const res  = await fetch(`${BASE}/api/get_branch_prices.php?product_id=${id}`);
                 const data = await res.json();
                 if (!data.success) { bpError.textContent = data.message; bpError.classList.remove('d-none'); return; }
-                bpBody.innerHTML = data.data.prices.map(r => `
+                bpBody.innerHTML = data.prices.map(r => `
                     <tr data-branch-id="${r.branch_id}">
                         <td class="fw-semibold">${escHtml(r.branch_name)}</td>
                         <td><input type="number" step="0.01" min="0" class="form-control form-control-sm bp-buy"       value="${r.buy_price       ?? ''}" placeholder="সেন্ট্রাল"></td>
@@ -438,7 +438,7 @@ document.getElementById('btnAddCategory').addEventListener('click', async () => 
         if (data.success) {
             catInput.value = '';
             showToast(data.message, 'success');
-            appendCategoryRow(data.data.id, name);
+            appendCategoryRow(data.id, name);
         } else {
             catError.textContent = data.message;
             catError.classList.remove('d-none');
@@ -506,15 +506,15 @@ document.getElementById('btnAddSubcat').addEventListener('click', async () => {
         const data = await res.json();
         if (data.success) {
             const catName = (CATEGORIES.find(c => String(c.id) === String(categoryId)) || {}).name || '';
-            subcats.push({ id: data.data.id, category_id: categoryId, name });
+            subcats.push({ id: data.id, category_id: categoryId, name });
             fillSubcatFilterOptions();
             const noMsg = document.getElementById('noSubcatMsg');
             if (noMsg) noMsg.remove();
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-            li.dataset.subcatId = data.data.id;
+            li.dataset.subcatId = data.id;
             li.innerHTML = `<span>${escHtml(name)} <small class="text-muted">(${escHtml(catName)})</small></span>
-                <button class="btn btn-sm btn-outline-danger btn-del-subcat" data-id="${data.data.id}">
+                <button class="btn btn-sm btn-outline-danger btn-del-subcat" data-id="${data.id}">
                     <i class="bi bi-trash"></i>
                 </button>`;
             subcatList.appendChild(li);

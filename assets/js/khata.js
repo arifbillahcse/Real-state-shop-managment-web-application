@@ -26,16 +26,30 @@ function loadLedger() {
     document.getElementById('ledgerContent').innerHTML =
         '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
 
+    // Read the body as text first: if the server returned a PHP error page
+    // instead of JSON, we can show what it actually said rather than a
+    // generic "something went wrong" that hides the real cause.
     fetch(BASE_URL + '/api/get_customer_ledger.php?customer_id=' + cid)
-        .then(r => r.json())
+        .then(async r => {
+            const raw = await r.text();
+            try {
+                return JSON.parse(raw);
+            } catch {
+                console.error('get_customer_ledger.php non-JSON response:', raw);
+                const snippet = raw.trim().slice(0, 200) || '(খালি রেসপন্স)';
+                throw new Error(`HTTP ${r.status}: ${snippet}`);
+            }
+        })
         .then(res => {
             if (res.success) renderLedger(res.data);
             else document.getElementById('ledgerContent').innerHTML =
                 `<div class="alert alert-danger">${esc(res.message)}</div>`;
         })
-        .catch(() => {
+        .catch(err => {
+            console.error('loadLedger failed:', err);
             document.getElementById('ledgerContent').innerHTML =
-                '<div class="alert alert-danger">ডেটা লোড করতে সমস্যা হয়েছে।</div>';
+                `<div class="alert alert-danger">ডেটা লোড করতে সমস্যা হয়েছে।<br>
+                 <span class="small">${esc(err && err.message ? err.message : err)}</span></div>`;
         });
 }
 
@@ -45,7 +59,8 @@ function buildRows(data) {
 
     (sales || []).forEach(s => {
         allRows.push({
-            date:    s.sale_date,
+            // The API aliases sale_date to txn_date, same as payments do.
+            date:    s.txn_date,
             type:    'sale',
             invoice: s.invoice_number,
             total:   parseFloat(s.total_amount),

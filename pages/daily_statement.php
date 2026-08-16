@@ -188,7 +188,9 @@ async function loadStatement() {
             return;
         }
         if (!data.success) { showToast(data.message, 'danger'); return; }
-        const st = data.data.statement;
+        // jsonResponse() merges the payload into the top level, so the
+        // statement is data.statement — not data.data.statement.
+        const st = data.statement;
 
         const emptyRow = cols =>
             `<tr><td colspan="${cols}" class="text-center text-muted py-3">এই তারিখে কোনো কার্যক্রম নেই</td></tr>`;
@@ -230,8 +232,11 @@ async function loadStatement() {
              বাকি <strong class="text-danger">${fmt(sm.due)}</strong> ।`;
 
         document.getElementById('stContent').classList.remove('d-none');
-    } catch {
-        showToast('স্টেটমেন্ট লোড করা যায়নি', 'danger');
+    } catch (err) {
+        // Never swallow the reason — a bare message here once hid a plain
+        // typo in this function for far too long.
+        console.error('loadStatement failed:', err);
+        showToast('স্টেটমেন্ট লোড করা যায়নি: ' + (err && err.message ? err.message : err), 'danger');
     } finally {
         document.getElementById('stLoading').classList.add('d-none');
     }

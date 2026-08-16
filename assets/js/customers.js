@@ -64,8 +64,8 @@ custPhotoFile.addEventListener('change', async () => {
     try {
         const data = await uploadImageFile(`${BASE_URL}/api/upload_customer_photo.php`, 'photo', custPhotoFile.files[0]);
         if (data.success) {
-            custPhotoHidden.value = data.data.path;
-            document.getElementById('custPhotoPreview').src = `${BASE_URL}/${data.data.path}`;
+            custPhotoHidden.value = data.path;
+            document.getElementById('custPhotoPreview').src = `${BASE_URL}/${data.path}`;
             document.getElementById('custPhotoPreviewWrap').classList.remove('d-none');
         } else {
             custPhotoFile.value = '';
@@ -98,7 +98,7 @@ async function openEditModal(id) {
         const data = await res.json();
         if (!data.success) { showToast(data.message, 'danger'); return; }
 
-        const c = data.data.customer;
+        const c = data.customer;
         document.getElementById('modalTitle').textContent = 'কাস্টমার সম্পাদনা';
         document.getElementById('customerId').value       = c.id;
         document.getElementById('customerName').value     = c.name;
@@ -127,7 +127,7 @@ async function openEditModal(id) {
             info.classList.add('d-none');
         }
 
-        extraPhones = (data.data.phones || []).map(p => p.phone);
+        extraPhones = (data.phones || []).map(p => p.phone);
         renderExtraPhones();
         document.querySelectorAll('.cust-full-only').forEach(el => el.classList.remove('d-none'));
         cModal.show();
@@ -204,7 +204,7 @@ async function loadReferences(customerId) {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_customer_profile.php?id=${customerId}`);
         const data = await res.json();
-        const refs = (data.data && data.data.references) || [];
+        const refs = (data.references) || [];
         if (!refs.length) {
             wrap.innerHTML = '<p class="text-muted text-center small mb-0">কোনো রেফারেন্স নেই</p>';
             return;

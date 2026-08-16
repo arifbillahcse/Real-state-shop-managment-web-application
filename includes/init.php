@@ -156,10 +156,39 @@ function resolveBranchId($requested): ?int
 }
 
 // Helper: return JSON and exit (for API files)
+/**
+ * Emit an API response as JSON and stop.
+ *
+ * json_encode() returns false — printing NOTHING — when the payload holds
+ * something it can't represent: text that isn't valid UTF-8 (a row saved
+ * through a latin1 connection), or an INF/NAN from a division. The client
+ * then gets an empty body, JSON.parse() throws, and the page shows a
+ * generic "could not load" that says nothing about the real cause.
+ *
+ * So encode defensively: substitute bad UTF-8 and accept partial output
+ * rather than silently emitting nothing, and if even that fails, send a
+ * real error message naming the encoding problem.
+ */
 function jsonResponse(bool $success, string $message, array $data = []): void
 {
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
+
+    $payload = array_merge(['success' => $success, 'message' => $message], $data);
+    $json    = json_encode($payload);
+
+    if ($json === false) {
+        $reason = json_last_error_msg();
+        error_log('jsonResponse encode failed: ' . $reason);
+        $json = json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+        if ($json === false) {
+            $json = json_encode([
+                'success' => false,
+                'message' => 'ডেটা পাঠাতে সমস্যা হয়েছে (' . $reason . ')।',
+            ]);
+        }
+    }
+
+    echo $json;
     exit;
 }
 
