@@ -1,7 +1,9 @@
 -- ============================================================
 --  UPGRADE: v2.2.1 (post-v10)  ->  v3.0.0
 --  Idempotent: safe to run once, and safe to re-run.
---  Applies migrations v11 through v17 in one pass.
+--  Applies migrations v11 through v18 in one pass.
+--  This is the file to run on a database that already holds data.
+--  (sql/install.sql is for a brand-new empty database only.)
 --  Run on the LIVE database (phpMyAdmin > SQL tab, or mysql CLI).
 -- ============================================================
 

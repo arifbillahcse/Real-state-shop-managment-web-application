@@ -1,3 +1,13 @@
+-- ---------------------------------------------------------------------------
+-- FRESH INSTALL ONLY.
+--
+-- Run this against an EMPTY database. To update a database that is already
+-- live and holding data, run sql/upgrade_to_v3.sql instead — this file does
+-- not alter existing tables, so it cannot bring an older schema up to date.
+--
+-- Seed rows use INSERT IGNORE, so re-running this file is harmless: it will
+-- skip rows that already exist rather than aborting on a duplicate key.
+-- ---------------------------------------------------------------------------
 -- ============================================================
 --  Rod & Cement / Shop Management System
 --  Complete Install — Single File (v3.0.0)
@@ -43,7 +53,7 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Default admin account (username: admin, password: admin123 — CHANGE AFTER FIRST LOGIN)
-INSERT INTO users (name, username, password, role)
+INSERT IGNORE INTO users (name, username, password, role)
 VALUES ('Administrator', 'admin', '$2y$12$wgUtvV291cMFFRxEd3gKYuz0EjZECg1RqywX49pKfTkkEFpHV/WEe', 'admin');
 
 -- 3. Suppliers
@@ -102,7 +112,7 @@ CREATE TABLE IF NOT EXISTS products (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Sample products
-INSERT INTO products (category_id, name, product_code, size_brand, unit, buy_price, sell_price, min_stock) VALUES
+INSERT IGNORE INTO products (category_id, name, product_code, size_brand, unit, buy_price, sell_price, min_stock) VALUES
 ((SELECT id FROM product_categories WHERE name='রড'),       'Steel Rod 8mm',     'P-0001', '8mm',       'ton', 65000.00, 68000.00, 2),
 ((SELECT id FROM product_categories WHERE name='রড'),       'Steel Rod 10mm',    'P-0002', '10mm',      'ton', 67000.00, 70000.00, 2),
 ((SELECT id FROM product_categories WHERE name='রড'),       'Steel Rod 12mm',    'P-0003', '12mm',      'ton', 68000.00, 71000.00, 2),
@@ -213,7 +223,7 @@ CREATE TABLE IF NOT EXISTS customers (
     UNIQUE KEY uq_account_no (account_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO customers (name, phone) VALUES ('Walk-in Customer', '0000000000');
+INSERT IGNORE INTO customers (name, phone) VALUES ('Walk-in Customer', '0000000000');
 
 -- 12. Customer extra phone numbers (searchable)
 CREATE TABLE IF NOT EXISTS customer_phones (
@@ -336,7 +346,7 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO settings (setting_key, setting_val) VALUES
+INSERT IGNORE INTO settings (setting_key, setting_val) VALUES
 ('shop_name',     'আমার রড সিমেন্ট ভান্ডার'),
 ('shop_address',  'ঢাকা, বাংলাদেশ'),
 ('shop_phone',    '01XXXXXXXXX'),
