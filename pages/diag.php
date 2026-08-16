@@ -45,7 +45,7 @@ function check(string $label, bool $pass, array &$issues, int &$ok): void {
 }
 
 echo "======================================================================\n";
-echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v17)\n";
+echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v18)\n";
 echo " Generated: " . date('Y-m-d H:i:s') . "\n";
 echo "======================================================================\n\n";
 
@@ -121,6 +121,49 @@ echo "\n";
 // ── v17: Low stock alerts ────────────────────────────────────────────────────
 echo "-- v17: Low stock alert center --\n";
 check('table low_stock_history', tableExists('low_stock_history'), $issues, $ok);
+echo "\n";
+
+// ── v18: Assistant Manager ───────────────────────────────────────────────────
+echo "-- v18: Assistant Manager role --\n";
+$roleCol = Database::fetchOne(
+    "SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'"
+);
+$roleType = (string)($roleCol['t'] ?? '');
+check("users.role accepts 'assistant_manager'  [now: " . ($roleType ?: 'column missing') . "]",
+      str_contains($roleType, 'assistant_manager'), $issues, $ok);
+check('quotations.branch_id',        columnExists('quotations', 'branch_id'),        $issues, $ok);
+check('installment_plans.branch_id', columnExists('installment_plans', 'branch_id'), $issues, $ok);
+echo "\n";
+
+// ── Deployed code — is the PHP on this server actually the new build? ────────
+// Uploading the SQL but not the PHP/JS (or vice versa) looks exactly like
+// "the upgrade did nothing", so check both halves, not just the database.
+echo "-- Deployed code version --\n";
+foreach ([
+    'includes/init.php'  => 'isAssistantManager',
+    'includes/init.php#' => 'resolveBranchId',
+    'api/_guard.php'     => 'requireVisibleCustomer',
+    'classes/User.php'   => 'BRANCH_ROLES',
+] as $target => $needle) {
+    $file = __DIR__ . '/../' . explode('#', $target)[0];
+    $has  = is_readable($file) && str_contains((string)file_get_contents($file), $needle);
+    check(basename($file) . " contains $needle()", $has, $issues, $ok);
+}
+$stale = [];
+foreach (['assets/js/transfers.js', 'assets/js/customer_account.js', 'assets/js/products.js',
+          'assets/js/customers.js', 'pages/staff_panel.php', 'pages/alert_center.php',
+          'pages/daily_statement.php'] as $rel) {
+    $f = __DIR__ . '/../' . $rel;
+    $src = is_readable($f) ? (string)file_get_contents($f) : '';
+    // The old broken pattern. daily_statement.php mentions it only in a comment.
+    if (preg_match('/data\.data\.[a-zA-Z_]+/', $src) && !str_contains($rel, 'daily_statement')) {
+        $stale[] = $rel;
+    }
+}
+check('front-end files are the fixed build (no data.data.* reads)'
+      . ($stale ? ' — stale: ' . implode(', ', $stale) : ''),
+      empty($stale), $issues, $ok);
 echo "\n";
 
 // ── Views — must be VIEW, not a stray BASE TABLE ─────────────────────────────
