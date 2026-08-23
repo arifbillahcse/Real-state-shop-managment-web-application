@@ -520,3 +520,19 @@ code { color: var(--brand-dark); background: var(--brand-soft); padding: .1em .4
     /* Nav pills scroll horizontally */
     .nav.nav-pills { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .25rem; }
 }
+
+/* =====================================================================
+   Pending-migration banner (admins only)
+   Sits directly under the fixed navbar; --banner-h is measured in JS
+   because the text wraps to two lines on small screens.
+   ===================================================================== */
+.migrate-banner {
+    position: fixed; top: 60px; left: 0; right: 0; z-index: 1029;
+}
+body.has-migrate-banner .sidebar {
+    top: calc(60px + var(--banner-h, 44px));
+    height: calc(100vh - 60px - var(--banner-h, 44px));
+}
+body.has-migrate-banner .main-content {
+    margin-top: calc(60px + var(--banner-h, 44px));
+}

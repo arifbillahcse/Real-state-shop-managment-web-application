@@ -39,6 +39,7 @@ $menuItems = [
     ['icon' => 'bi-sticky',       'label' => 'নোট',             'href' => 'notes.php',      'admin' => false, 'manager' => true,  'asst' => false, 'staff' => false],
     ['icon' => 'bi-people-fill',   'label' => 'ব্যবহারকারী',     'href' => 'users.php',      'admin' => true,  'manager' => false, 'asst' => false, 'staff' => false],
     ['icon' => 'bi-database-fill-down', 'label' => 'ব্যাকআপ',   'href' => 'backup.php',     'admin' => true,  'manager' => false, 'asst' => false, 'staff' => false],
+    ['icon' => 'bi-database-gear', 'label' => 'ডাটাবেস আপডেট',  'href' => 'migrate.php',    'admin' => true,  'manager' => false, 'asst' => false, 'staff' => false],
     ['icon' => 'bi-gear',          'label' => 'সেটিংস',         'href' => 'settings.php',   'admin' => true,  'manager' => false, 'asst' => false, 'staff' => false],
 ];
 ?>

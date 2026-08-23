@@ -2,6 +2,20 @@
 // $pageTitle must be set before including header
 $pageTitle = $pageTitle ?? APP_NAME;
 $shopName  = Setting::get('shop_name', APP_NAME);
+
+// Pending schema updates — admins only, so uploading new files is all that is
+// ever needed: the app itself says when the database is behind. Computed here,
+// before <body>, because the layout offsets depend on whether it shows.
+// Never let this check break the page it is decorating.
+$_pendingMigrations = 0;
+if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php') {
+    try {
+        require_once __DIR__ . '/../classes/Migrator.php';
+        $_pendingMigrations = count(Migrator::pending());
+    } catch (Throwable $e) {
+        error_log('Migration check failed: ' . $e->getMessage());
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="bn">
@@ -22,7 +36,7 @@ $shopName  = Setting::get('shop_name', APP_NAME);
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
-<body>
+<body class="<?= $_pendingMigrations > 0 ? 'has-migrate-banner' : '' ?>">
 
 <!-- TOP NAVBAR -->
 <?php
@@ -58,3 +72,27 @@ $shopName  = Setting::get('shop_name', APP_NAME);
         </a>
     </div>
 </nav>
+
+<?php if ($_pendingMigrations > 0): ?>
+<div class="alert alert-warning border-0 rounded-0 mb-0 py-2 px-3 d-flex flex-wrap
+            align-items-center gap-2 migrate-banner">
+    <i class="bi bi-database-exclamation"></i>
+    <span class="small flex-grow-1">
+        <strong>ডাটাবেস আপডেট দরকার</strong> — <?= (int)$_pendingMigrations ?>টি আপডেট বাকি আছে।
+    </span>
+    <a href="<?= BASE_URL ?>/pages/migrate.php" class="btn btn-sm btn-warning fw-semibold">
+        এখনই আপডেট করুন
+    </a>
+</div>
+<script>
+(function () {
+    var b = document.querySelector('.migrate-banner');
+    if (!b) return;
+    var apply = function () {
+        document.documentElement.style.setProperty('--banner-h', b.offsetHeight + 'px');
+    };
+    apply();
+    window.addEventListener('resize', apply);
+})();
+</script>
+<?php endif; ?>

@@ -745,3 +745,32 @@ FROM customers c
 LEFT JOIN customer_ledger l
        ON l.customer_id = c.id AND l.status = 'final'
 GROUP BY c.id;
+
+-- ---------------------------------------------------------------------------
+-- Migration tracking. The app applies new sql/migration_v*.sql files itself
+-- (see classes/Migrator.php); these rows tell it everything up to here is
+-- already part of this schema, so it only ever runs genuinely new ones.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version    INT UNSIGNED NOT NULL PRIMARY KEY,
+    name       VARCHAR(150) NOT NULL,
+    applied_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations (version, name) VALUES
+    (2, 'branches'),
+    (4, 'stock_features'),
+    (5, 'manager_role'),
+    (6, 'categories'),
+    (7, 'customer_notes'),
+    (8, 'notes'),
+    (9, 'sales_features'),
+    (10, 'expenses'),
+    (11, 'product_model'),
+    (12, 'customer_profile'),
+    (13, 'customer_ledger'),
+    (14, 'sales_upgrade'),
+    (15, 'transfer_workflow'),
+    (16, 'staff_statement'),
+    (17, 'low_stock_alerts'),
+    (18, 'assistant_manager');
