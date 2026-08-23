@@ -24,7 +24,9 @@ $menuItems = [
     ['icon' => 'bi-file-earmark-text','label' => 'কোটেশন',       'href' => 'quotations.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
     ['icon' => 'bi-people',        'label' => 'কাস্টমার',        'href' => 'customers.php',   'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
     ['icon' => 'bi-wallet2',       'label' => 'বাকি / পেমেন্ট', 'href' => 'payments.php',    'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
-    ['icon' => 'bi-calendar-check','label' => 'কিস্তি',          'href' => 'installments.php','admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
+    // কিস্তি: hidden from the menu per request — page/feature untouched,
+    // may be needed again later (just remove 'hidden').
+    ['icon' => 'bi-calendar-check','label' => 'কিস্তি',          'href' => 'installments.php','admin' => false, 'manager' => true,  'asst' => true,  'staff' => false, 'hidden' => true],
     ['icon' => 'bi-shop',          'label' => 'ব্রাঞ্চ',         'href' => 'branches.php',   'admin' => false, 'manager' => true,  'asst' => false, 'staff' => false],
     // সাপ্লাইয়ার: temporarily hidden from the menu per request — page/feature
     // untouched, may be needed again later (just remove 'hidden').
