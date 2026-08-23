@@ -358,11 +358,11 @@ function sendSale(data) {
             return;
         }
         // Over-limit credit sale → ask for manager approval, then retry
-        if (res.data && res.data.code === 'LIMIT_EXCEEDED') {
+        if (res.code === 'LIMIT_EXCEEDED') {
             _pendingApproval = data;
             document.getElementById('approvalInfo').innerHTML =
-                `বর্তমান বাকি: <strong>${fmt(res.data.current_due)}</strong><br>
-                 নির্ধারিত সীমা: <strong>${fmt(res.data.due_limit)}</strong><br>
+                `বর্তমান বাকি: <strong>${fmt(res.current_due)}</strong><br>
+                 নির্ধারিত সীমা: <strong>${fmt(res.due_limit)}</strong><br>
                  সীমার বেশি বাকিতে বিক্রয় করতে ম্যানেজারের অনুমোদন দিন।`;
             document.getElementById('approverUsername').value = '';
             document.getElementById('approverPassword').value = '';

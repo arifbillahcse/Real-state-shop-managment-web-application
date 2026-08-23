@@ -76,6 +76,37 @@ custPhotoFile.addEventListener('change', async () => {
     }
 });
 
+// ---- Reference person on the add form ----
+// Only offered while creating: an existing customer's references are managed
+// in the references modal, which supports more than one.
+const newRefPhotoFile = document.getElementById('newRefPhotoFile');
+
+function resetNewRefFields() {
+    ['newRefName', 'newRefPhone', 'newRefAddress', 'newRefPhoto']
+        .forEach(id => { document.getElementById(id).value = ''; });
+    newRefPhotoFile.value = '';
+    document.getElementById('newRefPhotoWrap').classList.add('d-none');
+}
+
+newRefPhotoFile.addEventListener('change', async () => {
+    if (!newRefPhotoFile.files.length) return;
+    newRefPhotoFile.disabled = true;
+    try {
+        const data = await uploadImageFile(
+            `${BASE_URL}/api/upload_customer_photo.php`, 'photo', newRefPhotoFile.files[0]);
+        if (data.success) {
+            document.getElementById('newRefPhoto').value = data.path;
+            document.getElementById('newRefPhotoPreview').src = `${BASE_URL}/${data.path}`;
+            document.getElementById('newRefPhotoWrap').classList.remove('d-none');
+        } else {
+            newRefPhotoFile.value = '';
+            showToast(data.message, 'danger');
+        }
+    } finally {
+        newRefPhotoFile.disabled = false;
+    }
+});
+
 // ---- Modal ----
 function openAddModal() {
     document.getElementById('modalTitle').textContent = 'নতুন কাস্টমার';
@@ -88,6 +119,8 @@ function openAddModal() {
     document.getElementById('typeFull').checked = true;
     extraPhones = [];
     renderExtraPhones();
+    resetNewRefFields();
+    document.getElementById('addRefWrap').classList.remove('d-none');
     applyTypeVisibility();
     cModal.show();
 }
@@ -129,6 +162,9 @@ async function openEditModal(id) {
 
         extraPhones = (data.phones || []).map(p => p.phone);
         renderExtraPhones();
+        // References of an existing customer live in their own modal.
+        resetNewRefFields();
+        document.getElementById('addRefWrap').classList.add('d-none');
         document.querySelectorAll('.cust-full-only').forEach(el => el.classList.remove('d-none'));
         cModal.show();
     } catch {
@@ -157,6 +193,11 @@ function submitCustomer(e) {
     };
     if (!id) {
         data.account_type = document.querySelector('input[name="account_type"]:checked').value;
+        // Optional reference person, saved with the customer in one step.
+        data.ref_name    = document.getElementById('newRefName').value;
+        data.ref_phone   = document.getElementById('newRefPhone').value;
+        data.ref_address = document.getElementById('newRefAddress').value;
+        data.ref_photo   = document.getElementById('newRefPhoto').value;
     }
 
     const btn = document.getElementById('saveBtn');
@@ -166,7 +207,8 @@ function submitCustomer(e) {
         if (res.success) {
             cModal.hide();
             let msg = res.message;
-            if (res.data && res.data.account_no) msg += ` (একাউন্ট নং: ${res.data.account_no})`;
+            // jsonResponse() puts the payload at the top level, not under .data
+            if (res.account_no) msg += ` (একাউন্ট নং: ${res.account_no})`;
             showToast(msg, 'success');
             loadCustomers();
         } else {
@@ -298,7 +340,8 @@ document.getElementById('btnConfirmUpgrade').addEventListener('click', () => {
         if (res.success) {
             upgradeModal.hide();
             let msg = res.message;
-            if (res.data && res.data.account_no) msg += ` (একাউন্ট নং: ${res.data.account_no})`;
+            // jsonResponse() puts the payload at the top level, not under .data
+            if (res.account_no) msg += ` (একাউন্ট নং: ${res.account_no})`;
             showToast(msg, 'success');
             loadCustomers();
         } else {

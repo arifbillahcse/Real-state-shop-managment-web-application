@@ -147,7 +147,46 @@ include __DIR__ . '/../includes/sidebar.php';
             </div>
           </div>
 
-          <div id="acctNoInfo" class="alert alert-info py-2 d-none mb-0"></div>
+          <!-- Reference person — add mode only. Editing an existing customer
+               uses the dedicated references modal, which handles several. -->
+          <div class="card border mt-3" id="addRefWrap">
+            <div class="card-body py-3">
+              <h6 class="fw-semibold mb-1">
+                <i class="bi bi-person-check me-1 text-danger"></i>রেফারেন্স তথ্যঃ
+              </h6>
+              <small class="text-muted d-block mb-2">
+                কাস্টমারকে খুঁজে না পেলে যাকে ফোন করা যাবে। ঐচ্ছিক — পরে যোগ করা যাবে।
+              </small>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold mb-1">রেফারেন্সের নাম</label>
+                  <input type="text" class="form-control form-control-sm" id="newRefName" maxlength="150">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold mb-1">রেফারেন্সের ফোন</label>
+                  <input type="text" class="form-control form-control-sm" id="newRefPhone" maxlength="20">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold mb-1">রেফারেন্সের ঠিকানা</label>
+                  <input type="text" class="form-control form-control-sm" id="newRefAddress" maxlength="500">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold mb-1">রেফারেন্সের ছবি</label>
+                  <div class="d-flex gap-2 align-items-center">
+                    <input type="file" class="form-control form-control-sm" id="newRefPhotoFile"
+                           accept="image/jpeg,image/png,image/webp">
+                    <span id="newRefPhotoWrap" class="d-none">
+                      <img src="" id="newRefPhotoPreview" class="rounded border"
+                           style="width:36px;height:36px;object-fit:cover">
+                    </span>
+                  </div>
+                  <input type="hidden" id="newRefPhoto">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="acctNoInfo" class="alert alert-info py-2 d-none mt-3 mb-0"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
