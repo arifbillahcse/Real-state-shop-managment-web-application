@@ -11,8 +11,16 @@ require_once __DIR__ . '/BaseModel.php';
  */
 class Migrator
 {
-    /** Highest migration that ships inside install.sql / upgrade_to_v3.sql. */
-    private const BASELINE_VERSION = 18;
+    /**
+     * Highest migration a pre-existing database is assumed to already have.
+     *
+     * Stops at 17 rather than 18 on purpose. Whether v18 was applied depends
+     * on whether upgrade_to_v3.sql was actually run, which we cannot know —
+     * and assuming it was would silently leave the assistant_manager role
+     * broken. v18 is written to be safe to re-run, so letting it execute is
+     * the honest choice: harmless if already applied, corrective if not.
+     */
+    private const BASELINE_VERSION = 17;
 
     public static function ensureTable(): void
     {
