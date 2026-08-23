@@ -3,6 +3,9 @@ require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../classes/Customer.php';
 
 requireMethod('POST');
+// Matches delete_customer_reference.php — the UI hides this from staff, and
+// the endpoint has to enforce the same thing.
+requireBranchWriteApi();
 
 $customerId = (int)($_POST['customer_id'] ?? 0);
 requireVisibleCustomer($customerId);

@@ -103,6 +103,8 @@ include __DIR__ . '/../includes/sidebar.php';
       <i class="bi bi-boxes me-1"></i>পণ্য সারাংশ</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#agreementTab" type="button">
       <i class="bi bi-file-earmark-ruled me-1"></i>চুক্তিপত্র <span class="badge bg-secondary" id="agrCount">0</span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#refTab" type="button">
+      <i class="bi bi-person-check me-1"></i>রেফারেন্স <span class="badge bg-secondary" id="refCount">0</span></button></li>
   </ul>
 
   <div class="tab-content">
@@ -165,6 +167,49 @@ include __DIR__ . '/../includes/sidebar.php';
     <!-- Agreements -->
     <div class="tab-pane fade" id="agreementTab">
       <div id="agreementList"><p class="text-muted text-center py-4">কোনো চুক্তিপত্র নেই</p></div>
+    </div>
+
+    <!-- References: who to call when this customer cannot be reached -->
+    <div class="tab-pane fade" id="refTab">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold">
+          <i class="bi bi-person-check me-1 text-danger"></i>রেফারেন্স তথ্যঃ
+          <small class="text-muted fw-normal ms-1">কাস্টমারকে খুঁজে না পেলে যাদের ফোন করা যাবে</small>
+        </div>
+        <div id="refList"><p class="text-muted text-center py-4">কোনো রেফারেন্স নেই</p></div>
+      </div>
+
+      <?php if ($canWrite): ?>
+      <div class="card border">
+        <div class="card-body py-3">
+          <h6 class="fw-semibold mb-2"><i class="bi bi-plus-circle me-1"></i>নতুন রেফারেন্স যোগ করুন</h6>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <input type="text" class="form-control form-control-sm" id="acRefName"
+                     placeholder="নাম *" maxlength="150">
+            </div>
+            <div class="col-md-6">
+              <input type="text" class="form-control form-control-sm" id="acRefPhone"
+                     placeholder="ফোন নাম্বার" maxlength="20">
+            </div>
+            <div class="col-md-6">
+              <input type="text" class="form-control form-control-sm" id="acRefAddress"
+                     placeholder="ঠিকানা" maxlength="500">
+            </div>
+            <div class="col-md-4">
+              <input type="file" class="form-control form-control-sm" id="acRefPhotoFile"
+                     accept="image/jpeg,image/png,image/webp">
+              <input type="hidden" id="acRefPhoto">
+            </div>
+            <div class="col-md-2 d-grid">
+              <button type="button" class="btn btn-primary btn-sm" id="btnAcAddRef">
+                <i class="bi bi-check-lg me-1"></i>যোগ
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 

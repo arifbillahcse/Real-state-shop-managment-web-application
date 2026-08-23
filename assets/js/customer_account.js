@@ -952,3 +952,113 @@ function printAgreement() {
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadLedger();
 loadAgreements();
+
+// ── References ───────────────────────────────────────────────────────────────
+// Who to contact when the customer themselves cannot be reached. Shown on the
+// account page so the number is there when it is actually needed, instead of
+// only on the customer list.
+let _references = [];
+
+async function loadReferences() {
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_customer_profile.php?id=${CUSTOMER_ID}`);
+        const data = await res.json();
+        _references = data.references || [];
+        document.getElementById('refCount').textContent = _references.length;
+        renderReferences();
+    } catch { /* keep whatever is on screen */ }
+}
+
+function renderReferences() {
+    const wrap = document.getElementById('refList');
+    if (!_references.length) {
+        wrap.innerHTML = '<p class="text-muted text-center py-4">কোনো রেফারেন্স নেই</p>';
+        return;
+    }
+    wrap.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:56px"></th>
+              <th>নাম</th>
+              <th>ফোন</th>
+              <th>ঠিকানা</th>
+              ${CAN_WRITE ? '<th class="text-center" style="width:70px"></th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${_references.map(r => `
+              <tr>
+                <td>${r.photo
+                      ? `<img src="${BASE_URL}/${esc(r.photo)}" class="rounded border"
+                              style="width:40px;height:40px;object-fit:cover">`
+                      : '<span class="text-muted"><i class="bi bi-person-circle fs-4"></i></span>'}</td>
+                <td class="fw-semibold">${esc(r.name)}
+                  ${r.ref_user_name
+                      ? `<span class="badge bg-info text-dark ms-1">${esc(r.ref_user_name)}</span>` : ''}</td>
+                <td>${r.phone
+                      ? `<a href="tel:${esc(r.phone)}" class="text-decoration-none">
+                           <i class="bi bi-telephone me-1"></i>${esc(r.phone)}</a>`
+                      : '<span class="text-muted">—</span>'}</td>
+                <td class="small">${esc(r.address || '—')}</td>
+                ${CAN_WRITE ? `
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteAcReference(${r.id})"
+                          title="ডিলিট"><i class="bi bi-trash"></i></button>
+                </td>` : ''}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+}
+
+function deleteAcReference(refId) {
+    if (!confirm('এই রেফারেন্সটি ডিলিট করবেন?')) return;
+    ajaxPost(`${BASE_URL}/api/delete_customer_reference.php`, { id: refId }, res => {
+        showToast(res.message, res.success ? 'success' : 'danger');
+        if (res.success) loadReferences();
+    });
+}
+
+const acRefPhotoFile = document.getElementById('acRefPhotoFile');
+acRefPhotoFile?.addEventListener('change', async () => {
+    if (!acRefPhotoFile.files.length) return;
+    acRefPhotoFile.disabled = true;
+    try {
+        const data = await uploadImageFile(
+            `${BASE_URL}/api/upload_customer_photo.php`, 'photo', acRefPhotoFile.files[0]);
+        if (data.success) {
+            document.getElementById('acRefPhoto').value = data.path;
+        } else {
+            acRefPhotoFile.value = '';
+            showToast(data.message, 'danger');
+        }
+    } finally {
+        acRefPhotoFile.disabled = false;
+    }
+});
+
+document.getElementById('btnAcAddRef')?.addEventListener('click', function () {
+    const name = document.getElementById('acRefName').value.trim();
+    if (!name) { showToast('রেফারেন্সের নাম দিন।', 'warning'); return; }
+
+    this.disabled = true;
+    ajaxPost(`${BASE_URL}/api/add_customer_reference.php`, {
+        customer_id: CUSTOMER_ID,
+        name:        name,
+        phone:       document.getElementById('acRefPhone').value,
+        address:     document.getElementById('acRefAddress').value,
+        photo:       document.getElementById('acRefPhoto').value,
+    }, res => {
+        this.disabled = false;
+        showToast(res.message, res.success ? 'success' : 'danger');
+        if (!res.success) return;
+        ['acRefName', 'acRefPhone', 'acRefAddress', 'acRefPhoto']
+            .forEach(id => { document.getElementById(id).value = ''; });
+        if (acRefPhotoFile) acRefPhotoFile.value = '';
+        loadReferences();
+    });
+});
+
+loadReferences();
