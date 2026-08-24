@@ -34,6 +34,10 @@ include __DIR__ . '/../includes/sidebar.php';
     <?php if ($canWrite): ?>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#rankTab" type="button" id="rankTabBtn">
       <i class="bi bi-trophy me-1"></i>মাসিক র‌্যাংকিং</button></li>
+    <?php if ($canWrite): ?>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#refSalesTab" type="button" id="refSalesTabBtn">
+      <i class="bi bi-person-check me-1"></i>রেফারেন্স সেলস</button></li>
+    <?php endif; ?>
     <?php endif; ?>
   </ul>
 
@@ -169,6 +173,61 @@ include __DIR__ . '/../includes/sidebar.php';
             <tbody id="rankBody">
               <tr><td colspan="4" class="text-center text-muted py-3">মাস নির্বাচন করে দেখুন</td></tr>
             </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sales credited to whoever referred the customer -->
+    <div class="tab-pane fade" id="refSalesTab">
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-8 col-md-3">
+              <label class="form-label small text-muted mb-1">মাস</label>
+              <input type="month" class="form-control form-control-sm" id="refMonth" value="<?= date('Y-m') ?>">
+            </div>
+            <div class="col-4 col-md-2 d-grid">
+              <button class="btn btn-primary btn-sm" onclick="loadReferralSales()">দেখুন</button>
+            </div>
+            <div class="col-12">
+              <small class="text-muted">
+                যে ম্যানেজার/সদস্যের রেফারেন্সে কাস্টমার এসেছে, সেই কাস্টমারের সব ক্রয় এখানে তার নামে যোগ হয়।
+                নামের উপর ক্লিক করলে তার কাস্টমারদের তালিকা দেখাবে।
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>ম্যানেজার/সদস্য</th>
+                <th class="text-end">কাস্টমার</th>
+                <th class="text-end">বিক্রয় সংখ্যা</th>
+                <th class="text-end">মোট বিক্রয় (৳)</th>
+                <th class="text-end">বাকি (৳)</th>
+              </tr>
+            </thead>
+            <tbody id="refSalesBody">
+              <tr><td colspan="5" class="text-center text-muted py-3">মাস নির্বাচন করে দেখুন</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="refDetailWrap" class="card shadow-sm mt-3 d-none">
+        <div class="card-header bg-white fw-semibold" id="refDetailTitle"></div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>কাস্টমার</th><th>একাউন্ট নং</th><th>ফোন</th>
+                <th class="text-end">বিক্রয়</th><th class="text-end">মোট (৳)</th><th class="text-end">বাকি (৳)</th>
+              </tr>
+            </thead>
+            <tbody id="refDetailBody"></tbody>
           </table>
         </div>
       </div>
@@ -334,9 +393,67 @@ async function loadRanking() {
     }
 }
 
+// ── Referral sales ───────────────────────────────────────────────────────────
+async function loadReferralSales() {
+    const tbody = document.getElementById('refSalesBody');
+    if (!tbody) return;
+    const month = document.getElementById('refMonth').value;
+    document.getElementById('refDetailWrap').classList.add('d-none');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_referral_sales.php?month=${month}`);
+        const data = await res.json();
+        const rows = (data.rows) || [];
+        tbody.innerHTML = rows.length ? rows.map(r => `
+            <tr style="cursor:pointer" data-name="${esc(r.name)}" onclick="loadReferralDetail(${r.id}, this.dataset.name)">
+                <td class="fw-semibold">${esc(r.name)}
+                    <span class="badge bg-light text-dark border">${esc(r.role)}</span></td>
+                <td class="text-end">${r.customer_count}</td>
+                <td class="text-end">${r.sale_count}</td>
+                <td class="text-end fw-bold text-success">${fmt(r.total_sales)}</td>
+                <td class="text-end ${parseFloat(r.total_due) > 0 ? 'text-danger' : ''}">${fmt(r.total_due)}</td>
+            </tr>`).join('')
+            : '<tr><td colspan="5" class="text-center text-muted py-3">কারো রেফারেন্সে কাস্টমার যুক্ত করা নেই</td></tr>';
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
+    }
+}
+
+async function loadReferralDetail(userId, name) {
+    const wrap  = document.getElementById('refDetailWrap');
+    const tbody = document.getElementById('refDetailBody');
+    const month = document.getElementById('refMonth').value;
+    document.getElementById('refDetailTitle').textContent = name + ' — রেফারেন্সে আসা কাস্টমার';
+    wrap.classList.remove('d-none');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_referral_sales.php?month=${month}&user_id=${userId}`);
+        const data = await res.json();
+        const rows = (data.customers) || [];
+        tbody.innerHTML = rows.length ? rows.map(c => `
+            <tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.account_no || '—')}</td>
+                <td>${esc(c.phone || '—')}</td>
+                <td class="text-end">${c.sale_count}</td>
+                <td class="text-end">${fmt(c.total_sales)}</td>
+                <td class="text-end ${parseFloat(c.total_due) > 0 ? 'text-danger' : ''}">${fmt(c.total_due)}</td>
+            </tr>`).join('')
+            : '<tr><td colspan="6" class="text-center text-muted py-3">কোনো কাস্টমার নেই</td></tr>';
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
+    }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadTasks();
 loadAssignments();
 if (CAN_WRITE) loadRanking();
+document.getElementById('refSalesTabBtn')?.addEventListener('click', () => {
+    if (!document.getElementById('refSalesBody').dataset.loaded) {
+        document.getElementById('refSalesBody').dataset.loaded = '1';
+        loadReferralSales();
+    }
+});
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

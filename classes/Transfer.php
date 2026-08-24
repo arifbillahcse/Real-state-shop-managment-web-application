@@ -123,11 +123,24 @@ class Transfer extends BaseModel
         return $id;
     }
 
+    /**
+     * A sheet for an earlier date is a record of what was sent that day, not
+     * a working document. The spec allows exactly two things on it: finish a
+     * transfer that was left pending, and correct one that came back as a
+     * return. Deleting or rewriting a past pending entry is not among them.
+     */
+    private static function isPastSheet(array $entry): bool
+    {
+        return !empty($entry['transfer_date']) && $entry['transfer_date'] < date('Y-m-d');
+    }
+
     public static function updateEntry(int $id, array $d): bool|string
     {
         $entry = Database::fetchOne('SELECT * FROM stock_transfers WHERE id = ? LIMIT 1', [$id]);
         if (!$entry) return 'NOT_FOUND';
         if (!in_array($entry['status'], ['pending', 'returned'], true)) return 'NOT_EDITABLE';
+        // On a past sheet only a returned entry may be corrected.
+        if (self::isPastSheet($entry) && $entry['status'] !== 'returned') return 'PAST_SHEET_LOCKED';
 
         $productId = (int)($d['product_id'] ?? $entry['product_id']);
         $quantity  = (float)($d['quantity'] ?? $entry['quantity']);
@@ -159,6 +172,7 @@ class Transfer extends BaseModel
         $entry = Database::fetchOne('SELECT * FROM stock_transfers WHERE id = ? LIMIT 1', [$id]);
         if (!$entry) return 'NOT_FOUND';
         if ($entry['status'] !== 'pending') return 'NOT_EDITABLE';
+        if (self::isPastSheet($entry)) return 'PAST_SHEET_LOCKED';
         Database::execute('DELETE FROM stock_transfers WHERE id = ?', [$id]);
         self::log('transfer_delete', 'stock_transfers', $id, "Transfer entry #$id deleted");
         return true;
@@ -307,6 +321,7 @@ class Transfer extends BaseModel
             'INVALID_ACTION'        => 'ভুল অ্যাকশন।',
             'NO_ITEMS'              => 'কমপক্ষে একটি পণ্য যোগ করুন।',
             'DB_ERROR'              => 'সংরক্ষণ করা যায়নি, আবার চেষ্টা করুন।',
+            'PAST_SHEET_LOCKED'     => 'পুরনো তারিখের শিটে শুধু অসম্পন্ন ট্রান্সফার সম্পন্ন করা এবং রিটার্ন সংশোধন করা যাবে।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
 }

@@ -266,6 +266,7 @@ function calcGrandTotal() {
             ? 'কথায়: ' + bnMoneyWords(total) : '';
     }
 
+    updatePreviousDue(due);
     updateDueLimitWarning(due);
     return { subtotal, charges, discountAmt, total, paid, due };
 }
@@ -291,6 +292,26 @@ function updateDueLimitWarning(newDue) {
         box.classList.remove('d-none');
     }
 }
+// Previous balance preview. It is shown on the memo only — the amount stays
+// on the older invoices that actually carry it, so nothing is counted twice.
+function updatePreviousDue(newDue) {
+    const chk  = document.getElementById('includePrevDue');
+    const wrap = document.getElementById('prevDueWrap');
+    const custId = document.getElementById('saleCustomerId')?.value;
+    const cust = (CUSTOMERS || []).find(c => String(c.id) === String(custId));
+    const prev = cust ? parseFloat(cust.total_due || 0) : 0;
+
+    if (wrap) wrap.classList.toggle('d-none', !(cust && prev > 0));
+    const on = !!(chk && chk.checked && cust && prev > 0);
+    document.getElementById('prevDueRow')?.classList.toggle('d-none', !on);
+    document.getElementById('grandDueRow')?.classList.toggle('d-none', !on);
+    if (on) {
+        document.getElementById('prevDueDisplay').textContent  = fmt(prev);
+        document.getElementById('grandDueDisplay').textContent = fmt(prev + newDue);
+    }
+    return on;
+}
+
 document.getElementById('saleCustomerId')?.addEventListener('change', () => calcGrandTotal());
 document.getElementById('discTaka')?.addEventListener('change', () => calcGrandTotal());
 document.getElementById('discPercent')?.addEventListener('change', () => calcGrandTotal());
@@ -338,6 +359,7 @@ function buildSalePayload() {
         labor_bill:     perItem ? 0 : (document.getElementById('saleLabor')?.value     || 0),
         transport_bill: perItem ? 0 : (document.getElementById('saleTransport')?.value || 0),
         delivery_charge: document.getElementById('saleDelivery')?.value || 0,
+        include_previous_due: document.getElementById('includePrevDue')?.checked ? 1 : '',
         sold_by_name:   document.getElementById('soldByName')?.value || '',
         sold_by_mobile: document.getElementById('soldByMobile')?.value || '',
         items:          JSON.stringify(items),
@@ -751,6 +773,15 @@ function buildInvoiceHTML(res, forPrint = false) {
                 </tr>
             </table>
         </div>
+
+        ${(s.previous_due !== null && s.previous_due !== undefined) ? `
+        <div style="margin:0 32px 12px;padding:10px 14px;background:#fdf3f3;border-left:3px solid #c0392b;border-radius:0 6px 6px 0;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span>এই মেমোর বাকি</span><strong>${fmt(due)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span>পূর্বের বাকি</span><strong>${fmt(s.previous_due)}</strong></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #e0b4b4;margin-top:5px;padding-top:5px">
+                <span style="font-weight:700">সর্বমোট দেয়</span>
+                <strong>${fmt(due + parseFloat(s.previous_due))}</strong></div>
+        </div>` : ''}
 
         ${s.sold_by_name ? `
         <div style="margin:0 32px 10px;font-size:13px;color:#555">

@@ -278,6 +278,7 @@ CREATE TABLE IF NOT EXISTS sales (
     total_amount     DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     paid_amount      DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     due_amount       DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    previous_due     DECIMAL(14,2) NULL DEFAULT NULL COMMENT 'balance shown on the memo; not part of this sale',
     payment_method   ENUM('cash','credit','cheque','mobile_banking') NOT NULL DEFAULT 'cash',
     status           ENUM('completed','cancelled') NOT NULL DEFAULT 'completed',
     note             TEXT          DEFAULT NULL,
@@ -776,4 +777,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (16, 'staff_statement'),
     (17, 'low_stock_alerts'),
     (18, 'assistant_manager'),
-    (19, 'sale_salesperson');
+    (19, 'sale_salesperson'),
+    (20, 'sale_previous_due');

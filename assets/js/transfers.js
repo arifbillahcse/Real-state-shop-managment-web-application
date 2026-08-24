@@ -204,15 +204,21 @@ function cancelEditEntry() {
 // ── Sheet rendering (shared by today-sheet and date sheets) ─────────────────
 function actionButtons(t) {
     if (!CAN_WRITE) return '';
+    // A past-date sheet is a record, not a working document: the only things
+    // allowed there are finishing a pending transfer and correcting a
+    // returned one. Transfer.php enforces the same rule server-side.
+    const isPast = !!t.transfer_date && t.transfer_date < TODAY;
     let html = '';
     if (t.status === 'pending' || t.status === 'returned') {
         html += `<button class="btn btn-sm btn-success me-1" title="ট্রান্সফার (পাঠান)"
                     onclick="sendTransfer(${t.id})"><i class="bi bi-send"></i></button>`;
-        html += `<button class="btn btn-sm btn-outline-warning me-1" title="এডিট"
-                    onclick='editEntry(${JSON.stringify(t).replace(/'/g, "&#39;")})'>
-                    <i class="bi bi-pencil"></i></button>`;
+        if (!isPast || t.status === 'returned') {
+            html += `<button class="btn btn-sm btn-outline-warning me-1" title="এডিট"
+                        onclick='editEntry(${JSON.stringify(t).replace(/'/g, "&#39;")})'>
+                        <i class="bi bi-pencil"></i></button>`;
+        }
     }
-    if (t.status === 'pending') {
+    if (t.status === 'pending' && !isPast) {
         html += `<button class="btn btn-sm btn-outline-danger" title="ডিলিট"
                     onclick="deleteEntry(${t.id})"><i class="bi bi-trash"></i></button>`;
     }

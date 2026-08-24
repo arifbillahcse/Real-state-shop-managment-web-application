@@ -98,6 +98,56 @@ class Staff extends BaseModel
         );
     }
 
+    /**
+     * Sales credited to whoever referred the customer.
+     *
+     * A customer can carry several reference entries, so the pairs are made
+     * distinct first — otherwise a second reference row for the same staff
+     * member would double every sale total.
+     *
+     * @return array one row per referring staff member, biggest seller first
+     */
+    public static function referralSummary(string $from, string $to): array
+    {
+        return Database::fetchAll(
+            'SELECT u.id, u.name, u.role,
+                    COUNT(DISTINCT r.customer_id) AS customer_count,
+                    COUNT(DISTINCT s.id)          AS sale_count,
+                    COALESCE(SUM(s.total_amount), 0) AS total_sales,
+                    COALESCE(SUM(s.due_amount),   0) AS total_due
+             FROM users u
+             JOIN (SELECT DISTINCT ref_user_id, customer_id
+                   FROM customer_references WHERE ref_user_id IS NOT NULL) r
+                  ON r.ref_user_id = u.id
+             LEFT JOIN sales s
+                  ON s.customer_id = r.customer_id AND s.status = "completed"
+                 AND s.sale_date BETWEEN ? AND ?
+             GROUP BY u.id
+             ORDER BY total_sales DESC, u.name',
+            [$from, $to]
+        );
+    }
+
+    /** The customers one staff member referred, with their totals in range. */
+    public static function referralCustomers(int $userId, string $from, string $to): array
+    {
+        return Database::fetchAll(
+            'SELECT c.id, c.name, c.phone, c.account_no,
+                    COUNT(DISTINCT s.id)             AS sale_count,
+                    COALESCE(SUM(s.total_amount), 0) AS total_sales,
+                    COALESCE(SUM(s.due_amount),   0) AS total_due
+             FROM (SELECT DISTINCT ref_user_id, customer_id
+                   FROM customer_references WHERE ref_user_id = ?) r
+             JOIN customers c ON c.id = r.customer_id
+             LEFT JOIN sales s
+                  ON s.customer_id = c.id AND s.status = "completed"
+                 AND s.sale_date BETWEEN ? AND ?
+             GROUP BY c.id
+             ORDER BY total_sales DESC, c.name',
+            [$userId, $from, $to]
+        );
+    }
+
     // ── Tasks ────────────────────────────────────────────────────────────────
     public static function addTask(
         int $userId, string $title, string $details, string $dueDate, ?int $assignedBy

@@ -214,7 +214,24 @@ include __DIR__ . '/../includes/sidebar.php';
                 <td class="fw-semibold">বাকি</td>
                 <td class="text-end fw-bold text-danger" id="dueDisplay">০.০০ ৳</td>
               </tr>
+              <tr id="prevDueRow" class="d-none">
+                <td class="text-muted">পূর্বের বাকি</td>
+                <td class="text-end" id="prevDueDisplay">০.০০ ৳</td>
+              </tr>
+              <tr id="grandDueRow" class="d-none table-danger">
+                <td class="fw-bold">সর্বমোট দেয় (পূর্বের সহ)</td>
+                <td class="text-end fw-bold" id="grandDueDisplay">০.০০ ৳</td>
+              </tr>
             </table>
+            <div class="form-check mb-2" id="prevDueWrap">
+              <input class="form-check-input" type="checkbox" id="includePrevDue" onchange="calcGrandTotal()">
+              <label class="form-check-label small" for="includePrevDue">
+                পূর্বের বাকি এই মেমোতে দেখান
+                <span class="text-muted d-block" style="font-size:.8em">
+                  শুধু মেমোতে দেখাবে — পুরনো বিলের হিসাব দুবার যোগ হবে না।
+                </span>
+              </label>
+            </div>
             <div id="dueLimitWarning" class="alert alert-warning py-2 d-none small mb-2"></div>
             <div class="mb-3">
               <label class="form-label text-muted small">নোট</label>

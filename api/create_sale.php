@@ -51,9 +51,23 @@ $soldBy = [
     'mobile' => $_POST['sold_by_mobile'] ?? '',
 ];
 
+// Previous balance to print on the memo. Taken from the ledger here rather
+// than trusted from the browser, and deliberately NOT added to the sale's own
+// total — the old invoices already carry it.
+$previousDue = null;
+if (!empty($_POST['include_previous_due']) && $customerId) {
+    $row = Database::fetchOne(
+        'SELECT COALESCE(SUM(due_amount), 0) AS due
+         FROM sales WHERE customer_id = ? AND status = "completed"',
+        [$customerId]
+    );
+    $previousDue = (float)($row['due'] ?? 0);
+}
+
 $result = Sale::createSale(
     $customerId, $items, $discount, $paidAmount, $paymentMethod,
-    $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy, $soldBy
+    $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy, $soldBy,
+    $previousDue
 );
 
 if (is_int($result)) {
