@@ -20,13 +20,123 @@ function statusBadge(st) {
 }
 
 // ── Entry form (add / edit) ──────────────────────────────────────────────────
-let _editingEntry = null;
+let _editingEntry  = null;
+let tItemRowCounter = 0;
+
+const transferProductOptsHtml = (TRANSFER_PRODUCTS || []).map(p =>
+    `<option value="${p.id}" data-unit="${esc(p.unit)}">${esc(p.name)} (${esc(p.unit)})</option>`
+).join('');
+
+// One product+quantity row. Editing an existing pending entry is always a
+// single product (transfer_entry_update.php updates one stock_transfers row),
+// so the "add row"/"remove" controls only matter while creating a fresh batch.
+function addTransferItemRow(productId, quantity) {
+    tItemRowCounter++;
+    const id = tItemRowCounter;
+    const tr = document.createElement('tr');
+    tr.id = 't_item_row_' + id;
+    tr.innerHTML = `
+        <td>
+            <select class="form-select form-select-sm t-item-product" required>
+                <option value="">— পণ্য নির্বাচন —</option>
+                ${transferProductOptsHtml}
+            </select>
+        </td>
+        <td>
+            <input type="number" class="form-control form-control-sm t-item-qty"
+                   min="0.01" step="0.01" required>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger t-item-remove"
+                    onclick="removeTransferItemRow(${id})"><i class="bi bi-x-lg"></i></button>
+        </td>`;
+    document.getElementById('tItemsBody').appendChild(tr);
+    if (productId) tsSet(tr.querySelector('.t-item-product'), String(productId), true);
+    if (quantity)  tr.querySelector('.t-item-qty').value = quantity;
+    if (typeof initTomSelect === 'function') initTomSelect(tr.querySelector('.t-item-product'));
+    checkTransferItemsEmpty();
+}
+
+function removeTransferItemRow(id) {
+    document.getElementById('t_item_row_' + id)?.remove();
+    // Never leave zero rows while adding a fresh batch — always one to fill in.
+    if (!document.getElementById('tEntryId').value && !document.querySelectorAll('#tItemsBody tr').length) {
+        addTransferItemRow();
+    }
+    checkTransferItemsEmpty();
+}
+
+function checkTransferItemsEmpty() {
+    const has = document.querySelectorAll('#tItemsBody tr').length > 0;
+    document.getElementById('tNoItemsAlert').classList.toggle('d-none', has);
+}
+
+function collectTransferItems() {
+    const items = [];
+    document.querySelectorAll('#tItemsBody tr').forEach(tr => {
+        const sel = tr.querySelector('.t-item-product');
+        const qty = tr.querySelector('.t-item-qty');
+        if (sel?.value && parseFloat(qty?.value) > 0) {
+            items.push({ product_id: parseInt(sel.value), quantity: parseFloat(qty.value) });
+        }
+    });
+    return items;
+}
+
+function resetTransferItemRows() {
+    document.getElementById('tItemsBody').innerHTML = '';
+    tItemRowCounter = 0;
+    addTransferItemRow();
+}
+
+// Pre-select the logged-in manager/assistant manager as order-placer; they
+// remain free to pick someone else for this particular delivery.
+function applyDefaultOrderManager() {
+    const sel = document.getElementById('tOrderManager');
+    if (!sel || !CURRENT_USER_NAME) return;
+    const match = Array.from(sel.options).some(o => o.value === CURRENT_USER_NAME);
+    if (match) tsSet(sel, CURRENT_USER_NAME, true);
+}
 
 function submitTransferEntry(e) {
     e.preventDefault();
     const isEdit = !!document.getElementById('tEntryId').value;
+
+    if (isEdit) {
+        const row = document.querySelector('#tItemsBody tr');
+        const data = {
+            id:               document.getElementById('tEntryId').value,
+            transfer_date:    document.getElementById('tDate').value,
+            from_branch_id:   document.getElementById('tFromBranch').value,
+            to_branch_id:     document.getElementById('tToBranch').value,
+            customer_name:    document.getElementById('tCustomerName').value,
+            customer_address: document.getElementById('tCustomerAddress').value,
+            customer_mobile:  document.getElementById('tCustomerMobile').value,
+            order_manager:    document.getElementById('tOrderManager').value,
+            driver_name:      document.getElementById('tDriverName').value,
+            driver_mobile:    document.getElementById('tDriverMobile').value,
+            product_id:       row?.querySelector('.t-item-product')?.value || '',
+            quantity:         row?.querySelector('.t-item-qty')?.value || '',
+            note:             document.getElementById('tNote').value,
+        };
+        const btn = document.getElementById('tSubmitBtn');
+        btn.disabled = true;
+        ajaxPost(`${BASE_URL}/api/transfer_entry_update.php`, data, res => {
+            btn.disabled = false;
+            showToast(res.message, res.success ? 'success' : 'danger');
+            if (res.success) {
+                cancelEditEntry();
+                loadTodaySheet();
+                loadDateList();
+            }
+        });
+        return;
+    }
+
+    const items = collectTransferItems();
+    if (!items.length) { showToast('কমপক্ষে একটি পণ্য যোগ করুন।', 'warning'); return; }
+
     const data = {
-        id:               document.getElementById('tEntryId').value,
         transfer_date:    document.getElementById('tDate').value,
         from_branch_id:   document.getElementById('tFromBranch').value,
         to_branch_id:     document.getElementById('tToBranch').value,
@@ -36,24 +146,20 @@ function submitTransferEntry(e) {
         order_manager:    document.getElementById('tOrderManager').value,
         driver_name:      document.getElementById('tDriverName').value,
         driver_mobile:    document.getElementById('tDriverMobile').value,
-        product_id:       document.getElementById('tProduct').value,
-        quantity:         document.getElementById('tQuantity').value,
         note:             document.getElementById('tNote').value,
+        items:            JSON.stringify(items),
     };
-    const url = isEdit
-        ? `${BASE_URL}/api/transfer_entry_update.php`
-        : `${BASE_URL}/api/transfer_entry_add.php`;
     const btn = document.getElementById('tSubmitBtn');
     btn.disabled = true;
-    ajaxPost(url, data, res => {
+    ajaxPost(`${BASE_URL}/api/transfer_entry_add.php`, data, res => {
         btn.disabled = false;
         showToast(res.message, res.success ? 'success' : 'danger');
         if (res.success) {
-            cancelEditEntry();
-            // Keep customer/driver fields? Spec: repeat process per customer → clear all
             document.getElementById('transferForm').reset();
             tsSyncForm('transferForm');
             document.getElementById('tDate').value = TODAY;
+            resetTransferItemRows();
+            applyDefaultOrderManager();
             loadTodaySheet();
             loadDateList();
         }
@@ -69,11 +175,13 @@ function editEntry(entry) {
     document.getElementById('tCustomerName').value     = entry.customer_name || '';
     document.getElementById('tCustomerAddress').value  = entry.customer_address || '';
     document.getElementById('tCustomerMobile').value   = entry.customer_mobile || '';
-    document.getElementById('tOrderManager').value     = entry.order_manager || '';
+    tsSet(document.getElementById('tOrderManager'), entry.order_manager || '', true);
     document.getElementById('tDriverName').value       = entry.driver_name || '';
     document.getElementById('tDriverMobile').value     = entry.driver_mobile || '';
-    tsSet(document.getElementById('tProduct'), String(entry.product_id), true);
-    document.getElementById('tQuantity').value         = entry.quantity;
+    document.getElementById('tItemsBody').innerHTML    = '';
+    addTransferItemRow(entry.product_id, entry.quantity);
+    // An existing entry is one DB row — no adding more products to it here.
+    document.getElementById('tAddRowBtn').classList.add('d-none');
     document.getElementById('tNote').value             = entry.note || '';
     document.getElementById('tSubmitBtn').innerHTML    = '<i class="bi bi-check-lg me-1"></i>আপডেট করুন';
     document.getElementById('tCancelEditBtn').classList.remove('d-none');
@@ -85,6 +193,9 @@ function editEntry(entry) {
 function cancelEditEntry() {
     _editingEntry = null;
     document.getElementById('tEntryId').value = '';
+    document.getElementById('tAddRowBtn').classList.remove('d-none');
+    resetTransferItemRows();
+    applyDefaultOrderManager();
     document.getElementById('tSubmitBtn').innerHTML =
         '<i class="bi bi-plus-circle me-1"></i>শিটে যুক্ত করুন (এন্টার)';
     document.getElementById('tCancelEditBtn').classList.add('d-none');
@@ -296,7 +407,11 @@ function receiveTransfer(id, action) {
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-if (CAN_WRITE) loadTodaySheet();
+if (CAN_WRITE) {
+    loadTodaySheet();
+    resetTransferItemRows();
+    applyDefaultOrderManager();
+}
 loadDateList();
 if (IS_STAFF && STAFF_BRANCH) {
     // Staff lands on receive tab with their branch preselected

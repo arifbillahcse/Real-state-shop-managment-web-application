@@ -17,6 +17,74 @@ class Transfer extends BaseModel
 {
     protected static string $table = 'stock_transfers';
 
+    /**
+     * Add several products to the transfer sheet in one delivery: one shared
+     * customer/driver/date, several stock_transfers rows (one per product) —
+     * because each product still ships and is received independently, exactly
+     * like a single entry does today.
+     *
+     * @param array $items list of ['product_id' => int, 'quantity' => float]
+     * @return array|string list of inserted ids, or an error code
+     */
+    public static function addEntryBatch(array $shared, array $items, ?int $userId): array|string
+    {
+        $fromBranchId = (int)($shared['from_branch_id'] ?? 0);
+        $toBranchId   = (int)($shared['to_branch_id'] ?? 0);
+        $customerName = trim($shared['customer_name'] ?? '');
+        $mobile       = trim($shared['customer_mobile'] ?? '');
+        $driverName   = trim($shared['driver_name'] ?? '');
+        $driverMobile = trim($shared['driver_mobile'] ?? '');
+        $date         = trim($shared['transfer_date'] ?? '') ?: date('Y-m-d');
+
+        if ($fromBranchId <= 0 || $toBranchId <= 0) return 'INVALID_BRANCH';
+        if ($fromBranchId === $toBranchId)          return 'SAME_BRANCH';
+        if ($customerName === '')                   return 'CUSTOMER_REQUIRED';
+        if ($mobile === '')                          return 'MOBILE_REQUIRED';
+        if ($driverName === '')                       return 'DRIVER_REQUIRED';
+        if ($driverMobile === '')                     return 'DRIVER_MOBILE_REQUIRED';
+        if (!strtotime($date))                        return 'INVALID_DATE';
+        if (empty($items))                            return 'NO_ITEMS';
+
+        $valid = [];
+        foreach ($items as $it) {
+            $productId = (int)($it['product_id'] ?? 0);
+            $quantity  = (float)($it['quantity'] ?? 0);
+            if ($productId <= 0) return 'INVALID_PRODUCT';
+            if ($quantity <= 0)  return 'INVALID_QUANTITY';
+            $valid[] = ['product_id' => $productId, 'quantity' => $quantity];
+        }
+
+        $address     = trim($shared['customer_address'] ?? '') ?: null;
+        $orderManager = trim($shared['order_manager'] ?? '') ?: null;
+        $note        = trim($shared['note'] ?? '') ?: null;
+
+        $ids = [];
+        Database::beginTransaction();
+        try {
+            foreach ($valid as $it) {
+                $id = (int)Database::insert(
+                    'INSERT INTO stock_transfers
+                        (product_id, from_branch_id, to_branch_id, quantity, status, transfer_date,
+                         customer_name, customer_address, customer_mobile, order_manager,
+                         driver_name, driver_mobile, note, created_by)
+                     VALUES (?, ?, ?, ?, "pending", ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [$it['product_id'], $fromBranchId, $toBranchId, $it['quantity'], $date,
+                     $customerName, $address, $mobile, $orderManager,
+                     $driverName, $driverMobile, $note, $userId]
+                );
+                $ids[] = $id;
+            }
+            Database::commit();
+        } catch (Throwable $e) {
+            Database::rollback();
+            return 'DB_ERROR';
+        }
+
+        self::log('transfer_entry_batch', 'stock_transfers', $ids[0] ?? 0,
+                  count($ids) . ' transfer entries created (pending) for ' . $customerName);
+        return $ids;
+    }
+
     public static function addEntry(array $d, ?int $userId): int|string
     {
         $productId    = (int)($d['product_id'] ?? 0);
@@ -237,6 +305,8 @@ class Transfer extends BaseModel
             'NOT_IN_TRANSIT'        => 'এই ট্রান্সফারটি বর্তমানে পথে নেই।',
             'INSUFFICIENT_STOCK'    => 'প্রেরক ব্রাঞ্চে পর্যাপ্ত স্টক নেই।',
             'INVALID_ACTION'        => 'ভুল অ্যাকশন।',
+            'NO_ITEMS'              => 'কমপক্ষে একটি পণ্য যোগ করুন।',
+            'DB_ERROR'              => 'সংরক্ষণ করা যায়নি, আবার চেষ্টা করুন।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
 }

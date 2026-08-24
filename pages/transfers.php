@@ -16,6 +16,14 @@ $canWrite       = canWriteBranchData();
 $_isStaff       = isStaff();
 $staffBranch    = getSessionBranchId();
 $lockedBranch   = lockedBranchId();
+// Order-placing managers: same roles allowed to write a transfer, so whoever
+// is filling this form always appears in their own dropdown.
+$orderManagers  = Database::fetchAll(
+    "SELECT name FROM users
+     WHERE is_active = 1 AND role IN ('admin','manager','assistant_manager')
+     ORDER BY name"
+);
+$currentUserName = $_SESSION['user_name'] ?? '';
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -101,7 +109,12 @@ include __DIR__ . '/../includes/sidebar.php';
 
               <div class="col-md-4">
                 <label class="form-label fw-semibold small">অর্ডার প্রদানকারী ম্যানেজারের নাম</label>
-                <input type="text" class="form-control form-control-sm" id="tOrderManager" maxlength="150">
+                <select class="form-select form-select-sm" id="tOrderManager">
+                  <option value="">— নির্বাচন —</option>
+                  <?php foreach ($orderManagers as $m): ?>
+                  <option value="<?= e($m['name']) ?>"><?= e($m['name']) ?></option>
+                  <?php endforeach; ?>
+                </select>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold small">ড্রাইভারের নাম <span class="text-danger">*</span></label>
@@ -112,28 +125,36 @@ include __DIR__ . '/../includes/sidebar.php';
                 <input type="text" class="form-control form-control-sm" id="tDriverMobile" maxlength="20" required>
               </div>
 
-              <div class="col-md-5">
-                <label class="form-label fw-semibold small">পণ্য <span class="text-danger">*</span></label>
-                <select class="form-select form-select-sm" id="tProduct" required>
-                  <option value="">— পণ্য নির্বাচন —</option>
-                  <?php foreach ($products as $p): ?>
-                  <option value="<?= $p['id'] ?>"><?= e($p['name']) ?> (<?= e($p['unit']) ?>)</option>
-                  <?php endforeach; ?>
-                </select>
+              <div class="col-12">
+                <label class="form-label fw-semibold small mb-1">পণ্য <span class="text-danger">*</span></label>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle mb-2" id="tItemsTable">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="min-width:220px">পণ্য</th>
+                        <th style="width:140px">পরিমাণ</th>
+                        <th style="width:44px"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tItemsBody"></tbody>
+                  </table>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="tAddRowBtn" onclick="addTransferItemRow()">
+                  <i class="bi bi-plus-lg me-1"></i>আরেকটা পণ্য
+                </button>
+                <div class="text-muted small mt-1 d-none" id="tNoItemsAlert">কমপক্ষে একটি পণ্য যোগ করুন।</div>
               </div>
-              <div class="col-md-3">
-                <label class="form-label fw-semibold small">পরিমাণ <span class="text-danger">*</span></label>
-                <input type="number" class="form-control form-control-sm" id="tQuantity" min="0.01" step="0.01" required>
-              </div>
-              <div class="col-md-4">
+
+              <div class="col-md-6 mt-2">
                 <label class="form-label fw-semibold small">নোট</label>
                 <input type="text" class="form-control form-control-sm" id="tNote" maxlength="500">
               </div>
             </div>
 
             <div class="alert alert-info py-2 small mt-3 mb-2">
-              <i class="bi bi-info-circle me-1"></i>"এন্টার" দিলে তথ্য সাথে সাথে ট্রান্সফার হবে না —
-              এটি ট্রান্সফার শিটের তালিকায় যুক্ত হবে। শিট থেকে <strong>ট্রান্সফার</strong> বাটনে চাপলে পণ্য পাঠানো হবে।
+              <i class="bi bi-info-circle me-1"></i>"শিটে যুক্ত করুন" দিলে তথ্য সাথে সাথে ট্রান্সফার হবে না —
+              এই কাস্টমারের জন্য যোগ করা সবগুলো পণ্য একসাথে ট্রান্সফার শিটের তালিকায় যুক্ত হবে।
+              শিট থেকে <strong>ট্রান্সফার</strong> বাটনে চাপলে পণ্য পাঠানো হবে।
             </div>
             <div class="d-flex gap-2">
               <button type="submit" class="btn btn-primary" id="tSubmitBtn">
@@ -304,6 +325,10 @@ const CAN_WRITE    = <?= $canWrite ? 'true' : 'false' ?>;
 const IS_STAFF     = <?= $_isStaff ? 'true' : 'false' ?>;
 const STAFF_BRANCH = <?= $staffBranch ?? 'null' ?>;
 const TODAY        = '<?= today() ?>';
+const TRANSFER_PRODUCTS = <?= json_encode(array_map(
+    fn($p) => ['id' => $p['id'], 'name' => $p['name'], 'unit' => $p['unit']], $products
+)) ?>;
+const CURRENT_USER_NAME = <?= json_encode($currentUserName) ?>;
 </script>
 <script src="<?= BASE_URL ?>/assets/js/transfers.js"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
