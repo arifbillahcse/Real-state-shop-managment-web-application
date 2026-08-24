@@ -301,6 +301,21 @@ class Transfer extends BaseModel
         );
     }
 
+    // Full lifecycle for one transfer entry (§4) — every status change ever
+    // logged for it, so "receive" and "return" aren't a dead end: the record
+    // stays visible after it drops off the in-transit list.
+    public static function getHistory(int $id): array
+    {
+        return Database::fetchAll(
+            "SELECT l.action, l.description, l.created_at, u.name AS user_name
+             FROM activity_logs l
+             LEFT JOIN users u ON u.id = l.user_id
+             WHERE l.module = 'stock_transfers' AND l.reference_id = ?
+             ORDER BY l.created_at ASC, l.id ASC",
+            [$id]
+        );
+    }
+
     public static function errorMessage(string $code): string
     {
         return [

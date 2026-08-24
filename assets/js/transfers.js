@@ -202,8 +202,60 @@ function cancelEditEntry() {
 }
 
 // ── Sheet rendering (shared by today-sheet and date sheets) ─────────────────
+const HISTORY_LABELS = {
+    transfer_entry:        ['তৈরি হয়েছে (পেন্ডিং)', 'secondary'],
+    transfer_entry_batch:  ['তৈরি হয়েছে (পেন্ডিং)', 'secondary'],
+    transfer_update:       ['তথ্য সংশোধন হয়েছে',    'secondary'],
+    transfer_send:         ['পাঠানো হয়েছে',         'info'],
+    transfer_received:     ['রিসিভ করা হয়েছে',      'success'],
+    transfer_returned:     ['রিটার্ন করা হয়েছে',     'danger'],
+    transfer_delete:       ['ডিলিট করা হয়েছে',      'dark'],
+};
+
+function historyButton(id) {
+    return `<button class="btn btn-sm btn-outline-secondary" title="ইতিহাস দেখুন"
+                onclick="viewTransferHistory(${id})"><i class="bi bi-clock-history"></i></button>`;
+}
+
+async function viewTransferHistory(id) {
+    const modalEl = document.getElementById('transferHistoryModal');
+    const body    = document.getElementById('transferHistoryBody');
+    body.innerHTML = '<p class="text-muted text-center mb-0"><span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...</p>';
+    new bootstrap.Modal(modalEl).show();
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_transfer_history.php?id=${id}`);
+        const data = await res.json();
+        const rows = (data.history) || [];
+        if (!rows.length) {
+            body.innerHTML = '<p class="text-muted text-center mb-0">কোনো ইতিহাস পাওয়া যায়নি</p>';
+            return;
+        }
+        body.innerHTML = `
+            <ul class="list-group list-group-flush">
+                ${rows.map(h => {
+                    const [label, color] = HISTORY_LABELS[h.action] || [h.action, 'secondary'];
+                    return `
+                    <li class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-${color} mb-1">${label}</span>
+                                <div class="small text-muted">${esc(h.description || '')}</div>
+                            </div>
+                            <div class="text-end small text-nowrap ms-2">
+                                <div>${esc(h.created_at)}</div>
+                                <div class="text-muted">${esc(h.user_name || '—')}</div>
+                            </div>
+                        </div>
+                    </li>`;
+                }).join('')}
+            </ul>`;
+    } catch {
+        body.innerHTML = '<p class="text-danger text-center mb-0">লোড করা যায়নি</p>';
+    }
+}
+
 function actionButtons(t) {
-    if (!CAN_WRITE) return '';
+    if (!CAN_WRITE) return historyButton(t.id);
     // A past-date sheet is a record, not a working document: the only things
     // allowed there are finishing a pending transfer and correcting a
     // returned one. Transfer.php enforces the same rule server-side.
@@ -219,9 +271,10 @@ function actionButtons(t) {
         }
     }
     if (t.status === 'pending' && !isPast) {
-        html += `<button class="btn btn-sm btn-outline-danger" title="ডিলিট"
+        html += `<button class="btn btn-sm btn-outline-danger me-1" title="ডিলিট"
                     onclick="deleteEntry(${t.id})"><i class="bi bi-trash"></i></button>`;
     }
+    html += historyButton(t.id);
     return html;
 }
 
@@ -391,9 +444,10 @@ function renderIncoming() {
                     <button class="btn btn-sm btn-success me-1" onclick="receiveTransfer(${t.id}, 'in')">
                         <i class="bi bi-box-arrow-in-down me-1"></i>ইন
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="receiveTransfer(${t.id}, 'return')">
+                    <button class="btn btn-sm btn-outline-danger me-1" onclick="receiveTransfer(${t.id}, 'return')">
                         <i class="bi bi-arrow-return-left me-1"></i>রিটার্ন
                     </button>
+                    ${historyButton(t.id)}
                 </td>
             </tr>`).join('')
         : `<tr><td colspan="7" class="text-center text-muted py-3">${

@@ -321,6 +321,21 @@ include __DIR__ . '/../includes/sidebar.php';
   </div>
   <?php endif; ?>
 
+  <!-- ═══ Transfer history modal ═══ -->
+  <div class="modal fade" id="transferHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-clock-history me-2"></i>ট্রান্সফার ইতিহাস</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="transferHistoryBody">
+          <p class="text-muted text-center mb-0">লোড হচ্ছে...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
