@@ -1069,6 +1069,36 @@ document.getElementById('btnAcAddRef')?.addEventListener('click', function () {
 loadReferences();
 
 
+// ── Share via WhatsApp / Imo ────────────────────────────────────────────────
+function shareViaWhatsApp(phone, customerName) {
+    const message = encodeURIComponent(`আপনার অ্যাকাউন্ট খাতার জন্য আমাদের সাথে যোগাযোগ করুন।\n\nকাস্টমার: ${customerName}`);
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+}
+
+function shareViaImo(phone, customerName) {
+    const message = `আপনার অ্যাকাউন্ট খাতার জন্য আমাদের সাথে যোগাযোগ করুন।\n\nকাস্টমার: ${customerName}`;
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    // Try Imo deep link first
+    const imoDeepLink = `imo://openChat?username=${cleanPhone}`;
+    const imoWeb = `https://web.imo.im/`;
+
+    // Try to open via device share sheet first (better UX on mobile)
+    if (navigator.share) {
+        navigator.share({
+            title: 'Imo Chat',
+            text: message,
+        }).catch(() => {
+            // Fallback to web link if share fails
+            window.open(imoWeb, '_blank');
+        });
+    } else {
+        // Fallback to Imo web
+        window.open(imoWeb, '_blank');
+    }
+}
+
+
 // ── Return memo ─────────────────────────────────────────────────────────────
 // A product return gets its own printable slip for the customer, separate
 // from the full ledger print: it is handed over at the counter as proof of

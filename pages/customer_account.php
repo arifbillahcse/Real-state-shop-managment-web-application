@@ -52,6 +52,16 @@ include __DIR__ . '/../includes/sidebar.php';
             <?php endif; ?>
             <span class="ms-2"><i class="bi bi-geo-alt me-1"></i><?= e($customer['address'] ?: '—') ?></span>
           </div>
+          <div class="mt-2">
+            <?php if (!empty($customer['phone'])): ?>
+            <button class="btn btn-sm btn-outline-success" onclick="shareViaWhatsApp('<?= e($customer['phone']) ?>', '<?= e($customer['name']) ?>')">
+              <i class="bi bi-whatsapp me-1"></i>WhatsApp
+            </button>
+            <button class="btn btn-sm btn-outline-info" onclick="shareViaImo('<?= e($customer['phone']) ?>', '<?= e($customer['name']) ?>')">
+              <i class="bi bi-chat-dots me-1"></i>Imo
+            </button>
+            <?php endif; ?>
+          </div>
         </div>
         <div class="text-end">
           <p class="small text-muted mb-0">বর্তমান ব্যালেন্স</p>
