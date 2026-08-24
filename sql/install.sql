@@ -281,6 +281,8 @@ CREATE TABLE IF NOT EXISTS sales (
     payment_method   ENUM('cash','credit','cheque','mobile_banking') NOT NULL DEFAULT 'cash',
     status           ENUM('completed','cancelled') NOT NULL DEFAULT 'completed',
     note             TEXT          DEFAULT NULL,
+    sold_by_name     VARCHAR(150)  NULL DEFAULT NULL COMMENT 'employee who made the sale (as printed)',
+    sold_by_mobile   VARCHAR(20)   NULL DEFAULT NULL,
     created_by       INT UNSIGNED  DEFAULT NULL,
     approved_by      INT UNSIGNED  NULL DEFAULT NULL COMMENT 'manager who approved an over-limit credit sale',
     created_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -773,4 +775,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (15, 'transfer_workflow'),
     (16, 'staff_statement'),
     (17, 'low_stock_alerts'),
-    (18, 'assistant_manager');
+    (18, 'assistant_manager'),
+    (19, 'sale_salesperson');

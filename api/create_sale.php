@@ -45,9 +45,15 @@ if (!empty($_POST['approver_username']) && !empty($_POST['approver_password'])) 
     $approvedBy = (int)$approver['id'];
 }
 
+// Who actually served the customer — printed on the invoice.
+$soldBy = [
+    'name'   => $_POST['sold_by_name']   ?? '',
+    'mobile' => $_POST['sold_by_mobile'] ?? '',
+];
+
 $result = Sale::createSale(
     $customerId, $items, $discount, $paidAmount, $paymentMethod,
-    $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy
+    $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy, $soldBy
 );
 
 if (is_int($result)) {

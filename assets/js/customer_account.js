@@ -77,7 +77,12 @@ function renderLedger() {
     tbody.innerHTML = finals.map(e => `
         <tr>
             <td class="text-nowrap">${esc(e.entry_date)}</td>
-            <td>${entryDescription(e)}</td>
+            <td>${entryDescription(e)}
+                ${e.entry_type === 'product_return' ? `
+                <button class="btn btn-sm btn-outline-secondary ms-2 py-0"
+                        onclick="printReturnMemo(${e.id})" title="রিটার্ন মেমো প্রিন্ট">
+                    <i class="bi bi-printer"></i>
+                </button>` : ''}</td>
             <td class="text-end">${parseFloat(e.debit)  > 0 ? fmt(e.debit)  : '—'}</td>
             <td class="text-end">${parseFloat(e.credit) > 0 ? fmt(e.credit) : '—'}</td>
             <td class="text-end fw-semibold ${parseFloat(e.running_balance) > 0 ? 'text-danger' : 'text-success'}">
@@ -1062,3 +1067,72 @@ document.getElementById('btnAcAddRef')?.addEventListener('click', function () {
 });
 
 loadReferences();
+
+
+// ── Return memo ─────────────────────────────────────────────────────────────
+// A product return gets its own printable slip for the customer, separate
+// from the full ledger print: it is handed over at the counter as proof of
+// what came back and what was credited.
+function printReturnMemo(entryId) {
+    const e = _entries.find(x => String(x.id) === String(entryId));
+    if (!e) { showToast('এন্ট্রি খুঁজে পাওয়া যায়নি', 'danger'); return; }
+
+    const items = e.items || [];
+    const rows = items.map((it, i) => {
+        const qty = parseFloat(it.quantity), rate = parseFloat(it.unit_price);
+        return `<tr>
+            <td style="text-align:center">${i + 1}</td>
+            <td>${esc(it.product_name)}</td>
+            <td style="text-align:right">${qty} ${esc(it.unit)}</td>
+            <td style="text-align:right">${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td style="text-align:right">${(qty * rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+        </tr>`;
+    }).join('');
+
+    // A return credits the customer, so the amount sits in the credit column.
+    const total = parseFloat(e.credit) || items.reduce(
+        (t, it) => t + parseFloat(it.quantity) * parseFloat(it.unit_price), 0);
+    const words = (typeof bnMoneyWords === 'function') ? bnMoneyWords(total) : '';
+
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
+        <title>রিটার্ন মেমো — ${esc(CUSTOMER.name)}</title>
+        <style>
+            * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+            body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
+            h2, h4 { margin: 0; text-align: center; }
+            .meta { text-align: center; color: #555; margin-bottom: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #999; padding: 5px 8px; }
+            th { background: #eee; }
+            .tot { text-align: right; font-weight: 700; }
+            .sign { margin-top: 46px; display: flex; justify-content: space-between; }
+            .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
+        </style></head><body>
+        <h2>${esc(SHOP.name)}</h2>
+        ${SHOP.address ? `<div class="meta">${esc(SHOP.address)}${SHOP.phone ? ' — ' + esc(SHOP.phone) : ''}</div>` : ''}
+        <h4>পণ্য রিটার্ন মেমো</h4>
+        <div class="meta">
+            কাস্টমার: <strong>${esc(CUSTOMER.name)}</strong>
+            ${CUSTOMER.phone ? ' — ' + esc(CUSTOMER.phone) : ''}<br>
+            তারিখ: ${esc(e.entry_date)} &nbsp;|&nbsp; মেমো নং: R-${esc(String(e.id))}
+        </div>
+        <table>
+            <thead><tr>
+                <th style="width:40px">ক্রম</th><th>পণ্য</th>
+                <th style="width:110px">পরিমাণ</th><th style="width:110px">রেট (৳)</th>
+                <th style="width:120px">মোট (৳)</th>
+            </tr></thead>
+            <tbody>${rows || '<tr><td colspan="5" style="text-align:center">কোনো পণ্য নেই</td></tr>'}</tbody>
+            <tfoot><tr>
+                <td colspan="4" class="tot">সর্বমোট ফেরত</td>
+                <td class="tot">${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            </tr></tfoot>
+        </table>
+        ${words ? `<p style="margin-top:8px">কথায়: ${esc(words)}</p>` : ''}
+        ${e.note ? `<p style="margin-top:8px">নোট: ${esc(e.note)}</p>` : ''}
+        <div class="sign"><div>কাস্টমারের স্বাক্ষর</div><div>কর্তৃপক্ষের স্বাক্ষর</div></div>
+        <script>window.onload = () => window.print();<\/script>
+        </body></html>`);
+    w.document.close();
+}

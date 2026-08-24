@@ -292,6 +292,11 @@ include __DIR__ . '/../includes/sidebar.php';
                 <i class="bi bi-arrow-clockwise me-1"></i>লোড করুন
               </button>
             </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">কাস্টমার / ড্রাইভার সার্চ</label>
+              <input type="text" class="form-control form-control-sm" id="rcvSearch"
+                     placeholder="নাম বা মোবাইল নাম্বারের যেকোনো অংশ লিখুন — সাথে সাথেই ফিল্টার হবে">
+            </div>
           </div>
         </div>
       </div>

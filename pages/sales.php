@@ -77,6 +77,17 @@ include __DIR__ . '/../includes/sidebar.php';
               <option value="cheque">চেক</option>
             </select>
           </div>
+
+          <!-- Who served the customer — kept as free text because the seller
+               is often a staff member without a login. -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">বিক্রয়কারী কর্মচারীর নাম</label>
+            <input type="text" class="form-control" id="soldByName" name="sold_by_name" maxlength="150">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">কর্মচারীর মোবাইল</label>
+            <input type="text" class="form-control" id="soldByMobile" name="sold_by_mobile" maxlength="20">
+          </div>
         </div>
 
         <!-- Items card -->
@@ -332,6 +343,9 @@ include __DIR__ . '/../includes/sidebar.php';
         <button type="button" class="btn btn-success" id="btnShareWhatsApp" onclick="shareInvoice('whatsapp')">
           <i class="bi bi-whatsapp me-1"></i>WhatsApp
         </button>
+        <button type="button" class="btn btn-info text-white" id="btnShareImo" onclick="shareInvoice('imo')">
+          <i class="bi bi-share me-1"></i>Imo
+        </button>
         <button type="button" class="btn btn-info text-white" id="btnShareSms" onclick="shareInvoice('sms')">
           <i class="bi bi-chat-dots me-1"></i>SMS
         </button>
@@ -471,6 +485,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <script>
 const BASE_URL      = '<?= BASE_URL ?>';
+const CURRENT_USER_NAME = <?= json_encode($_SESSION['user_name'] ?? '') ?>;
 const IS_ADMIN      = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const IS_STAFF      = <?= $_isStaff ? 'true' : 'false' ?>;
 const STAFF_BRANCH  = <?= $staffBranch ?? 'null' ?>;

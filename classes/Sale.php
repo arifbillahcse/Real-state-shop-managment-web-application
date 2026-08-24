@@ -42,7 +42,8 @@ class Sale extends BaseModel
         ?int   $branchId      = null,
         array  $charges       = [],
         string $discountNote  = '',
-        ?int   $approvedBy    = null
+        ?int   $approvedBy    = null,
+        array  $soldBy        = []
     ): int|string {
         if (empty($items)) return 'NO_ITEMS';
 
@@ -135,12 +136,14 @@ class Sale extends BaseModel
                  (invoice_number, customer_id, branch_id, sale_date, subtotal, discount,
                   unload_bill, labor_bill, transport_bill, delivery_charge, discount_note,
                   total_amount, paid_amount, due_amount, payment_method, note,
-                  created_by, approved_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  sold_by_name, sold_by_mobile, created_by, approved_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [$invoiceNo, $customerId, $branchId, $saleDate, $subtotal, $discount,
                  $unloadBill, $laborBill, $transportBill, $deliveryCharge,
                  trim($discountNote) ?: null,
                  $totalAmount, $paidAmount, $dueAmount, $paymentMethod, trim($note),
+                 trim($soldBy['name'] ?? '') ?: null,
+                 trim($soldBy['mobile'] ?? '') ?: null,
                  $userId, $approvedBy]
             );
 

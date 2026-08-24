@@ -356,6 +356,46 @@ async function runTransferSearch() {
 }
 
 // ── Receive (In / Return) ───────────────────────────────────────────────────
+let _incoming = [];
+
+// Filters the already-loaded list rather than re-querying: the receive page
+// shows one branch/date at a time, so everything needed is on the client.
+function incomingMatches(t, q) {
+    if (!q) return true;
+    return [t.customer_name, t.customer_mobile, t.driver_name, t.driver_mobile]
+        .some(v => String(v || '').toLowerCase().includes(q));
+}
+
+function renderIncoming() {
+    const tbody = document.getElementById('incomingBody');
+    const q = (document.getElementById('rcvSearch')?.value || '').trim().toLowerCase();
+    const rows = _incoming.filter(t => incomingMatches(t, q));
+    tbody.innerHTML = rows.length
+        ? rows.map(t => `
+            <tr>
+                <td>${t.transfer_date}</td>
+                <td>${esc(t.from_branch_name)}</td>
+                <td>${esc(t.customer_name)}
+                    ${t.customer_mobile ? `<div class="small text-muted">${esc(t.customer_mobile)}</div>` : ''}</td>
+                <td>${esc(t.product_name)}</td>
+                <td class="text-end">${parseFloat(t.quantity)} ${esc(t.unit)}</td>
+                <td class="small">${esc(t.driver_name || '—')}
+                    ${t.driver_mobile ? `<div class="text-muted">${esc(t.driver_mobile)}</div>` : ''}</td>
+                <td class="text-center text-nowrap">
+                    <button class="btn btn-sm btn-success me-1" onclick="receiveTransfer(${t.id}, 'in')">
+                        <i class="bi bi-box-arrow-in-down me-1"></i>ইন
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="receiveTransfer(${t.id}, 'return')">
+                        <i class="bi bi-arrow-return-left me-1"></i>রিটার্ন
+                    </button>
+                </td>
+            </tr>`).join('')
+        : `<tr><td colspan="7" class="text-center text-muted py-3">${
+             q ? 'এই সার্চে কিছু পাওয়া যায়নি' : 'কোনো ইনকামিং ট্রান্সফার নেই'}</td></tr>`;
+}
+
+document.getElementById('rcvSearch')?.addEventListener('input', renderIncoming);
+
 async function loadIncoming() {
     const branchId = document.getElementById('rcvBranch').value;
     const date     = document.getElementById('rcvDate').value;
@@ -364,30 +404,10 @@ async function loadIncoming() {
     try {
         const res  = await fetch(`${BASE_URL}/api/get_incoming_transfers.php?branch_id=${branchId}&date=${date}`);
         const data = await res.json();
-        const entries = (data.entries) || [];
-        document.getElementById('incomingCount').textContent = entries.length;
-        document.getElementById('incomingCount').classList.toggle('d-none', !entries.length);
-        tbody.innerHTML = entries.length
-            ? entries.map(t => `
-                <tr>
-                    <td>${t.transfer_date}</td>
-                    <td>${esc(t.from_branch_name)}</td>
-                    <td>${esc(t.customer_name)}
-                        ${t.customer_mobile ? `<div class="small text-muted">${esc(t.customer_mobile)}</div>` : ''}</td>
-                    <td>${esc(t.product_name)}</td>
-                    <td class="text-end">${parseFloat(t.quantity)} ${esc(t.unit)}</td>
-                    <td class="small">${esc(t.driver_name || '—')}
-                        ${t.driver_mobile ? `<div class="text-muted">${esc(t.driver_mobile)}</div>` : ''}</td>
-                    <td class="text-center text-nowrap">
-                        <button class="btn btn-sm btn-success me-1" onclick="receiveTransfer(${t.id}, 'in')">
-                            <i class="bi bi-box-arrow-in-down me-1"></i>ইন
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="receiveTransfer(${t.id}, 'return')">
-                            <i class="bi bi-arrow-return-left me-1"></i>রিটার্ন
-                        </button>
-                    </td>
-                </tr>`).join('')
-            : '<tr><td colspan="7" class="text-center text-muted py-3">কোনো ইনকামিং ট্রান্সফার নেই</td></tr>';
+        _incoming = (data.entries) || [];
+        document.getElementById('incomingCount').textContent = _incoming.length;
+        document.getElementById('incomingCount').classList.toggle('d-none', !_incoming.length);
+        renderIncoming();
     } catch {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
     }

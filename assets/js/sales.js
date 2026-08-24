@@ -338,6 +338,8 @@ function buildSalePayload() {
         labor_bill:     perItem ? 0 : (document.getElementById('saleLabor')?.value     || 0),
         transport_bill: perItem ? 0 : (document.getElementById('saleTransport')?.value || 0),
         delivery_charge: document.getElementById('saleDelivery')?.value || 0,
+        sold_by_name:   document.getElementById('soldByName')?.value || '',
+        sold_by_mobile: document.getElementById('soldByMobile')?.value || '',
         items:          JSON.stringify(items),
     };
 }
@@ -423,6 +425,12 @@ function shareInvoice(channel) {
         window.open(`https://wa.me/${target}?text=${text}`, '_blank');
     } else if (channel === 'sms') {
         window.open(`sms:${phone}?body=${text}`, '_self');
+    } else if (channel === 'imo') {
+        // Imo publishes no web share link the way WhatsApp does with wa.me, so
+        // hand the text to the device's own share sheet — Imo shows up there
+        // when it is installed. Where that is unavailable (most desktops),
+        // copy it instead so it can be pasted into Imo by hand.
+        shareViaDevice(lines.join('\n'));
     }
 }
 
@@ -436,6 +444,9 @@ function resetSaleForm() {
     productOptsHtml = buildProductOpts(PRODUCTS);
     checkEmptyState();
     calcGrandTotal();
+    // Whoever is logged in served this sale by default; still editable.
+    const sb = document.getElementById('soldByName');
+    if (sb && !sb.value && typeof CURRENT_USER_NAME === 'string') sb.value = CURRENT_USER_NAME;
     addItemRow(); // start with one empty row
 }
 
@@ -741,6 +752,11 @@ function buildInvoiceHTML(res, forPrint = false) {
             </table>
         </div>
 
+        ${s.sold_by_name ? `
+        <div style="margin:0 32px 10px;font-size:13px;color:#555">
+            <strong>বিক্রয়কারী:</strong> ${esc(s.sold_by_name)}${s.sold_by_mobile ? ' — ' + esc(s.sold_by_mobile) : ''}
+        </div>` : ''}
+
         ${s.note ? `
         <div style="margin:0 32px 16px;padding:10px 14px;background:#fffbf0;border-left:3px solid #f39c12;border-radius:0 6px 6px 0;font-size:13px;color:#7f6a00">
             <strong>নোট:</strong> ${esc(s.note)}
@@ -948,3 +964,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // History tab is always default — load on page load
     loadSalesHistory();
 });
+
+
+// Share arbitrary text through the device share sheet, falling back to the
+// clipboard. Used for apps that offer no web share URL (Imo).
+async function shareViaDevice(text, title) {
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: title || 'ইনভয়েস', text });
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;   // user closed the sheet
+        }
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('টেক্সট কপি হয়েছে — Imo খুলে পেস্ট করুন।', 'info');
+    } catch {
+        showToast('শেয়ার করা যায়নি। ইনভয়েসটি প্রিন্ট করে পাঠান।', 'warning');
+    }
+}
