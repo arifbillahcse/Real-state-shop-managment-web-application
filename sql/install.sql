@@ -266,6 +266,9 @@ CREATE TABLE IF NOT EXISTS sales (
     id               INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
     invoice_number   VARCHAR(30)   NOT NULL UNIQUE,
     customer_id      INT UNSIGNED  DEFAULT NULL,
+    walkin_name      VARCHAR(150)  NULL DEFAULT NULL COMMENT 'cash sale with no account: buyer name as printed',
+    walkin_mobile    VARCHAR(20)   NULL DEFAULT NULL,
+    walkin_address   VARCHAR(500)  NULL DEFAULT NULL,
     branch_id        INT UNSIGNED  DEFAULT NULL,
     sale_date        DATE          NOT NULL,
     subtotal         DECIMAL(14,2) NOT NULL DEFAULT 0.00,
@@ -279,6 +282,7 @@ CREATE TABLE IF NOT EXISTS sales (
     paid_amount      DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     due_amount       DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     previous_due     DECIMAL(14,2) NULL DEFAULT NULL COMMENT 'balance shown on the memo; not part of this sale',
+    ledger_id        INT UNSIGNED  NULL DEFAULT NULL COMMENT 'memo pushed to the customer khata; that entry owns the due',
     payment_method   ENUM('cash','credit','cheque','mobile_banking') NOT NULL DEFAULT 'cash',
     status           ENUM('completed','cancelled') NOT NULL DEFAULT 'completed',
     note             TEXT          DEFAULT NULL,
@@ -723,7 +727,10 @@ LEFT   JOIN branch_products bp ON bp.branch_id = b.id AND bp.product_id = p.id
 WHERE  p.is_active = 1
   AND  b.is_active = 1;
 
--- Customer outstanding dues (invoice-based)
+-- Customer outstanding dues (invoice-based).
+-- Memos pushed into the khata (ledger_id set) are excluded: their receivable
+-- is owned by the ledger entry, and counting it here too would show the
+-- customer owing the same money twice.
 CREATE OR REPLACE VIEW vw_customer_dues AS
 SELECT
     c.id   AS customer_id,
@@ -734,6 +741,7 @@ SELECT
     COALESCE(SUM(s.paid_amount),  0) AS total_paid
 FROM   customers c
 LEFT JOIN sales s ON s.customer_id = c.id AND s.status = 'completed'
+                 AND s.ledger_id IS NULL
 GROUP BY c.id;
 
 -- Customer ledger (khata) running balance — final entries only
@@ -778,4 +786,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (17, 'low_stock_alerts'),
     (18, 'assistant_manager'),
     (19, 'sale_salesperson'),
-    (20, 'sale_previous_due');
+    (20, 'sale_previous_due'),
+    (21, 'sale_walkin_and_ledger');

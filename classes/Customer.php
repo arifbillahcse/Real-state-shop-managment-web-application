@@ -84,6 +84,35 @@ class Customer extends BaseModel
      * sales. The result reads as "my branch's customers" while the
      * underlying customer data stays shared and intact.
      */
+    /**
+     * SQL for the khata half of what a customer owes.
+     *
+     * A receivable lives in one of two places: an invoice that was never moved
+     * into the customer's khata, or the khata itself once a memo was pushed
+     * there. Neither alone is "the due", so both are summed wherever an
+     * outstanding figure is shown. Clamped at zero because a customer sitting
+     * on an advance should not have that advance quietly cancel out unrelated
+     * invoices.
+     */
+    private const LEDGER_DUE_SQL = '
+        GREATEST(COALESCE((SELECT SUM(l.debit) - SUM(l.credit)
+                           FROM customer_ledger l
+                           WHERE l.customer_id = c.id AND l.status = "final"), 0), 0)';
+
+    /** What this customer owes in total — unmoved invoices plus khata balance. */
+    public static function outstanding(int $customerId): float
+    {
+        $row = Database::fetchOne(
+            'SELECT COALESCE((SELECT SUM(s.due_amount) FROM sales s
+                              WHERE s.customer_id = c.id AND s.status = "completed"
+                                AND s.ledger_id IS NULL), 0)
+                    + ' . self::LEDGER_DUE_SQL . ' AS due
+             FROM customers c WHERE c.id = ? LIMIT 1',
+            [$customerId]
+        );
+        return (float)($row['due'] ?? 0);
+    }
+
     public static function getCustomers(): array
     {
         $branchId = lockedBranchId();
@@ -91,11 +120,12 @@ class Customer extends BaseModel
         if ($branchId !== null) {
             return Database::fetchAll(
                 'SELECT c.*,
-                        COALESCE(SUM(s.due_amount), 0)   AS total_due,
+                        COALESCE(SUM(s.due_amount), 0) + ' . self::LEDGER_DUE_SQL . ' AS total_due,
                         COALESCE(SUM(s.total_amount), 0) AS total_purchase
                  FROM customers c
                  JOIN sales s ON s.customer_id = c.id
                               AND s.status = "completed" AND s.branch_id = ?
+                              AND s.ledger_id IS NULL
                  WHERE c.is_active = 1
                  GROUP BY c.id
                  ORDER BY c.name',
@@ -104,7 +134,8 @@ class Customer extends BaseModel
         }
 
         return Database::fetchAll(
-            'SELECT c.*, COALESCE(d.total_due, 0) AS total_due,
+            'SELECT c.*,
+                    COALESCE(d.total_due, 0) + ' . self::LEDGER_DUE_SQL . ' AS total_due,
                     COALESCE(d.total_purchase, 0) AS total_purchase
              FROM customers c
              LEFT JOIN vw_customer_dues d ON d.customer_id = c.id

@@ -21,7 +21,7 @@ $totalPay     = Database::fetchOne('SELECT COUNT(*) AS c FROM payments')['c'] ??
 
 $salesAmount  = (float)(Database::fetchOne('SELECT COALESCE(SUM(total_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
 $paidAmount   = (float)(Database::fetchOne('SELECT COALESCE(SUM(paid_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
-$dueAmount    = (float)(Database::fetchOne('SELECT COALESCE(SUM(due_amount),0) AS t FROM sales WHERE status="completed"')['t'] ?? 0);
+$dueAmount    = (float)(Database::fetchOne('SELECT COALESCE(SUM(due_amount),0) AS t FROM sales WHERE status="completed" AND ledger_id IS NULL')['t'] ?? 0);
 
 try {
     $stockValue = (float)(Database::fetchOne('SELECT COALESCE(SUM(current_stock * buy_price),0) AS t FROM vw_current_stock')['t'] ?? 0);

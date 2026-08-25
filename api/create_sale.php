@@ -51,28 +51,48 @@ $soldBy = [
     'mobile' => $_POST['sold_by_mobile'] ?? '',
 ];
 
-// Previous balance to print on the memo. Taken from the ledger here rather
-// than trusted from the browser, and deliberately NOT added to the sale's own
-// total — the old invoices already carry it.
+// Buyer details for a cash sale with no account behind it (§৭). Sale::createSale
+// drops these when a real customer is attached, so a stale value left in the
+// form cannot end up printed over an account's own name.
+$walkIn = [
+    'name'    => $_POST['walkin_name']    ?? '',
+    'mobile'  => $_POST['walkin_mobile']  ?? '',
+    'address' => $_POST['walkin_address'] ?? '',
+];
+
+// Previous balance to print on the memo — computed here rather than trusted
+// from the browser, and deliberately NOT added to the sale's own total: the
+// records it comes from already carry it. It has to look in both places a
+// receivable can live — invoices not yet moved into the khata, plus the khata
+// balance itself — or a customer whose memos were pushed to their account
+// would print as owing nothing.
 $previousDue = null;
 if (!empty($_POST['include_previous_due']) && $customerId) {
-    $row = Database::fetchOne(
-        'SELECT COALESCE(SUM(due_amount), 0) AS due
-         FROM sales WHERE customer_id = ? AND status = "completed"',
-        [$customerId]
-    );
-    $previousDue = (float)($row['due'] ?? 0);
+    require_once __DIR__ . '/../classes/Customer.php';
+    $previousDue = Customer::outstanding($customerId);
 }
 
 $result = Sale::createSale(
     $customerId, $items, $discount, $paidAmount, $paymentMethod,
     $saleDate, $note, $branchId, $charges, $discountNote, $approvedBy, $soldBy,
-    $previousDue
+    $previousDue, $walkIn
 );
 
 if (is_int($result)) {
     $sale = Sale::getSaleById($result);
-    jsonResponse(true, 'বিক্রয় সফলভাবে সম্পন্ন হয়েছে।', [
+
+    // "চাইলে মেমোটি তার মূল একাউন্টের লেজারে যুক্ত করা যাবে" — opt-in, and only
+    // meaningful for a memo that belongs to an account. A failure here must not
+    // read as a failed sale: the sale is already saved and printable.
+    $ledgerNote = '';
+    if (!empty($_POST['add_to_ledger']) && $customerId) {
+        $pushed = Sale::pushToLedger($result, getUserId());
+        $ledgerNote = is_int($pushed)
+            ? ' মেমোটি কাস্টমারের খাতায় যুক্ত হয়েছে।'
+            : ' তবে খাতায় যুক্ত করা যায়নি: ' . Sale::errorMessage($pushed);
+    }
+
+    jsonResponse(true, 'বিক্রয় সফলভাবে সম্পন্ন হয়েছে।' . $ledgerNote, [
         'sale_id'        => $result,
         'invoice_number' => $sale['invoice_number'] ?? '',
     ]);

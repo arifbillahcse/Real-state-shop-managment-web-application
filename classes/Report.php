@@ -200,6 +200,7 @@ class Report extends BaseModel
                  FROM customers c
                  JOIN sales s ON s.customer_id = c.id
                               AND s.status = 'completed' AND s.branch_id = ?
+                              AND s.ledger_id IS NULL
                  GROUP BY c.id
                  HAVING total_due > 0
                  ORDER BY total_due DESC",

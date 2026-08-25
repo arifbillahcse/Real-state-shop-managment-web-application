@@ -312,7 +312,26 @@ function updatePreviousDue(newDue) {
     return on;
 }
 
-document.getElementById('saleCustomerId')?.addEventListener('change', () => calcGrandTotal());
+// The two blocks are mutually exclusive: typed buyer details only mean
+// something without an account, and only an account has a khata to push to.
+function applyCustomerMode() {
+    const hasCustomer = !!document.getElementById('saleCustomerId')?.value;
+    document.getElementById('walkInWrap')?.classList.toggle('d-none', hasCustomer);
+    document.getElementById('addToLedgerWrap')?.classList.toggle('d-none', !hasCustomer);
+    if (hasCustomer) {
+        ['walkinName', 'walkinMobile', 'walkinAddress']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    } else {
+        const chk = document.getElementById('addToLedger');
+        if (chk) chk.checked = false;
+    }
+}
+
+document.getElementById('saleCustomerId')?.addEventListener('change', () => {
+    applyCustomerMode();
+    calcGrandTotal();
+});
+applyCustomerMode();
 document.getElementById('discTaka')?.addEventListener('change', () => calcGrandTotal());
 document.getElementById('discPercent')?.addEventListener('change', () => calcGrandTotal());
 
@@ -360,8 +379,12 @@ function buildSalePayload() {
         transport_bill: perItem ? 0 : (document.getElementById('saleTransport')?.value || 0),
         delivery_charge: document.getElementById('saleDelivery')?.value || 0,
         include_previous_due: document.getElementById('includePrevDue')?.checked ? 1 : '',
+        add_to_ledger:  document.getElementById('addToLedger')?.checked ? 1 : '',
         sold_by_name:   document.getElementById('soldByName')?.value || '',
         sold_by_mobile: document.getElementById('soldByMobile')?.value || '',
+        walkin_name:    document.getElementById('walkinName')?.value || '',
+        walkin_mobile:  document.getElementById('walkinMobile')?.value || '',
+        walkin_address: document.getElementById('walkinAddress')?.value || '',
         items:          JSON.stringify(items),
     };
 }
@@ -465,6 +488,7 @@ function resetSaleForm() {
     // Reset product opts to global stock after form reset
     productOptsHtml = buildProductOpts(PRODUCTS);
     checkEmptyState();
+    applyCustomerMode();
     calcGrandTotal();
     // Whoever is logged in served this sale by default; still editable.
     const sb = document.getElementById('soldByName');
@@ -525,6 +549,9 @@ function renderSalesPage(page) {
 
     tbody.innerHTML = pageData.map(s => {
         const cancelled = s.status === 'cancelled';
+        // Once the khata owns this memo, Sale.php refuses to edit or cancel it
+        // — so the buttons come off rather than failing when clicked.
+        const inKhata = s.ledger_id !== null && s.ledger_id !== undefined;
         const branchCell = HAS_BRANCHES
             ? `<td>${s.branch_name ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(s.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
             : '';
@@ -546,13 +573,14 @@ function renderSalesPage(page) {
                 <span class="badge bg-${cancelled ? 'secondary' : 'success'}">
                     ${cancelled ? 'বাতিল' : 'সম্পন্ন'}
                 </span>
+                ${inKhata ? '<div class="badge bg-info text-dark mt-1">খাতায় যুক্ত</div>' : ''}
             </td>
             <td class="text-center text-nowrap">
                 <button class="btn btn-sm btn-outline-info me-1"
                         onclick="showInvoice(${s.id})" title="ইনভয়েস দেখুন">
                     <i class="bi bi-file-text"></i>
                 </button>
-                ${IS_ADMIN && !IS_STAFF && !cancelled ? `
+                ${IS_ADMIN && !IS_STAFF && !cancelled && !inKhata ? `
                 <button class="btn btn-sm btn-outline-warning me-1"
                         onclick="openEditSale(${s.id})"
                         title="সম্পাদনা করুন">

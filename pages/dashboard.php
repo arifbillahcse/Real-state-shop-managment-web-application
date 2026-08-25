@@ -29,7 +29,7 @@ if (!$_isStaff) {
     );
     $totalDue = Database::fetchOne(
         "SELECT COALESCE(SUM(due_amount),0) AS total
-         FROM sales WHERE status = 'completed'"
+         FROM sales WHERE status = 'completed' AND ledger_id IS NULL"
     );
 }
 

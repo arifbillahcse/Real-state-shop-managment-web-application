@@ -88,6 +88,39 @@ include __DIR__ . '/../includes/sidebar.php';
             <label class="form-label fw-semibold">কর্মচারীর মোবাইল</label>
             <input type="text" class="form-control" id="soldByMobile" name="sold_by_mobile" maxlength="20">
           </div>
+
+          <!-- Buyer details for a sale with no account behind it. Hidden the
+               moment an account is chosen, because that account's own name,
+               number and address are what the memo then prints. -->
+          <div class="col-12 d-none" id="walkInWrap">
+            <div class="card bg-light border">
+              <div class="card-body py-2">
+                <div class="row g-2 align-items-end">
+                  <div class="col-12">
+                    <span class="small text-muted">
+                      <i class="bi bi-person-lines-fill me-1"></i>ক্রেতার তথ্য (একাউন্ট ছাড়া বিক্রয়) —
+                      মেমোতে ছাপা হবে
+                    </span>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold mb-1">কাস্টমারের নাম</label>
+                    <input type="text" class="form-control form-control-sm" id="walkinName"
+                           name="walkin_name" maxlength="150" placeholder="যেমন: আশিকুর রহমান">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-semibold mb-1">মোবাইল নাম্বার</label>
+                    <input type="text" class="form-control form-control-sm" id="walkinMobile"
+                           name="walkin_mobile" maxlength="20">
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label small fw-semibold mb-1">ঠিকানা</label>
+                    <input type="text" class="form-control form-control-sm" id="walkinAddress"
+                           name="walkin_address" maxlength="500">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Items card -->
@@ -229,6 +262,16 @@ include __DIR__ . '/../includes/sidebar.php';
                 পূর্বের বাকি এই মেমোতে দেখান
                 <span class="text-muted d-block" style="font-size:.8em">
                   শুধু মেমোতে দেখাবে — পুরনো বিলের হিসাব দুবার যোগ হবে না।
+                </span>
+              </label>
+            </div>
+            <!-- §৭: "চাইলে মেমোটি তার মূল একাউন্টের লেজারে যুক্ত করা যাবে" -->
+            <div class="form-check mb-2 d-none" id="addToLedgerWrap">
+              <input class="form-check-input" type="checkbox" id="addToLedger">
+              <label class="form-check-label small" for="addToLedger">
+                মেমোটি কাস্টমারের খাতায় যুক্ত করুন
+                <span class="text-muted d-block" style="font-size:.8em">
+                  খাতায় গেলে বাকিটা সেখান থেকেই হিসাব হবে, আর মেমোটি পরে এডিট/বাতিল করা যাবে না।
                 </span>
               </label>
             </div>

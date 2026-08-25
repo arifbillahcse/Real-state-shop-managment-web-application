@@ -30,6 +30,10 @@ class Sale extends BaseModel
      * Total = subtotal + item charges + combined charges + delivery − discount.
      * Over-limit credit sales require $approvedBy (manager id) — the API layer
      * verifies manager credentials before passing it.
+     *
+     * $walkIn: ['name'=>, 'mobile'=>, 'address'=>] for a cash sale with no
+     * account behind it (§৭). Stored only when $customerId is null — a sale
+     * tied to a real account always prints that account's own details.
      */
     public static function createSale(
         ?int   $customerId,
@@ -44,7 +48,8 @@ class Sale extends BaseModel
         string $discountNote  = '',
         ?int   $approvedBy    = null,
         array  $soldBy        = [],
-        ?float $previousDue   = null
+        ?float $previousDue   = null,
+        array  $walkIn        = []
     ): int|string {
         if (empty($items)) return 'NO_ITEMS';
 
@@ -115,11 +120,21 @@ class Sale extends BaseModel
         // Credit-limit gate: only for named customers with a limit set.
         // Manager approval (approved_by) bypasses the block and is recorded.
         if ($dueAmount > 0 && $customer && (float)($customer['due_limit'] ?? 0) > 0) {
+            // Memos moved into the khata are counted by the ledger balance
+            // below, not here, so they are not charged against the limit twice.
             $currentDue = Database::fetchOne(
                 'SELECT COALESCE(SUM(due_amount),0) AS due
-                 FROM sales WHERE customer_id = ? AND status = "completed"',
+                 FROM sales
+                 WHERE customer_id = ? AND status = "completed" AND ledger_id IS NULL',
                 [$customerId]
             );
+            $ledgerDue = Database::fetchOne(
+                'SELECT COALESCE(SUM(debit),0) - COALESCE(SUM(credit),0) AS bal
+                 FROM customer_ledger WHERE customer_id = ? AND status = "final"',
+                [$customerId]
+            );
+            $currentDue['due'] = (float)($currentDue['due'] ?? 0)
+                               + max(0, (float)($ledgerDue['bal'] ?? 0));
             $projected = (float)($currentDue['due'] ?? 0) + $dueAmount;
             if ($projected > (float)$customer['due_limit'] && $approvedBy === null) {
                 return 'LIMIT_EXCEEDED:' . $customer['due_limit'] . ':' . ($currentDue['due'] ?? 0);
@@ -130,16 +145,24 @@ class Sale extends BaseModel
         $invoiceNo = self::generateInvoiceNumber();
         $userId    = $_SESSION['user_id'] ?? null;
 
+        // Buyer details typed on the memo only mean something when no account
+        // is attached; otherwise the account is the source of truth.
+        $walkInName    = $customerId === null ? (trim($walkIn['name']    ?? '') ?: null) : null;
+        $walkInMobile  = $customerId === null ? (trim($walkIn['mobile']  ?? '') ?: null) : null;
+        $walkInAddress = $customerId === null ? (trim($walkIn['address'] ?? '') ?: null) : null;
+
         Database::beginTransaction();
         try {
             $saleId = Database::insert(
                 'INSERT INTO sales
-                 (invoice_number, customer_id, branch_id, sale_date, subtotal, discount,
+                 (invoice_number, customer_id, walkin_name, walkin_mobile, walkin_address,
+                  branch_id, sale_date, subtotal, discount,
                   unload_bill, labor_bill, transport_bill, delivery_charge, discount_note,
                   total_amount, paid_amount, due_amount, payment_method, note,
                   sold_by_name, sold_by_mobile, previous_due, created_by, approved_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$invoiceNo, $customerId, $branchId, $saleDate, $subtotal, $discount,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$invoiceNo, $customerId, $walkInName, $walkInMobile, $walkInAddress,
+                 $branchId, $saleDate, $subtotal, $discount,
                  $unloadBill, $laborBill, $transportBill, $deliveryCharge,
                  trim($discountNote) ?: null,
                  $totalAmount, $paidAmount, $dueAmount, $paymentMethod, trim($note),
@@ -169,9 +192,110 @@ class Sale extends BaseModel
         return (int)$saleId;
     }
 
+    /**
+     * "চাইলে মেমোটি তার মূল একাউন্টের লেজারে যুক্ত করা যাবে" (§৭).
+     *
+     * Copies the memo into the customer's khata as a goods entry, plus a
+     * deposit entry for whatever was paid at the counter — so the khata's
+     * running balance moves by exactly this memo's due, no more.
+     *
+     * The invoice row itself is left untouched so it still reprints, but it
+     * records ledger_id from here on. Every query that sums outstanding money
+     * out of `sales` skips rows with a ledger_id: once the khata owns the
+     * receivable, counting it on the invoice side as well would show the
+     * customer owing the same taka twice.
+     *
+     * Idempotent by construction — a memo already carrying a ledger_id is
+     * refused rather than copied again.
+     */
+    public static function pushToLedger(int $saleId, ?int $userId = null): int|string
+    {
+        $sale = Database::fetchOne('SELECT * FROM sales WHERE id = ? LIMIT 1', [$saleId]);
+        if (!$sale)                              return 'NOT_FOUND';
+        if ($sale['ledger_id'] !== null)         return 'ALREADY_IN_LEDGER';
+        if ($sale['status'] !== 'completed')     return 'NOT_COMPLETED';
+        if (empty($sale['customer_id']))         return 'NO_CUSTOMER';
+
+        $customerId = (int)$sale['customer_id'];
+        if (!Customer::getCustomerById($customerId)) return 'CUSTOMER_NOT_FOUND';
+
+        $items = Database::fetchAll(
+            'SELECT si.*, p.name AS product_name, p.unit
+             FROM sale_items si
+             JOIN products p ON p.id = si.product_id
+             WHERE si.sale_id = ? ORDER BY si.id',
+            [$saleId]
+        );
+
+        // The khata reads as a story, so say what the number is made of —
+        // discount and delivery have no column of their own on a ledger row.
+        $noteParts = ['বিক্রয় মেমো ' . $sale['invoice_number']];
+        if ((float)$sale['discount'] > 0) {
+            $noteParts[] = 'ডিসকাউন্ট ' . number_format((float)$sale['discount'], 2) . ' ৳';
+        }
+        if ((float)$sale['delivery_charge'] > 0) {
+            $noteParts[] = 'ডেলিভারি চার্জ ' . number_format((float)$sale['delivery_charge'], 2) . ' ৳';
+        }
+        if (!empty($sale['note'])) $noteParts[] = trim($sale['note']);
+
+        $userId ??= $_SESSION['user_id'] ?? null;
+        $paid     = (float)$sale['paid_amount'];
+
+        Database::beginTransaction();
+        try {
+            $ledgerId = (int)Database::insert(
+                'INSERT INTO customer_ledger
+                    (customer_id, entry_type, entry_date, debit, credit,
+                     unload_bill, labor_bill, transport_bill, note, status,
+                     ref_table, ref_id, created_by)
+                 VALUES (?, "goods", ?, ?, 0, ?, ?, ?, ?, "final", "sales", ?, ?)',
+                [$customerId, $sale['sale_date'], (float)$sale['total_amount'],
+                 (float)$sale['unload_bill'], (float)$sale['labor_bill'],
+                 (float)$sale['transport_bill'],
+                 implode(' — ', $noteParts), $saleId, $userId]
+            );
+
+            foreach ($items as $it) {
+                Database::insert(
+                    'INSERT INTO customer_ledger_items
+                        (ledger_id, product_id, product_name, quantity, unit, unit_price,
+                         line_total, unload_bill, labor_bill, transport_bill)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [$ledgerId, (int)$it['product_id'], $it['product_name'],
+                     (float)$it['quantity'], $it['unit'], (float)$it['unit_price'],
+                     (float)$it['total_price'], (float)$it['unload_bill'],
+                     (float)$it['labor_bill'], (float)$it['transport_bill']]
+                );
+            }
+
+            // Money handed over with the memo, so the khata nets out to the due.
+            if ($paid > 0) {
+                Database::insert(
+                    'INSERT INTO customer_ledger
+                        (customer_id, entry_type, entry_date, debit, credit, note, status,
+                         ref_table, ref_id, created_by)
+                     VALUES (?, "deposit", ?, 0, ?, ?, "final", "sales", ?, ?)',
+                    [$customerId, $sale['sale_date'], $paid,
+                     'মেমো ' . $sale['invoice_number'] . ' এর সাথে পরিশোধ', $saleId, $userId]
+                );
+            }
+
+            Database::execute('UPDATE sales SET ledger_id = ? WHERE id = ?', [$ledgerId, $saleId]);
+            Database::commit();
+        } catch (Throwable $e) {
+            Database::rollback();
+            error_log('Sale pushToLedger failed: ' . $e->getMessage());
+            return 'DB_ERROR';
+        }
+
+        self::log('sale_to_ledger', 'sales', $saleId,
+                  "Sale {$sale['invoice_number']} added to customer #$customerId khata (ledger #$ledgerId)");
+        return $ledgerId;
+    }
+
     public static function getSales(array $filters = []): array
     {
-        $sql    = 'SELECT s.*, COALESCE(c.name, \'Walk-in\') AS customer_name,
+        $sql    = 'SELECT s.*, COALESCE(c.name, s.walkin_name, \'Walk-in\') AS customer_name,
                           u.name AS created_by_name,
                           b.name AS branch_name,
                           (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS item_count
@@ -208,8 +332,9 @@ class Sale extends BaseModel
     public static function getSaleById(int $id): array|false
     {
         $sale = Database::fetchOne(
-            'SELECT s.*, COALESCE(c.name, \'Walk-in\') AS customer_name,
-                    c.phone AS customer_phone, c.address AS customer_address,
+            'SELECT s.*, COALESCE(c.name, s.walkin_name, \'Walk-in\') AS customer_name,
+                    COALESCE(c.phone, s.walkin_mobile)     AS customer_phone,
+                    COALESCE(c.address, s.walkin_address)  AS customer_address,
                     u.name AS created_by_name, b.name AS branch_name
              FROM sales s
              LEFT JOIN customers c ON c.id = s.customer_id
@@ -236,6 +361,9 @@ class Sale extends BaseModel
         $sale = Database::fetchOne('SELECT * FROM sales WHERE id = ? LIMIT 1', [$id]);
         if (!$sale)                          return 'NOT_FOUND';
         if ($sale['status'] === 'cancelled') return 'CANNOT_EDIT_CANCELLED';
+        // A khata entry is final by design; rewriting the memo underneath it
+        // would leave the two records disagreeing about what was sold.
+        if ($sale['ledger_id'] !== null)     return 'IN_LEDGER_LOCKED';
         if (empty($newItems))                return 'NO_ITEMS';
 
         // Old items keyed by product_id → quantity (to credit back when checking stock)
@@ -311,6 +439,7 @@ class Sale extends BaseModel
         );
         if (!$sale)                          return 'NOT_FOUND';
         if ($sale['status'] === 'cancelled') return 'ALREADY_CANCELLED';
+        if ($sale['ledger_id'] !== null)     return 'IN_LEDGER_LOCKED';
 
         Database::execute(
             'UPDATE sales SET status = ? WHERE id = ?', ['cancelled', $id]
@@ -333,6 +462,10 @@ class Sale extends BaseModel
         return [
             'NO_ITEMS'              => 'কমপক্ষে একটি পণ্য যোগ করুন।',
             'CANNOT_EDIT_CANCELLED' => 'বাতিল বিক্রয় সম্পাদনা করা যাবে না।',
+            'IN_LEDGER_LOCKED'      => 'এই মেমোটি কাস্টমারের খাতায় যুক্ত হয়েছে — সংশোধন খাতা থেকেই করতে হবে।',
+            'ALREADY_IN_LEDGER'     => 'এই মেমোটি আগেই খাতায় যুক্ত করা হয়েছে।',
+            'NOT_COMPLETED'         => 'শুধু সম্পন্ন বিক্রয় খাতায় যুক্ত করা যায়।',
+            'NO_CUSTOMER'           => 'খাতায় যুক্ত করতে হলে মেমোতে কাস্টমার একাউন্ট থাকতে হবে।',
             'NOT_FOUND'             => 'বিক্রয় রেকর্ড খুঁজে পাওয়া যায়নি।',
             'INVALID_ITEM'          => 'পণ্যের তথ্য সঠিক নয়।',
             'CUSTOMER_NOT_FOUND'    => 'কাস্টমার খুঁজে পাওয়া যায়নি।',

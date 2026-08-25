@@ -52,7 +52,8 @@ class Payment extends BaseModel
             $branchId  = lockedBranchId();
             $pending   = Database::fetchAll(
                 'SELECT id, paid_amount, due_amount, total_amount FROM sales
-                 WHERE customer_id = ? AND status = ? AND due_amount > 0' .
+                 WHERE customer_id = ? AND status = ? AND due_amount > 0
+                   AND ledger_id IS NULL' .
                  ($branchId !== null ? ' AND branch_id = ?' : '') . '
                  ORDER BY sale_date ASC, id ASC',
                 $branchId !== null ? [$customerId, 'completed', $branchId]
@@ -133,7 +134,8 @@ class Payment extends BaseModel
         return Database::fetchAll(
             'SELECT id, invoice_number, sale_date, total_amount, paid_amount, due_amount
              FROM sales
-             WHERE customer_id = ? AND status = ? AND due_amount > 0' .
+             WHERE customer_id = ? AND status = ? AND due_amount > 0
+               AND ledger_id IS NULL' .
              ($branchId !== null ? ' AND branch_id = ?' : '') . '
              ORDER BY sale_date ASC, id ASC',
             $branchId !== null ? [$customerId, 'completed', $branchId]
