@@ -7,6 +7,9 @@ requireLogin();
 
 $pageTitle    = 'বিক্রয়';
 $_isStaff     = isStaff();
+// §৭ নতুন ক্রেতা: creating the account mid-sale, rather than sending the
+// seller off to the customers page and back.
+$canWriteCustomers = canWriteBranchData();
 $staffBranch  = getSessionBranchId();
 
 $customers = Customer::getCustomers();
@@ -42,7 +45,15 @@ include __DIR__ . '/../includes/sidebar.php';
         <!-- Header row -->
         <div class="row g-3 mb-3">
           <div class="col-md-<?= !empty($branches) ? '4' : '5' ?>">
-            <label class="form-label fw-semibold">কাস্টমার</label>
+            <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+              <span>কাস্টমার</span>
+              <?php if ($canWriteCustomers): ?>
+              <button type="button" class="btn btn-sm btn-outline-primary py-0"
+                      onclick="openNewCustomerModal()">
+                <i class="bi bi-person-plus me-1"></i>নতুন ক্রেতা
+              </button>
+              <?php endif; ?>
+            </label>
             <select class="form-select" id="saleCustomerId" name="customer_id">
               <option value="">Walk-in Customer (নাম নেই)</option>
               <?php foreach ($customers as $c): ?>
@@ -162,6 +173,8 @@ include __DIR__ . '/../includes/sidebar.php';
           <div id="noItemsAlert" class="text-center text-muted py-3 d-none">
             উপরের বাটনে ক্লিক করে পণ্য যোগ করুন
           </div>
+          <!-- §৭: স্টকের বেশি পরিমাণ দিলে সতর্কতা -->
+          <div id="stockWarning" class="alert alert-danger py-2 small mb-0 mx-3 d-none"></div>
         </div>
 
         <!-- Combined charges (hidden in per-item mode) -->
@@ -417,6 +430,90 @@ include __DIR__ . '/../includes/sidebar.php';
         <?php endif; ?>
         <button type="button" class="btn btn-primary" onclick="printInvoice()">
           <i class="bi bi-printer me-1"></i>প্রিন্ট করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New buyer (§৭: নতুন ক্রেতা → ফুল / শর্ট একাউন্ট) -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>নতুন ক্রেতা</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="btn-group w-100 mb-3" role="group">
+          <input type="radio" class="btn-check" name="ncType" id="ncTypeFull" value="full" checked>
+          <label class="btn btn-outline-primary" for="ncTypeFull">
+            ফুল একাউন্ট
+          </label>
+          <input type="radio" class="btn-check" name="ncType" id="ncTypeShort" value="short">
+          <label class="btn btn-outline-primary" for="ncTypeShort">
+            শর্ট একাউন্ট
+          </label>
+        </div>
+
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">নাম <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="ncName" maxlength="150">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">মোবাইল নাম্বার <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="ncPhone" maxlength="20">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">ঠিকানা <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="ncAddress" maxlength="500">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">বই নাম্বার <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="ncBookNo" maxlength="20">
+            <small class="text-muted">একাউন্ট নাম্বার সিরিয়াল অনুযায়ী অটো হবে</small>
+          </div>
+
+          <!-- Full account carries the extra profile fields; a short account
+               is deliberately just the four above. -->
+          <div class="col-12 nc-full-only">
+            <hr class="my-2">
+          </div>
+          <div class="col-md-4 nc-full-only">
+            <label class="form-label small fw-semibold">WhatsApp নাম্বার</label>
+            <input type="text" class="form-control form-control-sm" id="ncWhatsapp" maxlength="20">
+          </div>
+          <div class="col-md-4 nc-full-only">
+            <label class="form-label small fw-semibold">Imo নাম্বার</label>
+            <input type="text" class="form-control form-control-sm" id="ncImo" maxlength="20">
+          </div>
+          <div class="col-md-4 nc-full-only">
+            <label class="form-label small fw-semibold">বাকির সীমা (৳)</label>
+            <input type="number" class="form-control form-control-sm" id="ncDueLimit"
+                   min="0" step="0.01" value="0">
+            <small class="text-muted">০ = সীমা নেই</small>
+          </div>
+          <div class="col-12 nc-full-only">
+            <div class="alert alert-info py-2 small mb-0">
+              <i class="bi bi-info-circle me-1"></i>ছবি ও রেফারেন্স পরে কাস্টমার একাউন্ট পেজ
+              থেকে যুক্ত করা যাবে।
+            </div>
+          </div>
+          <div class="col-12 nc-short-only d-none">
+            <div class="alert alert-warning py-2 small mb-0">
+              <i class="bi bi-info-circle me-1"></i>শর্ট একাউন্ট পরে যেকোনো সময় ফুল একাউন্টে
+              রূপান্তর করা যাবে।
+            </div>
+          </div>
+        </div>
+
+        <div id="ncError" class="alert alert-danger py-2 small mt-3 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="button" class="btn btn-primary" id="btnSaveNewCustomer" onclick="saveNewCustomer()">
+          <i class="bi bi-check-lg me-1"></i>তৈরি করে বিক্রয়ে যুক্ত করুন
         </button>
       </div>
     </div>

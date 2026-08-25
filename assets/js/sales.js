@@ -115,6 +115,7 @@ function addItemRow() {
                    min="0.01" step="0.01" placeholder="০" required
                    oninput="calcRow(${id})">
             <small class="text-muted unit-label"></small>
+            <small class="text-danger d-block stock-warn"></small>
         </td>
         <td>
             <input type="number" class="form-control form-control-sm price-input"
@@ -218,7 +219,62 @@ function calcRow(id) {
     calcGrandTotal();
 }
 
+// ---- Stock warning (§৭: "স্টকের বেশি পরিমাণ দিলে সতর্কতা দেখাবে") ----
+// Totalled per product, not per row: the same product listed twice draws from
+// one shelf, so two rows of 6 against a stock of 10 is over the limit even
+// though neither row is on its own.
+function stockShortfalls() {
+    const wanted = new Map(); // product_id -> {name, unit, stock, qty, rows[]}
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+        const sel = tr.querySelector('.product-select');
+        const qty = parseFloat(tr.querySelector('.qty-input')?.value) || 0;
+        if (!sel?.value || qty <= 0) return;
+        const opt = sel.options[sel.selectedIndex];
+        const key = sel.value;
+        if (!wanted.has(key)) {
+            wanted.set(key, {
+                name:  (opt?.text || '').replace(/\s*\(স্টক:.*$/, '').trim(),
+                unit:  opt?.dataset.unit || '',
+                stock: parseFloat(opt?.dataset.stock ?? 0) || 0,
+                qty:   0,
+                rows:  [],
+            });
+        }
+        const e = wanted.get(key);
+        e.qty += qty;
+        e.rows.push(tr);
+    });
+    return [...wanted.values()].filter(e => e.qty > e.stock);
+}
+
+function applyStockWarnings() {
+    const short = stockShortfalls();
+    const bad   = new Set();
+    short.forEach(e => e.rows.forEach(tr => bad.add(tr)));
+
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+        const input = tr.querySelector('.qty-input');
+        const warn  = tr.querySelector('.stock-warn');
+        const over  = bad.has(tr);
+        input?.classList.toggle('is-invalid', over);
+        if (warn) warn.textContent = over ? 'স্টকের চেয়ে বেশি' : '';
+    });
+
+    const box = document.getElementById('stockWarning');
+    if (box) {
+        box.classList.toggle('d-none', short.length === 0);
+        box.innerHTML = short.length === 0 ? '' :
+            '<i class="bi bi-exclamation-triangle me-1"></i>' +
+            '<strong>স্টকের চেয়ে বেশি পরিমাণ দেওয়া হয়েছে:</strong><ul class="mb-0 mt-1 ps-3">' +
+            short.map(e =>
+                `<li>${esc(e.name)} — চাওয়া হয়েছে ${e.qty} ${esc(e.unit)}, স্টকে আছে ${e.stock} ${esc(e.unit)}</li>`
+            ).join('') + '</ul>';
+    }
+    return short;
+}
+
 function calcGrandTotal() {
+    applyStockWarnings();
     let subtotal = 0;       // items only (qty × price)
     let itemCharges = 0;    // per-item charges
     document.querySelectorAll('#itemsBody tr').forEach(tr => {
@@ -428,7 +484,118 @@ function submitSale(e) {
         showToast('কমপক্ষে একটি পণ্য যোগ করুন', 'danger');
         return;
     }
+    // Sale::createSale refuses this anyway; naming the product here beats a
+    // round trip that comes back saying only "পর্যাপ্ত স্টক নেই"।
+    const short = applyStockWarnings();
+    if (short.length) {
+        showToast(
+            `${short[0].name} — স্টকে আছে ${short[0].stock} ${short[0].unit}, ` +
+            `চাওয়া হয়েছে ${short[0].qty} ${short[0].unit}`, 'danger');
+        document.getElementById('stockWarning')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
     sendSale(data);
+}
+
+// ---- New buyer (§৭: নতুন ক্রেতা → ফুল / শর্ট একাউন্ট) ----
+let _newCustomerModal = null;
+
+function ncIsShort() {
+    return document.getElementById('ncTypeShort')?.checked === true;
+}
+
+function applyNcType() {
+    const short = ncIsShort();
+    document.querySelectorAll('.nc-full-only')
+        .forEach(el => el.classList.toggle('d-none', short));
+    document.querySelectorAll('.nc-short-only')
+        .forEach(el => el.classList.toggle('d-none', !short));
+}
+
+function openNewCustomerModal() {
+    ['ncName', 'ncPhone', 'ncAddress', 'ncBookNo', 'ncWhatsapp', 'ncImo']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const lim = document.getElementById('ncDueLimit');
+    if (lim) lim.value = 0;
+    const full = document.getElementById('ncTypeFull');
+    if (full) full.checked = true;
+    applyNcType();
+    document.getElementById('ncError')?.classList.add('d-none');
+    _newCustomerModal ??= new bootstrap.Modal(document.getElementById('newCustomerModal'));
+    _newCustomerModal.show();
+}
+
+document.getElementById('ncTypeFull')?.addEventListener('change', applyNcType);
+document.getElementById('ncTypeShort')?.addEventListener('change', applyNcType);
+
+function saveNewCustomer() {
+    const err = document.getElementById('ncError');
+    err.classList.add('d-none');
+
+    const name    = document.getElementById('ncName').value.trim();
+    const phone   = document.getElementById('ncPhone').value.trim();
+    const address = document.getElementById('ncAddress').value.trim();
+    const bookNo  = document.getElementById('ncBookNo').value.trim();
+
+    // §৫ marks all four বাধ্যতামূলক, for a short account as much as a full one.
+    const missing = [];
+    if (!name)    missing.push('নাম');
+    if (!phone)   missing.push('মোবাইল নাম্বার');
+    if (!address) missing.push('ঠিকানা');
+    if (!bookNo)  missing.push('বই নাম্বার');
+    if (missing.length) {
+        err.textContent = missing.join(', ') + ' দিন।';
+        err.classList.remove('d-none');
+        return;
+    }
+
+    const short = ncIsShort();
+    const btn = document.getElementById('btnSaveNewCustomer');
+    btn.disabled = true;
+    ajaxPost(`${BASE_URL}/api/add_customer.php`, {
+        name, phone, address,
+        book_no:      bookNo,
+        account_type: short ? 'short' : 'full',
+        whatsapp:     short ? '' : document.getElementById('ncWhatsapp').value.trim(),
+        imo:          short ? '' : document.getElementById('ncImo').value.trim(),
+        due_limit:    short ? 0  : (document.getElementById('ncDueLimit').value || 0),
+    }, res => {
+        btn.disabled = false;
+        if (!res.success) {
+            err.textContent = res.message;
+            err.classList.remove('d-none');
+            return;
+        }
+        addCustomerToSale(res.id, name, phone, short ? 0 : parseFloat(
+            document.getElementById('ncDueLimit').value || 0));
+        _newCustomerModal?.hide();
+        showToast(res.message + (res.account_no ? ' — একাউন্ট নং ' + res.account_no : ''), 'success');
+    });
+}
+
+// Put the fresh account into the dropdown and select it, so the sale carries
+// straight on. CUSTOMERS backs the due-limit and previous-balance hints, so
+// the new row goes in there too — with no dues, being brand new.
+function addCustomerToSale(id, name, phone, dueLimit) {
+    if (typeof CUSTOMERS !== 'undefined') {
+        CUSTOMERS.push({ id, name, phone, due_limit: dueLimit, total_due: 0 });
+    }
+    const sel = document.getElementById('saleCustomerId');
+    if (!sel) return;
+    const label = name + (phone ? ' — ' + phone : '');
+    if (sel.tomselect) {
+        sel.tomselect.addOption({ value: String(id), text: label });
+        sel.tomselect.refreshOptions(false);
+        sel.tomselect.setValue(String(id));
+    } else {
+        const opt = document.createElement('option');
+        opt.value = String(id);
+        opt.textContent = label;
+        sel.appendChild(opt);
+        sel.value = String(id);
+    }
+    applyCustomerMode();
+    calcGrandTotal();
 }
 
 function confirmApproval() {

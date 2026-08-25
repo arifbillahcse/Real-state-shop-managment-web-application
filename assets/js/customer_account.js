@@ -486,11 +486,21 @@ function saveProductReturn() {
         err.classList.remove('d-none');
         return;
     }
+    // The goods land on a real shelf, so the branch has to be named. The
+    // server enforces this too — a locked user's branch overrides whatever
+    // is sent from here.
+    const branchSel = document.getElementById('prBranch');
+    if (branchSel && !branchSel.value) {
+        err.textContent = 'পণ্য কোন ব্রাঞ্চের স্টকে ফেরত যাবে তা নির্বাচন করুন।';
+        err.classList.remove('d-none');
+        return;
+    }
     const btn = document.getElementById('btnSaveProductReturn');
     btn.disabled = true;
     ajaxPost(`${BASE_URL}/api/ledger_add_product_return.php`, {
         customer_id: CUSTOMER_ID,
         entry_date:  document.getElementById('prDate').value,
+        branch_id:   branchSel ? branchSel.value : '',
         items:       JSON.stringify(prItems),
         note:        document.getElementById('prNote').value,
     }, res => {

@@ -185,12 +185,32 @@ class Ledger extends BaseModel
     }
 
     // ── Product return (রিটার্ন পণ্য) — restocks + credits at chosen rate ────
+    /**
+     * $branchId: which branch physically takes the goods back.
+     *
+     * Required, because branch stock is counted by matching branch_id — an
+     * adjustment with no branch belongs to no branch's shelf, so the returned
+     * goods would show up in the global total while every branch still read
+     * as if nothing had come back.
+     */
     public static function addProductReturn(
-        int $customerId, string $date, array $items, string $note, ?int $userId
+        int $customerId, string $date, array $items, string $note, ?int $userId,
+        ?int $branchId = null
     ): int|string {
         if (!Customer::getCustomerById($customerId)) return 'NOT_FOUND';
         if (empty($items)) return 'ITEMS_REQUIRED';
         if ($date === '' || !strtotime($date)) return 'INVALID_DATE';
+
+        if ($branchId !== null) {
+            $br = Database::fetchOne(
+                'SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]
+            );
+            if (!$br) return 'INVALID_BRANCH';
+        } elseif (Database::fetchOne('SELECT id FROM branches WHERE is_active = 1 LIMIT 1')) {
+            // Single-branch installs have no branches row at all and are fine
+            // without one; once branches exist, the goods have to land in one.
+            return 'BRANCH_REQUIRED';
+        }
 
         $total = 0.0;
         $cleanItems = [];
@@ -225,13 +245,13 @@ class Ledger extends BaseModel
                     [$ledgerId, $ci['product_id'], $ci['product_name'], $ci['quantity'],
                      $ci['unit'], $ci['unit_price'], $ci['line_total']]
                 );
-                // Returned goods go back into main stock as an adjustment
+                // Returned goods go back on the shelf of the branch that took them
                 if ($ci['product_id']) {
                     Database::insert(
                         'INSERT INTO stock_adjustments
-                            (product_id, quantity, reason, note, created_by)
-                         VALUES (?, ?, "return", ?, ?)',
-                        [$ci['product_id'], $ci['quantity'],
+                            (product_id, branch_id, quantity, reason, note, created_by)
+                         VALUES (?, ?, ?, "return", ?, ?)',
+                        [$ci['product_id'], $branchId, $ci['quantity'],
                          "কাস্টমার #$customerId রিটার্ন (লেজার #$ledgerId)", $userId]
                     );
                 }
@@ -376,6 +396,8 @@ class Ledger extends BaseModel
             'INVALID_AMOUNT'  => 'টাকার পরিমাণ ০ এর বেশি হতে হবে।',
             'INVALID_DATE'    => 'সঠিক তারিখ দিন।',
             'NOTE_REQUIRED'   => 'বিবরণ লিখুন।',
+            'BRANCH_REQUIRED' => 'পণ্য কোন ব্রাঞ্চের স্টকে ফেরত যাবে তা নির্বাচন করুন।',
+            'INVALID_BRANCH'  => 'সঠিক ব্রাঞ্চ নির্বাচন করুন।',
             'NOT_DRAFT'       => 'শুধুমাত্র খসড়া মেমো পরিবর্তন/ডিলিট করা যায়।',
             'DB_ERROR'        => 'ডাটাবেজে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';

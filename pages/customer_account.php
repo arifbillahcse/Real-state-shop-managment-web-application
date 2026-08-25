@@ -4,6 +4,7 @@ require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Customer.php';
 require_once __DIR__ . '/../classes/Ledger.php';
 require_once __DIR__ . '/../classes/Product.php';
+require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 
 $customerId = (int)($_GET['id'] ?? 0);
@@ -17,6 +18,10 @@ $pageTitle = 'একাউন্ট — ' . $customer['name'];
 $products  = Product::getProducts();
 $canWrite  = canWriteBranchData();
 $balance   = Ledger::balance($customerId);
+// Returned goods have to go back on some branch's shelf. A locked user's
+// branch is decided for them server-side; everyone else picks.
+$branches     = Branch::getVisibleBranches();
+$lockedBranch = lockedBranchId();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -415,7 +420,27 @@ include __DIR__ . '/../includes/sidebar.php';
             <label class="form-label fw-semibold small">তারিখ</label>
             <input type="date" class="form-control form-control-sm" id="prDate" value="<?= today() ?>">
           </div>
+          <?php if (!empty($branches)): ?>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">
+              কোন ব্রাঞ্চের স্টকে ফেরত যাবে <span class="text-danger">*</span>
+            </label>
+            <select class="form-select form-select-sm" id="prBranch"
+                    <?= $lockedBranch !== null ? 'disabled' : '' ?>>
+              <?php if ($lockedBranch === null): ?>
+              <option value="">— ব্রাঞ্চ নির্বাচন —</option>
+              <?php endif; ?>
+              <?php foreach ($branches as $b): ?>
+              <option value="<?= $b['id'] ?>" <?= $lockedBranch !== null ? 'selected' : '' ?>>
+                <?= e($b['name']) ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-md-4">
+          <?php else: ?>
           <div class="col-md-8">
+          <?php endif; ?>
             <label class="form-label fw-semibold small">নোট</label>
             <input type="text" class="form-control form-control-sm" id="prNote" maxlength="500">
           </div>
