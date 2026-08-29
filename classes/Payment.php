@@ -156,24 +156,32 @@ class Payment extends BaseModel
         // totals always agree with the rows shown above them.
         $branchId = lockedBranchId();
 
+        // A sale pushed into the customer's khata (ledger_id set) is excluded
+        // here — its goods debit and any paid-at-the-counter deposit are shown
+        // below as customer_ledger rows instead. Showing both the sales row
+        // and its ledger copy would count the same money twice.
         $sales = Database::fetchAll(
             'SELECT id, invoice_number, sale_date AS txn_date,
                     total_amount, paid_amount, due_amount, payment_method, status
              FROM sales
-             WHERE customer_id = ? AND status = ?' .
+             WHERE customer_id = ? AND status = ? AND ledger_id IS NULL' .
              ($branchId !== null ? ' AND branch_id = ?' : '') . '
              ORDER BY sale_date ASC, id ASC',
             $branchId !== null ? [$customerId, 'completed', $branchId]
                                : [$customerId, 'completed']
         );
 
+        // Same reasoning: a collection made against a since-pushed sale would
+        // otherwise show up twice — once here, once as the ledger's own
+        // deposit entry for that push.
         $payParams = [$customerId];
         $paySql    = 'SELECT p.id, p.payment_date AS txn_date, p.amount,
                              p.payment_method, p.reference_no, p.note,
                              s.invoice_number AS linked_invoice
                       FROM payments p
                       LEFT JOIN sales s ON s.id = p.sale_id
-                      WHERE p.customer_id = ?';
+                      WHERE p.customer_id = ?
+                        AND (p.sale_id IS NULL OR s.ledger_id IS NULL)';
         if ($branchId !== null) {
             $paySql .= ' AND (s.branch_id = ? OR p.sale_id IS NULL)';
             $payParams[] = $branchId;
@@ -181,22 +189,46 @@ class Payment extends BaseModel
         $paySql .= ' ORDER BY p.payment_date ASC, p.id ASC';
         $payments = Database::fetchAll($paySql, $payParams);
 
-        if ($branchId !== null) {
-            $summary = [
-                'total_purchase' => array_sum(array_column($sales, 'total_amount')),
-                'total_paid'     => array_sum(array_column($sales, 'paid_amount')),
-                'total_due'      => array_sum(array_column($sales, 'due_amount')),
-            ];
-        } else {
-            // Summary from the view
-            $summary = Database::fetchOne(
-                'SELECT total_purchase, total_paid, total_due
-                 FROM vw_customer_dues WHERE customer_id = ?',
-                [$customerId]
-            );
-        }
+        // মালামাল এন্ট্রি, টাকা জমা, টাকা ফেরত, রিটার্ন পণ্য, অন্যান্য খরচ — everything
+        // recorded straight into the khata (customer_account.php), plus the
+        // goods+deposit pair a pushed sale left behind. No branch column on
+        // this table, so it isn't scoped by branch — same as the account page.
+        $ledger = Database::fetchAll(
+            'SELECT id, entry_type, entry_date AS txn_date, debit, credit, note
+             FROM customer_ledger
+             WHERE customer_id = ? AND status = "final"
+             ORDER BY entry_date ASC, id ASC',
+            [$customerId]
+        );
 
-        return compact('customer', 'sales', 'payments', 'summary');
+        // customer_ledger carries no branch column, so its balance is never
+        // branch-scoped anywhere in the app (customer_account.php doesn't
+        // scope it either) — it's added in full regardless of $branchId.
+        // Clamped at zero for the same reason Customer::outstanding() clamps
+        // it: an advance sitting in the khata should not cancel out unrelated
+        // invoice dues from a different branch.
+        $ledgerBalance = array_sum(array_column($ledger, 'debit'))
+                       - array_sum(array_column($ledger, 'credit'));
+
+        $summary = [
+            'total_purchase' => array_sum(array_column($sales, 'total_amount'))
+                              + array_sum(array_column(
+                                    array_filter($ledger, fn($l) => $l['entry_type'] === 'goods'),
+                                    'debit')),
+            'total_paid'     => array_sum(array_column($sales, 'paid_amount'))
+                              + array_sum(array_column($payments, 'amount'))
+                              + array_sum(array_column(
+                                    array_filter($ledger, fn($l) => $l['entry_type'] === 'deposit'),
+                                    'credit')),
+            // Branch-scoped sales due (the rows actually shown above) plus
+            // the ledger balance — same two-source shape as
+            // Customer::outstanding(), but honoring the branch lock rather
+            // than always going global.
+            'total_due'      => array_sum(array_column($sales, 'due_amount'))
+                              + max(0, $ledgerBalance),
+        ];
+
+        return compact('customer', 'sales', 'payments', 'ledger', 'summary');
     }
 
     public static function errorMessage(string $code): string

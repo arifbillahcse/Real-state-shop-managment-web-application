@@ -53,8 +53,20 @@ function loadLedger() {
         });
 }
 
+// Labels + which column (debit → বিক্রয়, credit → পরিশোধ) each khata entry
+// type reads into, matching customer_account.js's TYPE_LABELS.
+const LEDGER_TYPE_LABELS = {
+    goods:          ['মালামাল (খাতা)',   'primary'],
+    deposit:        ['টাকা জমা',         'success'],
+    money_return:   ['টাকা ফেরত',        'danger'],
+    product_return: ['রিটার্ন পণ্য',     'warning'],
+    expense:        ['অন্যান্য খরচ',     'secondary'],
+    due_transfer:   ['হিসাব ট্রান্সফার', 'info'],
+    opening:        ['পূর্বের জের',      'dark'],
+};
+
 function buildRows(data) {
-    const { sales, payments } = data;
+    const { sales, payments, ledger } = data;
     const allRows = [];
 
     (sales || []).forEach(s => {
@@ -78,6 +90,20 @@ function buildRows(data) {
         });
     });
 
+    // মালামাল এন্ট্রি, টাকা জমা, টাকা ফেরত, রিটার্ন পণ্য, অন্যান্য খরচ — everything
+    // recorded straight into the customer's khata (customer_account.php),
+    // which this legacy sales+payments view previously had no idea existed.
+    (ledger || []).forEach(l => {
+        allRows.push({
+            date:  l.txn_date,
+            type:  'ledger',
+            entryType: l.entry_type,
+            note:  l.note || '',
+            debit:  parseFloat(l.debit)  || 0,
+            credit: parseFloat(l.credit) || 0,
+        });
+    });
+
     allRows.sort((a, b) => a.date.localeCompare(b.date));
     return allRows;
 }
@@ -98,13 +124,23 @@ function renderLedger(data) {
                 <td class="text-end text-success">${fmt(r.paid)}</td>
                 <td class="text-end ${r.due > 0 ? 'text-danger fw-semibold' : 'text-success'}">${fmt(r.due)}</td>
             </tr>`;
-        } else {
+        } else if (r.type === 'payment') {
             return `<tr class="table-success">
                 <td>${r.date}</td>
                 <td><span class="badge bg-success">পেমেন্ট</span></td>
                 <td>${r.invoice ? `<span class="text-muted small">${esc(r.invoice)}</span>` : '<span class="text-muted small">সাধারণ</span>'}</td>
                 <td class="text-end text-muted">—</td>
                 <td class="text-end fw-semibold text-success">${fmt(r.amount)}</td>
+                <td class="text-end text-muted">—</td>
+            </tr>`;
+        } else {
+            const [label, color] = LEDGER_TYPE_LABELS[r.entryType] || [r.entryType, 'light'];
+            return `<tr>
+                <td>${r.date}</td>
+                <td><span class="badge bg-${color}">${esc(label)}</span></td>
+                <td>${r.note ? `<span class="text-muted small">${esc(r.note)}</span>` : '—'}</td>
+                <td class="text-end">${r.debit  > 0 ? fmt(r.debit)  : '—'}</td>
+                <td class="text-end text-success">${r.credit > 0 ? fmt(r.credit) : '—'}</td>
                 <td class="text-end text-muted">—</td>
             </tr>`;
         }
@@ -203,7 +239,7 @@ function printLedger() {
                 <td style="text-align:right">${fmt(r.paid)}</td>
                 <td style="text-align:right; ${r.due > 0 ? 'color:#c00;font-weight:600' : 'color:green'}">${fmt(r.due)}</td>
             </tr>`;
-        } else {
+        } else if (r.type === 'payment') {
             return `<tr style="background:#f0fff4">
                 <td style="text-align:center">${sl}</td>
                 <td>${r.date}</td>
@@ -211,6 +247,17 @@ function printLedger() {
                 <td>${r.invoice || 'সাধারণ'}</td>
                 <td style="text-align:right">—</td>
                 <td style="text-align:right;color:green;font-weight:600">${fmt(r.amount)}</td>
+                <td style="text-align:right">—</td>
+            </tr>`;
+        } else {
+            const [label] = LEDGER_TYPE_LABELS[r.entryType] || [r.entryType];
+            return `<tr>
+                <td style="text-align:center">${sl}</td>
+                <td>${r.date}</td>
+                <td><span class="badge-sale">${label}</span></td>
+                <td>${r.note || '—'}</td>
+                <td style="text-align:right">${r.debit  > 0 ? fmt(r.debit)  : '—'}</td>
+                <td style="text-align:right;${r.credit > 0 ? 'color:green;font-weight:600' : ''}">${r.credit > 0 ? fmt(r.credit) : '—'}</td>
                 <td style="text-align:right">—</td>
             </tr>`;
         }
