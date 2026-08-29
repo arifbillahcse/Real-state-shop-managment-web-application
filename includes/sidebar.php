@@ -21,7 +21,9 @@ $menuItems = [
     ['icon' => 'bi-arrow-left-right','label' => 'ট্রান্সফার',     'href' => 'transfers.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
     ['icon' => 'bi-bell',          'label' => 'স্টক সতর্কতা',    'href' => 'alert_center.php','admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
     ['icon' => 'bi-cart-check',    'label' => 'বিক্রয়',          'href' => 'sales.php',       'admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
-    ['icon' => 'bi-file-earmark-text','label' => 'কোটেশন',       'href' => 'quotations.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
+    // কোটেশন: hidden from the menu per request — page/feature untouched,
+    // may be needed again later (just remove 'hidden').
+    ['icon' => 'bi-file-earmark-text','label' => 'কোটেশন',       'href' => 'quotations.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false, 'hidden' => true],
     ['icon' => 'bi-people',        'label' => 'কাস্টমার',        'href' => 'customers.php',   'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
     ['icon' => 'bi-wallet2',       'label' => 'বাকি / পেমেন্ট', 'href' => 'payments.php',    'admin' => false, 'manager' => true,  'asst' => true,  'staff' => false],
     // কিস্তি: hidden from the menu per request — page/feature untouched,
