@@ -45,7 +45,7 @@ function check(string $label, bool $pass, array &$issues, int &$ok): void {
 }
 
 echo "======================================================================\n";
-echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v18)\n";
+echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v18, plus v22)\n";
 echo " Generated: " . date('Y-m-d H:i:s') . "\n";
 echo "======================================================================\n\n";
 
@@ -183,6 +183,34 @@ foreach (['vw_current_stock', 'vw_branch_stock', 'vw_customer_dues', 'vw_custome
 }
 echo "\n";
 
+// ── View LOGIC, not just existence (v22) ─────────────────────────────────────
+// Every column/table check above can pass while a view still runs a stale
+// definition underneath it — CREATE OR REPLACE VIEW only fires when a
+// migration file actually executes, and a database that reached its current
+// shape some other way (restored backup, hand-run SQL, a baselined
+// schema_migrations table) can be stuck on an old view body indefinitely.
+// vw_branch_stock in particular went through several shapes (v2 had no
+// stock_transfers term at all; v4/v6/v11 counted every status instead of
+// just sent/received) before v15 got it right — so check the actual SQL
+// text, not just that querying the view doesn't error.
+echo "-- View definitions (logic, not just existence) --\n";
+function viewDefinition(string $view): string {
+    $row = Database::fetchOne(
+        'SELECT VIEW_DEFINITION FROM information_schema.VIEWS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1',
+        [$view]
+    );
+    return (string)($row['VIEW_DEFINITION'] ?? '');
+}
+$branchStockDef = viewDefinition('vw_branch_stock');
+check(
+    "vw_branch_stock counts stock_transfers by status (v22 fix)"
+    . ($branchStockDef === '' ? ' — view missing, see above' : ''),
+    str_contains($branchStockDef, 'stock_transfers') && str_contains($branchStockDef, 'received'),
+    $issues, $ok
+);
+echo "\n";
+
 // ── Live query smoke tests — catch broken JOINs/SQL, not just missing objects
 echo "-- Smoke tests (actual queries the app runs) --\n";
 function smoke(string $label, callable $fn, array &$issues, int &$ok): void {
@@ -220,8 +248,9 @@ if ($issues) {
     foreach ($issues as $i => $msg) {
         echo ($i + 1) . ". $msg\n";
     }
-    echo "\n>>> Run sql/upgrade_to_v3.sql on this database to fix missing\n";
-    echo ">>> tables/columns/views, then reload this page to confirm.\n";
+    echo "\n>>> Visit /pages/migrate.php and run pending migrations — that\n";
+    echo ">>> re-applies stale views (like v22's vw_branch_stock fix) as well\n";
+    echo ">>> as missing tables/columns. Reload this page after to confirm.\n";
 } else {
     echo "\nEverything looks good — schema is fully up to date.\n";
 }

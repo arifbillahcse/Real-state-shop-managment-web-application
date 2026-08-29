@@ -787,4 +787,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (18, 'assistant_manager'),
     (19, 'sale_salesperson'),
     (20, 'sale_previous_due'),
-    (21, 'sale_walkin_and_ledger');
+    (21, 'sale_walkin_and_ledger'),
+    (22, 'fix_branch_stock_view');
