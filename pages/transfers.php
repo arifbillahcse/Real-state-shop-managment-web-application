@@ -350,5 +350,5 @@ const TRANSFER_PRODUCTS = <?= json_encode(array_map(
 )) ?>;
 const CURRENT_USER_NAME = <?= json_encode($currentUserName) ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/transfers.js"></script>
+<script src="<?= asset('assets/js/transfers.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

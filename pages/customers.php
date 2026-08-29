@@ -277,5 +277,5 @@ include __DIR__ . '/../includes/sidebar.php';
 const BASE_URL = '<?= BASE_URL ?>';
 const IS_ADMIN = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/customers.js"></script>
+<script src="<?= asset('assets/js/customers.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

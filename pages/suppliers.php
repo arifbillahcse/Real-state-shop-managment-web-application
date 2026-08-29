@@ -91,5 +91,5 @@ include __DIR__ . '/../includes/sidebar.php';
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
 </script>
-<script src="<?= BASE_URL ?>/assets/js/suppliers.js"></script>
+<script src="<?= asset('assets/js/suppliers.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

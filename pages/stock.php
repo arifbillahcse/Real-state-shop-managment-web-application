@@ -610,5 +610,5 @@ const IS_STAFF_VIEW   = <?= $_isStaff ? 'true' : 'false' ?>;
 const HAS_BRANCHES    = <?= !empty($branches) ? 'true' : 'false' ?>;
 const CAN_WRITE       = <?= (!$_isStaff && canWriteBranchData()) ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/stock.js"></script>
+<script src="<?= asset('assets/js/stock.js') ?>"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

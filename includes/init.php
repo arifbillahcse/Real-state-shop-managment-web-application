@@ -198,6 +198,26 @@ function e(string $str): string
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * URL for a static file under assets/, with a cache-busting ?v= query string
+ * built from the file's own last-modified time.
+ *
+ * Every page loads its JS/CSS with a bare <script src="...">, so a browser
+ * that already cached transfers.js keeps running the old one after a deploy
+ * — a code fix can be live on the server and still invisible to a user who
+ * pulled it, because nothing in the URL changed to tell the browser to
+ * re-fetch it. Appending the file's mtime means the URL itself changes
+ * whenever the file's content does, so every deploy busts the cache
+ * automatically with no version number to remember to bump.
+ */
+function asset(string $path): string
+{
+    $path = ltrim($path, '/');
+    $full = ROOT_PATH . '/' . $path;
+    $v    = is_file($full) ? filemtime($full) : time();
+    return BASE_URL . '/' . $path . '?v=' . $v;
+}
+
 // Helper: format money
 function money(float $amount): string
 {

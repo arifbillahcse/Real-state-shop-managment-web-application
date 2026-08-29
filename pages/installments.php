@@ -166,5 +166,5 @@ include __DIR__ . '/../includes/sidebar.php';
 const BASE_URL  = '<?= BASE_URL ?>';
 const CAN_WRITE = <?= $canWrite ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/installments.js"></script>
+<script src="<?= asset('assets/js/installments.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -552,5 +552,5 @@ const CATEGORIES    = <?= json_encode(array_values($categories)) ?>;
 const SUBCATEGORIES = <?= json_encode(array_values($subcategories)) ?>;
 const BRANCHES      = <?= json_encode(array_values($branches)) ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/products.js"></script>
+<script src="<?= asset('assets/js/products.js') ?>"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

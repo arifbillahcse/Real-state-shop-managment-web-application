@@ -329,5 +329,5 @@ const BASE_URL  = '<?= BASE_URL ?>';
 const CAN_WRITE = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/expenses.js"></script>
+<script src="<?= asset('assets/js/expenses.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

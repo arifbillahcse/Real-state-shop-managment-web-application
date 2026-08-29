@@ -141,5 +141,5 @@ const CAN_WRITE = <?= $canWrite ? 'true' : 'false' ?>;
   </div>
 </div>
 
-<script src="<?= BASE_URL ?>/assets/js/notes.js"></script>
+<script src="<?= asset('assets/js/notes.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

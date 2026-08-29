@@ -237,5 +237,5 @@ const PRODUCTS  = <?= json_encode(array_map(fn($p) => [
 ], $products)) ?>;
 const CAN_WRITE = <?= $canWrite ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/quotations.js"></script>
+<script src="<?= asset('assets/js/quotations.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -646,5 +646,5 @@ const SHOP          = <?= json_encode([
     'phone'   => Setting::get('shop_phone', ''),
 ]) ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/customer_account.js"></script>
+<script src="<?= asset('assets/js/customer_account.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

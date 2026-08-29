@@ -142,5 +142,5 @@ const BASE_URL    = '<?= BASE_URL ?>';
 const CURRENT_UID = <?= $currentUid ?>;
 const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/users.js"></script>
+<script src="<?= asset('assets/js/users.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

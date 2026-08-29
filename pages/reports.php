@@ -246,5 +246,5 @@ include __DIR__ . '/../includes/sidebar.php';
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
 </script>
-<script src="<?= BASE_URL ?>/assets/js/reports.js"></script>
+<script src="<?= asset('assets/js/reports.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -651,5 +651,5 @@ const BRANCHES      = <?= json_encode(array_values($branches)) ?>;
 const HAS_BRANCHES  = <?= !empty($branches) ? 'true' : 'false' ?>;
 const CUSTOMERS     = <?= json_encode(array_values($customers)) ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/sales.js"></script>
+<script src="<?= asset('assets/js/sales.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
