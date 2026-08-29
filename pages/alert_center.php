@@ -6,7 +6,6 @@ requireLogin();
 
 $pageTitle = 'স্টক সতর্কতা কেন্দ্র';
 $branches  = Branch::getVisibleBranches();
-$canWrite  = canWriteBranchData();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -16,11 +15,6 @@ include __DIR__ . '/../includes/sidebar.php';
 
   <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-bell me-2"></i>স্টক সতর্কতা কেন্দ্র (Low Stock Alert Center)</h4>
-    <?php if ($canWrite): ?>
-    <button class="btn btn-outline-danger btn-sm" onclick="notifyLowStock()">
-      <i class="bi bi-send me-1"></i>ম্যানেজারকে নোটিফাই করুন
-    </button>
-    <?php endif; ?>
   </div>
 
   <!-- Legend + filters -->
@@ -201,13 +195,6 @@ async function loadHistory() {
     } catch {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">লোড করা যায়নি</td></tr>';
     }
-}
-
-function notifyLowStock() {
-    const branchId = document.getElementById('alertBranch')?.value || '';
-    ajaxPost(`${BASE_URL}/api/notify_low_stock.php`, { branch_id: branchId }, res => {
-        showToast(res.message, res.success ? 'success' : 'warning');
-    });
 }
 
 loadAlerts();
