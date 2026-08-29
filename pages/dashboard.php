@@ -107,20 +107,6 @@ $payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking'
     </div>
     <?php endif; ?>
 
-    <!-- Low stock alert -->
-    <?php if ($lowStockItems): ?>
-    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <strong><?= count($lowStockItems) ?>টি পণ্যের স্টক কম!</strong>
-        <?php foreach ($lowStockItems as $item): ?>
-            <span class="badge bg-danger ms-1"><?= e($item['product_name']) ?>
-                (<?= $item['current_stock'] ?> <?= e($item['unit']) ?>)
-            </span>
-        <?php endforeach; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-
     <!-- Stat Cards -->
     <div class="row g-3 mb-4">
 
