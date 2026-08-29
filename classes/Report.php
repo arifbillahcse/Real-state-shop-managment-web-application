@@ -191,26 +191,46 @@ class Report extends BaseModel
      */
     public static function customerDues(?int $branchId = null): array
     {
+        // A due can live in an unmoved invoice, the khata, or both — same
+        // two-source total as Customer::outstanding()/getCustomers(). Kept
+        // as a LEFT JOIN below (the original used an INNER JOIN on sales):
+        // a customer whose entire due sits in the khata, with no un-pushed
+        // sale at all, must still show up in this list, not disappear from
+        // it because the join found nothing to match.
+        $ledgerDue = '
+            GREATEST(COALESCE((SELECT SUM(l.debit) - SUM(l.credit)
+                               FROM customer_ledger l
+                               WHERE l.customer_id = c.id AND l.status = "final"), 0), 0)';
+
         if ($branchId) {
             return Database::fetchAll(
-                "SELECT c.id AS customer_id, c.name AS customer_name, c.phone,
-                        COALESCE(SUM(s.total_amount),0) AS total_purchase,
-                        COALESCE(SUM(s.paid_amount),0)  AS total_paid,
-                        COALESCE(SUM(s.due_amount),0)   AS total_due
-                 FROM customers c
-                 JOIN sales s ON s.customer_id = c.id
-                              AND s.status = 'completed' AND s.branch_id = ?
-                              AND s.ledger_id IS NULL
-                 GROUP BY c.id
-                 HAVING total_due > 0
+                "SELECT * FROM (
+                    SELECT c.id AS customer_id, c.name AS customer_name, c.phone,
+                           COALESCE(SUM(s.total_amount),0) AS total_purchase,
+                           COALESCE(SUM(s.paid_amount),0)  AS total_paid,
+                           COALESCE(SUM(s.due_amount),0) + $ledgerDue AS total_due
+                    FROM customers c
+                    LEFT JOIN sales s ON s.customer_id = c.id
+                                 AND s.status = 'completed' AND s.branch_id = ?
+                                 AND s.ledger_id IS NULL
+                    WHERE c.is_active = 1
+                    GROUP BY c.id
+                 ) x
+                 WHERE total_due > 0
                  ORDER BY total_due DESC",
                 [$branchId]
             );
         }
         return Database::fetchAll(
-            "SELECT customer_id, customer_name, phone,
-                    total_purchase, total_paid, total_due
-             FROM vw_customer_dues
+            "SELECT * FROM (
+                SELECT c.id AS customer_id, c.name AS customer_name, c.phone,
+                       COALESCE(d.total_purchase, 0) AS total_purchase,
+                       COALESCE(d.total_paid, 0)     AS total_paid,
+                       COALESCE(d.total_due, 0) + $ledgerDue AS total_due
+                FROM customers c
+                LEFT JOIN vw_customer_dues d ON d.customer_id = c.id
+                WHERE c.is_active = 1
+             ) x
              WHERE total_due > 0
              ORDER BY total_due DESC"
         );

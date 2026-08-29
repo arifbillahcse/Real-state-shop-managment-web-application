@@ -138,7 +138,7 @@ class DailyStatement
                  SELECT si.product_id, SUM(si.quantity) AS qty
                  FROM sale_items si
                  JOIN sales s ON s.id = si.sale_id
-                 WHERE s.sale_date = ? AND s.status = "completed"
+                 WHERE s.sale_date = ? AND s.status = "completed" AND s.ledger_id IS NULL
                  GROUP BY si.product_id
              ) day_sales ON day_sales.product_id = v.product_id
              WHERE COALESCE(day_ledger.qty, 0) + COALESCE(day_sales.qty, 0) > 0
@@ -156,12 +156,17 @@ class DailyStatement
              FROM customer_ledger WHERE status = "final" AND entry_date = ?',
             [$date]
         );
+        // A sale pushed to the khata is excluded here — its value and paid
+        // amount are already counted above via $ledger's goods debit and
+        // deposit credit. Without this, a sale made and pushed on the same
+        // day would be added twice: once as an invoice, once as its own
+        // ledger copy.
         $sales = Database::fetchOne(
             'SELECT COALESCE(SUM(total_amount), 0) AS total,
                     COALESCE(SUM(paid_amount),  0) AS paid,
                     COALESCE(SUM(due_amount),   0) AS due,
                     COUNT(DISTINCT id)             AS invoice_count
-             FROM sales WHERE sale_date = ? AND status = "completed"' .
+             FROM sales WHERE sale_date = ? AND status = "completed" AND ledger_id IS NULL' .
              ($branchId ? ' AND branch_id = ?' : ''),
             $branchId ? [$date, $branchId] : [$date]
         );

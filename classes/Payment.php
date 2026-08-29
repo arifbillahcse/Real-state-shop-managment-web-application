@@ -33,6 +33,11 @@ class Payment extends BaseModel
                 [$saleId, $customerId, 'completed']
             );
             if (!$sale)                          return 'SALE_NOT_FOUND';
+            // A pushed sale's due lives in the khata now — every other due
+            // total already ignores sales.due_amount once ledger_id is set,
+            // so updating it here would move money into a figure nothing
+            // reads: collected, but "বাকি" would not actually drop.
+            if ($sale['ledger_id'] !== null)     return 'IN_LEDGER_LOCKED';
             if ((float)$sale['due_amount'] <= 0) return 'NO_DUE';
             if ($amount > (float)$sale['due_amount']) return 'EXCEEDS_DUE';
 
@@ -69,6 +74,22 @@ class Payment extends BaseModel
                     [$newPaid, $newDue, $sale['id']]
                 );
                 $remaining -= $apply;
+            }
+
+            // Whatever is left after clearing invoice dues belongs to the
+            // customer's khata balance instead — a pushed sale, or goods/
+            // expense entries added straight on the account page never show
+            // up as a `sales` row at all. Crediting it there (rather than
+            // just recording the payments row and stopping) is what makes
+            // this collection actually reduce "বাকি" — otherwise the money
+            // is logged but the due it was meant to cover never moves.
+            if ($remaining > 0.004) {
+                require_once __DIR__ . '/Ledger.php';
+                Ledger::addDeposit(
+                    $customerId, $paymentDate, $remaining, $paymentMethod,
+                    trim($note) !== '' ? $note : 'বাকি/পেমেন্ট পেজ থেকে সংগ্রহ',
+                    $userId
+                );
             }
         }
 
@@ -237,6 +258,7 @@ class Payment extends BaseModel
             'CUSTOMER_NOT_FOUND' => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
             'INVALID_AMOUNT'     => 'পরিমাণ ০ এর বেশি হতে হবে।',
             'SALE_NOT_FOUND'     => 'বিক্রয় রেকর্ড খুঁজে পাওয়া যায়নি।',
+            'IN_LEDGER_LOCKED'   => 'এই মেমোটি কাস্টমারের খাতায় যুক্ত — বাকি সেখান থেকেই আদায় করুন।',
             'NO_DUE'             => 'এই বিক্রয়ের কোনো বাকি নেই।',
             'EXCEEDS_DUE'        => 'পরিমাণ বাকির চেয়ে বেশি হতে পারবে না।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
