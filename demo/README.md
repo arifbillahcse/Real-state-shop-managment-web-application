@@ -86,7 +86,7 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 - [x] Phase 2 — products, suppliers, users
 - [x] Phase 3 — stock
 - [x] Phase 4 — sales
-- [ ] Phase 5 — payments / khata
+- [x] Phase 5 — payments / khata
 - [ ] Phase 6 — reports
 - [ ] Phase 7 — polish (print invoice already ships with sales)
 
@@ -100,6 +100,10 @@ tables — and, for stock, the low-stock banner and the modal's product and
 supplier dropdowns — in PHP. The demo versions fetch that data and render it
 before binding the row buttons. Every other page script is a byte-for-byte
 copy.
+
+`pages/payments.php` rendered its summary cards, due list and three customer
+dropdowns in PHP; the demo builds them in the page and re-renders them on every
+tab switch, so a recorded payment shows up without a reload.
 
 Passwords are stored as plain text here because there is no server to verify
 a bcrypt hash against. The PHP app hashes them properly in `classes/User.php`.
