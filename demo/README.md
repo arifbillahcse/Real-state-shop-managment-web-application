@@ -36,7 +36,8 @@ byte-for-byte copies of the originals in `../assets/js/`.
 | `assets/js/demo/seed.js` | `sql/schema.sql` sample data |
 | `assets/js/demo/db.js` | `classes/Database.php` |
 | `assets/js/demo/compute.js` | `vw_current_stock`, `vw_customer_dues` |
-| `assets/js/demo/apiRouter.js` | `api/*.php` |
+| `assets/js/demo/apiRouter.js` | `api/_guard.php` (login + admin checks) |
+| `assets/js/demo/api/*.js` | `api/*.php`, one file per domain |
 | `assets/js/demo/mockApi.js` | Apache + PHP request handling |
 | `assets/js/demo/auth.js` | PHP session in `includes/init.php` |
 | `assets/js/demo/layout.js` | `includes/header.php`, `includes/sidebar.php` |
@@ -82,7 +83,7 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 ## Status
 
 - [x] Phase 1 — foundation, login, dashboard, customers
-- [ ] Phase 2 — products, suppliers, users
+- [x] Phase 2 — products, suppliers, users
 - [ ] Phase 3 — stock
 - [ ] Phase 4 — sales
 - [ ] Phase 5 — payments / khata
@@ -90,4 +91,13 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 - [ ] Phase 7 — print invoice, polish
 
 Adding a page means copying its PHP markup to HTML, copying its script
-unchanged, and registering its endpoints with `ApiRouter.register({ ... })`.
+unchanged, and registering its endpoints in a new `assets/js/demo/api/*.js`
+with `ApiRouter.register({ ... })`.
+
+`assets/js/products.js` is the one page script that needed changing:
+`pages/products.php` rendered its tables in PHP, so the demo version fetches
+the rows and renders them before binding the row buttons. Every other page
+script is a byte-for-byte copy.
+
+Passwords are stored as plain text here because there is no server to verify
+a bcrypt hash against. The PHP app hashes them properly in `classes/User.php`.

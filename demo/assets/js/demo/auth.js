@@ -72,6 +72,14 @@ const DemoAuth = (() => {
         write({ id: match.id, name: match.name, username: match.username, role: match.role });
     }
 
+    // Re-read the signed-in user from storage, after their record changed.
+    function refresh() {
+        const u = read();
+        if (!u) return;
+        const row = DemoDB.find('users', u.id);
+        if (row) write({ id: row.id, name: row.name, username: row.username, role: row.role });
+    }
+
     // Call at the top of every protected page.
     function requireLogin() {
         if (!isLoggedIn()) {
@@ -92,6 +100,6 @@ const DemoAuth = (() => {
 
     return {
         login, logout, current, isLoggedIn, isAdmin,
-        switchRole, requireLogin, requireAdmin,
+        switchRole, refresh, requireLogin, requireAdmin,
     };
 })();
