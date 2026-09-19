@@ -79,6 +79,7 @@ data is a JavaScript file rather than a JSON file fetched over HTTP.
 ## Deploying
 
 Settings → Pages → Source: `main` (or this branch), folder `/demo`.
+The site is then served at the repository's Pages root.
 
 ## Status
 
@@ -88,7 +89,7 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 - [x] Phase 4 — sales
 - [x] Phase 5 — payments / khata
 - [x] Phase 6 — reports
-- [ ] Phase 7 — settings page, then polish (print invoice already ships with sales)
+- [x] Phase 7 — settings page, screenshots, README
 
 Adding a page means copying its PHP markup to HTML, copying its script
 unchanged, and registering its endpoints in a new `assets/js/demo/api/*.js`
