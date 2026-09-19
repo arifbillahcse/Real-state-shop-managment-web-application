@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireStrictAdminApi();
 
 $id     = (int)($_POST['id'] ?? 0);
 $active = (int)($_POST['active'] ?? 0) === 1;

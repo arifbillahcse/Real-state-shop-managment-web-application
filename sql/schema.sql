@@ -10,7 +10,20 @@ CREATE DATABASE IF NOT EXISTS rod_cement_shop
 USE rod_cement_shop;
 
 -- --------------------------------------------
--- 1. USERS TABLE
+-- 1. BRANCHES TABLE
+-- --------------------------------------------
+CREATE TABLE IF NOT EXISTS branches (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(150)  NOT NULL,
+    address     TEXT          DEFAULT NULL,
+    phone       VARCHAR(20)   DEFAULT NULL,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------
+-- 2. USERS TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -18,9 +31,11 @@ CREATE TABLE IF NOT EXISTS users (
     username    VARCHAR(50)   NOT NULL UNIQUE,
     password    VARCHAR(255)  NOT NULL,
     role        ENUM('admin','staff') NOT NULL DEFAULT 'staff',
+    branch_id   INT UNSIGNED  DEFAULT NULL COMMENT 'staff only — which branch they belong to',
     is_active   TINYINT(1)   NOT NULL DEFAULT 1,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Default admin (password: admin123)
@@ -28,7 +43,7 @@ INSERT INTO users (name, username, password, role)
 VALUES ('Administrator', 'admin', '$2y$12$wgUtvV291cMFFRxEd3gKYuz0EjZECg1RqywX49pKfTkkEFpHV/WEe', 'admin');
 
 -- --------------------------------------------
--- 2. SUPPLIERS TABLE
+-- 3. SUPPLIERS TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS suppliers (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -41,7 +56,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 3. PRODUCTS TABLE (Rod & Cement)
+-- 4. PRODUCTS TABLE (Rod & Cement)
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS products (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -69,12 +84,13 @@ INSERT INTO products (type, name, size_brand, unit, buy_price, sell_price, min_s
 ('cement', 'Shah Cement',            'SHAH',      'bag',   460.00,   500.00, 50);
 
 -- --------------------------------------------
--- 4. STOCK INBOUND TABLE (Purchase)
+-- 5. STOCK INBOUND TABLE (Purchase)
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS stock_inbound (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_id  INT UNSIGNED  NOT NULL,
     supplier_id INT UNSIGNED  DEFAULT NULL,
+    branch_id   INT UNSIGNED  DEFAULT NULL COMMENT 'which branch received this stock',
     quantity    DECIMAL(12,2) NOT NULL,
     buy_price   DECIMAL(12,2) NOT NULL COMMENT 'price at the time of purchase',
     total_cost  DECIMAL(14,2) GENERATED ALWAYS AS (quantity * buy_price) STORED,
@@ -85,11 +101,12 @@ CREATE TABLE IF NOT EXISTS stock_inbound (
     updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id)  REFERENCES products(id)  ON DELETE RESTRICT,
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+    FOREIGN KEY (branch_id)   REFERENCES branches(id)  ON DELETE SET NULL,
     FOREIGN KEY (created_by)  REFERENCES users(id)     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 5. CUSTOMERS TABLE
+-- 6. CUSTOMERS TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS customers (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -105,12 +122,13 @@ CREATE TABLE IF NOT EXISTS customers (
 INSERT INTO customers (name, phone) VALUES ('Walk-in Customer', '0000000000');
 
 -- --------------------------------------------
--- 6. SALES TABLE
+-- 7. SALES TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS sales (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     invoice_number  VARCHAR(30)   NOT NULL UNIQUE,
     customer_id     INT UNSIGNED  DEFAULT NULL,
+    branch_id       INT UNSIGNED  DEFAULT NULL COMMENT 'which branch fulfills this order',
     sale_date       DATE          NOT NULL,
     subtotal        DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     discount        DECIMAL(14,2) NOT NULL DEFAULT 0.00,
@@ -124,11 +142,12 @@ CREATE TABLE IF NOT EXISTS sales (
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (branch_id)   REFERENCES branches(id)  ON DELETE SET NULL,
     FOREIGN KEY (created_by)  REFERENCES users(id)     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 7. SALE ITEMS TABLE
+-- 8. SALE ITEMS TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS sale_items (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +162,7 @@ CREATE TABLE IF NOT EXISTS sale_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 8. PAYMENTS TABLE (Due collections)
+-- 9. PAYMENTS TABLE (Due collections)
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS payments (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -162,7 +181,7 @@ CREATE TABLE IF NOT EXISTS payments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 9. ACTIVITY LOG TABLE
+-- 10. ACTIVITY LOG TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS activity_logs (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -177,7 +196,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------
--- 10. SETTINGS TABLE
+-- 11. SETTINGS TABLE
 -- --------------------------------------------
 CREATE TABLE IF NOT EXISTS settings (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -228,6 +247,45 @@ FROM   products p
 LEFT JOIN stock_inbound si ON si.product_id = p.id
 WHERE  p.is_active = 1
 GROUP BY p.id;
+
+-- Stock per branch per product
+CREATE OR REPLACE VIEW vw_branch_stock AS
+SELECT
+    b.id              AS branch_id,
+    b.name            AS branch_name,
+    p.id              AS product_id,
+    p.name            AS product_name,
+    p.type            AS product_type,
+    p.size_brand,
+    p.unit,
+    p.buy_price,
+    p.sell_price,
+    p.min_stock,
+    COALESCE(SUM(si.quantity), 0)                           AS total_inbound,
+    COALESCE((
+        SELECT SUM(sai.quantity)
+        FROM   sale_items sai
+        JOIN   sales s ON s.id = sai.sale_id
+        WHERE  sai.product_id = p.id
+          AND  s.branch_id    = b.id
+          AND  s.status       = 'completed'
+    ), 0)                                                   AS total_sold,
+    COALESCE(SUM(si.quantity), 0) - COALESCE((
+        SELECT SUM(sai.quantity)
+        FROM   sale_items sai
+        JOIN   sales s ON s.id = sai.sale_id
+        WHERE  sai.product_id = p.id
+          AND  s.branch_id    = b.id
+          AND  s.status       = 'completed'
+    ), 0)                                                   AS current_stock
+FROM   branches b
+CROSS JOIN products p
+LEFT  JOIN stock_inbound si
+       ON  si.product_id = p.id
+       AND si.branch_id  = b.id
+WHERE  p.is_active = 1
+  AND  b.is_active = 1
+GROUP BY b.id, p.id;
 
 -- Customer outstanding dues
 CREATE OR REPLACE VIEW vw_customer_dues AS

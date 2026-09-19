@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 requireLogin();
-requireAdmin();
+requireBranchStaffOrAbove();
 
 $pageTitle = 'রিপোর্ট';
 
@@ -15,7 +15,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>রিপোর্ট ও বিশ্লেষণ</h4>
     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
       <i class="bi bi-printer me-1"></i>প্রিন্ট করুন
@@ -26,27 +26,27 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="card shadow-sm mb-4">
     <div class="card-body py-3">
       <div class="row g-2 align-items-end">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label small text-muted mb-1">তারিখ থেকে</label>
           <input type="date" class="form-control form-control-sm" id="rFrom"
                  value="<?= $defaultFrom ?>">
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label small text-muted mb-1">তারিখ পর্যন্ত</label>
           <input type="date" class="form-control form-control-sm" id="rTo"
                  value="<?= $defaultTo ?>">
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-md-2">
           <button class="btn btn-primary btn-sm w-100" onclick="loadReport()">
             <i class="bi bi-search me-1"></i>রিপোর্ট দেখুন
           </button>
         </div>
-        <div class="col-md-4">
-          <div class="btn-group btn-group-sm w-100" role="group">
-            <button class="btn btn-outline-secondary" onclick="setRange('today')">আজ</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('week')">এ সপ্তাহ</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('month')">এ মাস</button>
-            <button class="btn btn-outline-secondary" onclick="setRange('year')">এ বছর</button>
+        <div class="col-12 col-md-4">
+          <div class="d-flex flex-wrap gap-1">
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('today')">আজ</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('week')">এ সপ্তাহ</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('month')">এ মাস</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setRange('year')">এ বছর</button>
           </div>
         </div>
       </div>
@@ -64,30 +64,50 @@ include __DIR__ . '/../includes/sidebar.php';
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">মোট বিক্রয়</p>
-          <h5 class="fw-bold mb-0" id="sumTotalSales">—</h5>
-          <small class="text-muted" id="sumSaleCount">—</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">মোট বিক্রয়</p>
+              <h5 class="fw-bold mb-0" id="sumTotalSales">—</h5>
+              <small class="text-muted" id="sumSaleCount">—</small>
+            </div>
+            <div class="stat-icon bg-danger"><i class="bi bi-cart-check"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">আদায়কৃত পেমেন্ট</p>
-          <h5 class="fw-bold mb-0 text-success" id="sumPayments">—</h5>
-          <small class="text-muted">এই সময়ে</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">আদায়কৃত পেমেন্ট</p>
+              <h5 class="fw-bold mb-0 text-success" id="sumPayments">—</h5>
+              <small class="text-muted">এই সময়ে</small>
+            </div>
+            <div class="stat-icon bg-success"><i class="bi bi-cash-stack"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">নতুন বাকি</p>
-          <h5 class="fw-bold mb-0 text-danger" id="sumDue">—</h5>
-          <small class="text-muted">এই সময়ের বিক্রয়ে</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">নতুন বাকি</p>
+              <h5 class="fw-bold mb-0 text-danger" id="sumDue">—</h5>
+              <small class="text-muted">এই সময়ের বিক্রয়ে</small>
+            </div>
+            <div class="stat-icon bg-warning"><i class="bi bi-wallet2"></i></div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card stat-card p-3 h-100">
-          <p class="text-muted small mb-1">আনুমানিক লাভ</p>
-          <h5 class="fw-bold mb-0 text-primary" id="sumProfit">—</h5>
-          <small class="text-muted">বিক্রয় − ক্রয়মূল্য</small>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">আনুমানিক লাভ</p>
+              <h5 class="fw-bold mb-0 text-primary" id="sumProfit">—</h5>
+              <small class="text-muted">বিক্রয় − ক্রয়মূল্য</small>
+            </div>
+            <div class="stat-icon bg-primary"><i class="bi bi-graph-up-arrow"></i></div>
+          </div>
         </div>
       </div>
     </div>
@@ -101,16 +121,6 @@ include __DIR__ . '/../includes/sidebar.php';
           </div>
           <div class="card-body">
             <canvas id="dailySalesChart" height="100"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-pie-chart me-1 text-danger"></i>রড vs সিমেন্ট
-          </div>
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <canvas id="typeChart" height="220"></canvas>
           </div>
         </div>
       </div>
@@ -236,5 +246,5 @@ include __DIR__ . '/../includes/sidebar.php';
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
 </script>
-<script src="<?= BASE_URL ?>/assets/js/reports.js"></script>
+<script src="<?= asset('assets/js/reports.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

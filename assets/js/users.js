@@ -14,30 +14,56 @@ function jsEsc(str) {
     return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+// Roles pinned to one branch — for these the branch field is shown AND required.
+// Must stay in step with User::BRANCH_ROLES on the server.
+const BRANCH_ROLES = ['staff', 'assistant_manager'];
+
+function toggleBranchField() {
+    const role  = document.getElementById('userRole')?.value;
+    const group = document.getElementById('branchFieldGroup');
+    const sel   = document.getElementById('userBranch');
+    const hint  = document.getElementById('branchFieldHint');
+    const needsBranch = BRANCH_ROLES.includes(role);
+
+    if (group) group.style.display = needsBranch ? '' : 'none';
+    if (sel)   sel.required = needsBranch;
+    if (hint) {
+        hint.textContent = role === 'assistant_manager'
+            ? 'সহকারী ম্যানেজার শুধুমাত্র এই ব্রাঞ্চের বিক্রয় ও স্টক ম্যানেজ করতে পারবেন।'
+            : 'স্টাফ ব্যবহারকারীর জন্য ব্রাঞ্চ নির্বাচন করুন।';
+    }
+}
+
 // ---- Add / Edit Modal ----
 function openAddModal() {
     document.getElementById('userModalTitle').textContent = 'নতুন ব্যবহারকারী';
     document.getElementById('userForm').reset();
+    tsSyncForm('userForm');
     document.getElementById('userId').value = '';
     document.getElementById('usernameGroup').classList.remove('d-none');
     document.getElementById('passwordGroup').classList.remove('d-none');
     document.getElementById('userUsername').required = true;
     document.getElementById('userPassword').required = true;
+    toggleBranchField();
     uModal.show();
 }
 
-function openEditModal(id, name, username, role) {
+function openEditModal(id, name, username, role, branchId) {
     document.getElementById('userModalTitle').textContent = 'ব্যবহারকারী সম্পাদনা';
     document.getElementById('userForm').reset();
+    tsSyncForm('userForm');
     document.getElementById('userId').value       = id;
     document.getElementById('userName').value      = name;
     document.getElementById('userUsername').value  = username;
-    document.getElementById('userRole').value      = role;
+    tsSet('userRole', role, true);
+    const branchSel = document.getElementById('userBranch');
+    if (branchSel) tsSet(branchSel, branchId || '', true);
     // Username & password not editable here
     document.getElementById('usernameGroup').classList.add('d-none');
     document.getElementById('passwordGroup').classList.add('d-none');
     document.getElementById('userUsername').required = false;
     document.getElementById('userPassword').required = false;
+    toggleBranchField();
     uModal.show();
 }
 
@@ -48,11 +74,18 @@ function submitUser(e) {
         ? BASE_URL + '/api/update_user.php'
         : BASE_URL + '/api/add_user.php';
 
+    const role = document.getElementById('userRole').value;
     const data = {
-        id:       id,
-        name:     document.getElementById('userName').value,
-        role:     document.getElementById('userRole').value,
+        id:        id,
+        name:      document.getElementById('userName').value,
+        role:      role,
+        branch_id: BRANCH_ROLES.includes(role)
+            ? (document.getElementById('userBranch')?.value || '') : '',
     };
+    if (BRANCH_ROLES.includes(role) && HAS_BRANCHES && !data.branch_id) {
+        showToast('এই রোলের জন্য ব্রাঞ্চ নির্বাচন করুন।', 'danger');
+        return;
+    }
     if (!id) {
         data.username = document.getElementById('userUsername').value;
         data.password = document.getElementById('userPassword').value;
@@ -118,15 +151,32 @@ function loadUsers() {
 }
 
 function renderUsers(list) {
-    const tbody = document.getElementById('usersBody');
+    const tbody   = document.getElementById('usersBody');
+    const colSpan = HAS_BRANCHES ? 7 : 6;
     if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">কোনো ব্যবহারকারী নেই</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-5 text-muted">কোনো ব্যবহারকারী নেই</td></tr>`;
         return;
     }
     tbody.innerHTML = list.map((u, i) => {
-        const active  = parseInt(u.is_active) === 1;
-        const isAdmin = u.role === 'admin';
-        const isSelf  = parseInt(u.id) === CURRENT_UID;
+        const active    = parseInt(u.is_active) === 1;
+        const isSelf    = parseInt(u.id) === CURRENT_UID;
+        const roleLabel = {
+            admin:             'অ্যাডমিন',
+            manager:           'ম্যানেজার',
+            assistant_manager: 'সহকারী ম্যানেজার',
+            staff:             'স্টাফ',
+        }[u.role] || 'স্টাফ';
+        const roleBg = {
+            admin:             'danger',
+            manager:           'warning text-dark',
+            assistant_manager: 'primary',
+            staff:             'secondary',
+        }[u.role] || 'secondary';
+        // Only branch-pinned roles show a branch; admin/manager span all branches.
+        const hasNoBranch = !BRANCH_ROLES.includes(u.role);
+        const branchCell = HAS_BRANCHES
+            ? `<td>${u.branch_name && !hasNoBranch ? `<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>${esc(u.branch_name)}</span>` : '<span class="text-muted">—</span>'}</td>`
+            : '';
         return `
         <tr class="${active ? '' : 'text-muted'}">
             <td class="text-muted">${i + 1}</td>
@@ -135,10 +185,11 @@ function renderUsers(list) {
             </td>
             <td>${esc(u.username)}</td>
             <td class="text-center">
-                <span class="badge bg-${isAdmin ? 'danger' : 'secondary'}">
-                    ${isAdmin ? 'অ্যাডমিন' : 'স্টাফ'}
+                <span class="badge bg-${roleBg}">
+                    ${roleLabel}
                 </span>
             </td>
+            ${branchCell}
             <td class="text-center">
                 <span class="badge bg-${active ? 'success' : 'secondary'}">
                     ${active ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
@@ -146,7 +197,7 @@ function renderUsers(list) {
             </td>
             <td class="text-center text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1"
-                    onclick="openEditModal(${u.id}, '${jsEsc(u.name)}', '${jsEsc(u.username)}', '${u.role}')"
+                    onclick="openEditModal(${u.id}, '${jsEsc(u.name)}', '${jsEsc(u.username)}', '${u.role}', '${u.branch_id || ''}')"
                     title="সম্পাদনা">
                     <i class="bi bi-pencil"></i>
                 </button>

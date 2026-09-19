@@ -10,6 +10,7 @@ $pageTitle = 'বাকি / পেমেন্ট';
 $allCustomers = Customer::getCustomers();
 // Only customers who have outstanding dues
 $dueCustomers = array_filter($allCustomers, fn($c) => (float)$c['total_due'] > 0);
+$dueList      = array_values($dueCustomers);
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -17,7 +18,12 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <h4 class="mb-4"><i class="bi bi-cash-stack me-2"></i>বাকি / পেমেন্ট</h4>
+  <div class="page-header">
+    <h4 class="mb-0"><i class="bi bi-cash-stack me-2"></i>বাকি / পেমেন্ট</h4>
+    <button class="btn btn-success" onclick="openPaymentModal()">
+      <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
+    </button>
+  </div>
 
   <!-- Due summary cards -->
   <div class="row g-3 mb-4">
@@ -33,7 +39,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <i class="bi bi-exclamation-circle fs-4"></i>
           </div>
           <div>
-            <div class="stat-value text-danger"><?= money($totalDue) ?></div>
+            <div class="stat-value text-danger" data-countup="<?= (float)$totalDue ?>" data-suffix=" ৳"><?= money($totalDue) ?></div>
             <div class="stat-label">মোট বাকি</div>
           </div>
         </div>
@@ -59,7 +65,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <i class="bi bi-cart-check fs-4"></i>
           </div>
           <div>
-            <div class="stat-value"><?= money($totalPurchase) ?></div>
+            <div class="stat-value" data-countup="<?= (float)$totalPurchase ?>" data-suffix=" ৳"><?= money($totalPurchase) ?></div>
             <div class="stat-label">মোট বিক্রয়</div>
           </div>
         </div>
@@ -69,12 +75,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
   <ul class="nav nav-pills mb-4" role="tablist">
     <li class="nav-item">
-      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#payTab" type="button">
-        <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#dueListTab" type="button"
+      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#dueListTab" type="button"
               id="dueListTabBtn">
         <i class="bi bi-people me-1"></i>বাকি তালিকা
       </button>
@@ -85,106 +86,26 @@ include __DIR__ . '/../includes/sidebar.php';
         <i class="bi bi-clock-history me-1"></i>পেমেন্ট ইতিহাস
       </button>
     </li>
-    <li class="nav-item">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#ledgerTab" type="button"
-              id="ledgerTabBtn">
-        <i class="bi bi-journal-text me-1"></i>খাতা
-      </button>
-    </li>
   </ul>
 
   <div class="tab-content">
 
-    <!-- ===== PAY TAB ===== -->
-    <div class="tab-pane fade show active" id="payTab">
-      <div class="row justify-content-center">
-        <div class="col-lg-7">
-          <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-              <i class="bi bi-cash-coin me-1"></i>নতুন পেমেন্ট রেকর্ড
-            </div>
-            <div class="card-body">
-              <form id="paymentForm" onsubmit="submitPayment(event)">
-
-                <!-- Customer select -->
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">
-                    কাস্টমার <span class="text-danger">*</span>
-                  </label>
-                  <select class="form-select" id="payCustomerId" name="customer_id"
-                          onchange="onCustomerChange(this)" required>
-                    <option value="">-- কাস্টমার নির্বাচন করুন --</option>
-                    <?php foreach ($allCustomers as $c): ?>
-                    <option value="<?= $c['id'] ?>"
-                            data-due="<?= $c['total_due'] ?>">
-                      <?= e($c['name']) ?>
-                      <?php if ((float)$c['total_due'] > 0): ?>
-                        — বাকি: <?= money((float)$c['total_due']) ?>
-                      <?php endif; ?>
-                    </option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-
-                <!-- Outstanding sales for selected customer -->
-                <div id="outstandingSection" class="d-none mb-3">
-                  <label class="form-label fw-semibold text-muted small">বাকি বিক্রয় (ক্লিক করলে স্বয়ংক্রিয় পরিমাণ বসবে)</label>
-                  <div id="outstandingSalesList" class="border rounded p-2 bg-light">
-                    <div class="text-center text-muted small py-2">লোড হচ্ছে...</div>
-                  </div>
-                </div>
-                <input type="hidden" id="selectedSaleId" name="sale_id" value="">
-
-                <!-- Amount -->
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">
-                    পরিমাণ (৳) <span class="text-danger">*</span>
-                  </label>
-                  <input type="number" class="form-control form-control-lg"
-                         id="payAmount" name="amount"
-                         min="0.01" step="0.01" placeholder="০.০০" required>
-                </div>
-
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label fw-semibold">পেমেন্ট পদ্ধতি</label>
-                    <select class="form-select" id="payMethod" name="payment_method">
-                      <option value="cash">নগদ</option>
-                      <option value="mobile_banking">মোবাইল ব্যাংকিং</option>
-                      <option value="cheque">চেক</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label fw-semibold">তারিখ</label>
-                    <input type="date" class="form-control" id="payDate"
-                           name="payment_date" value="<?= today() ?>">
-                  </div>
-                </div>
-
-                <div id="refNoSection" class="mb-3 d-none">
-                  <label class="form-label fw-semibold">রেফারেন্স নং (চেক/মোবাইল)</label>
-                  <input type="text" class="form-control" id="payRefNo"
-                         name="reference_no" maxlength="100">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label fw-semibold text-muted">নোট</label>
-                  <textarea class="form-control" id="payNote" name="note"
-                            rows="2" maxlength="500"></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100" id="submitPayBtn">
-                  <i class="bi bi-check-circle me-2"></i>পেমেন্ট সংরক্ষণ করুন
-                </button>
-              </form>
-            </div>
+    <!-- ===== DUE LIST TAB ===== -->
+    <div class="tab-pane fade show active" id="dueListTab">
+      <?php if (!empty($dueList)): ?>
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="dueSearch"
+                   placeholder="কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন...">
+            <button type="button" class="btn btn-outline-secondary" id="btnClearDueSearch" title="মুছুন">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
         </div>
       </div>
-    </div><!-- /payTab -->
-
-    <!-- ===== DUE LIST TAB ===== -->
-    <div class="tab-pane fade" id="dueListTab">
+      <?php endif; ?>
       <div class="card shadow-sm">
         <div class="table-responsive">
           <table class="table table-hover mb-0">
@@ -199,10 +120,8 @@ include __DIR__ . '/../includes/sidebar.php';
                 <th class="text-center">একশন</th>
               </tr>
             </thead>
-            <tbody>
-              <?php
-              $dueList = array_values(array_filter($allCustomers, fn($c) => (float)$c['total_due'] > 0));
-              if (empty($dueList)): ?>
+            <tbody id="dueListBody">
+              <?php if (empty($dueList)): ?>
               <tr>
                 <td colspan="7" class="text-center py-5 text-success">
                   <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
@@ -211,7 +130,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </tr>
               <?php else: ?>
               <?php foreach ($dueList as $i => $c): ?>
-              <tr>
+              <tr class="due-row" data-name="<?= e(mb_strtolower($c['name'])) ?>" data-phone="<?= e(mb_strtolower((string)($c['phone'] ?? ''))) ?>">
                 <td class="text-muted"><?= $i + 1 ?></td>
                 <td class="fw-semibold"><?= e($c['name']) ?></td>
                 <td><?= e($c['phone'] ?: '—') ?></td>
@@ -226,6 +145,11 @@ include __DIR__ . '/../includes/sidebar.php';
                           title="পেমেন্ট নিন">
                     <i class="bi bi-cash-coin me-1"></i>পেমেন্ট নিন
                   </button>
+                  <button class="btn btn-sm btn-outline-info me-1"
+                          onclick="openNotes(<?= $c['id'] ?>, '<?= e(addslashes($c['name'])) ?>')"
+                          title="নোট">
+                    <i class="bi bi-sticky"></i>
+                  </button>
                   <button class="btn btn-sm btn-outline-secondary"
                           onclick="goToLedger(<?= $c['id'] ?>)"
                           title="খাতা দেখুন">
@@ -236,16 +160,10 @@ include __DIR__ . '/../includes/sidebar.php';
               <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
-            <?php if (!empty($dueList)): ?>
-            <tfoot>
-              <tr class="table-dark fw-bold">
-                <td colspan="5">মোট বাকি (<?= count($dueList) ?> জন)</td>
-                <td class="text-end text-warning"><?= money($totalDue) ?></td>
-                <td></td>
-              </tr>
-            </tfoot>
-            <?php endif; ?>
           </table>
+          <div id="dueNoMatch" class="text-center text-muted py-4 d-none">
+            <i class="bi bi-search me-1"></i>খোঁজার সাথে মিলে এমন কোনো গ্রাহক নেই।
+          </div>
         </div>
       </div>
     </div><!-- /dueListTab -->
@@ -301,48 +219,134 @@ include __DIR__ . '/../includes/sidebar.php';
                 </td>
               </tr>
             </tbody>
-            <tfoot id="historyFooter"></tfoot>
           </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="payPaginationBar" style="display:none!important">
+          <small class="text-muted" id="payPageInfo"></small>
+          <nav><ul class="pagination pagination-sm mb-0" id="payPagination"></ul></nav>
         </div>
       </div>
     </div><!-- /historyTab -->
-
-    <!-- ===== LEDGER TAB ===== -->
-    <div class="tab-pane fade" id="ledgerTab">
-      <div class="card shadow-sm mb-3">
-        <div class="card-body py-2">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-5">
-              <label class="form-label small text-muted mb-1">কাস্টমার নির্বাচন করুন</label>
-              <select class="form-select" id="ledgerCustomer">
-                <option value="">-- কাস্টমার নির্বাচন করুন --</option>
-                <?php foreach ($allCustomers as $c): ?>
-                <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <button class="btn btn-primary w-100" onclick="loadLedger()">
-                <i class="bi bi-journal-text me-1"></i>দেখুন
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="ledgerContent">
-        <div class="text-center py-5 text-muted">
-          কাস্টমার নির্বাচন করুন
-        </div>
-      </div>
-    </div><!-- /ledgerTab -->
 
   </div><!-- /tab-content -->
 </div>
 </div>
 
+<!-- ===== PAYMENT MODAL ===== -->
+<div class="modal fade" id="paymentModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>পেমেন্ট নিন</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="paymentForm" onsubmit="submitPayment(event)">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">কাস্টমার <span class="text-danger">*</span></label>
+            <select class="form-select" id="payCustomerId" name="customer_id"
+                    onchange="onCustomerChange(this)" required>
+              <option value="">-- কাস্টমার নির্বাচন করুন --</option>
+              <?php foreach ($allCustomers as $c): ?>
+              <option value="<?= $c['id'] ?>" data-due="<?= $c['total_due'] ?>">
+                <?= e($c['name']) ?>
+                <?php if ((float)$c['total_due'] > 0): ?>
+                  — বাকি: <?= money((float)$c['total_due']) ?>
+                <?php endif; ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div id="outstandingSection" class="d-none mb-3">
+            <label class="form-label fw-semibold text-muted small">বাকি বিক্রয় (ক্লিক করলে স্বয়ংক্রিয় পরিমাণ বসবে)</label>
+            <div id="outstandingSalesList" class="border rounded p-2 bg-light">
+              <div class="text-center text-muted small py-2">লোড হচ্ছে...</div>
+            </div>
+          </div>
+          <input type="hidden" id="selectedSaleId" name="sale_id" value="">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">পরিমাণ (৳) <span class="text-danger">*</span></label>
+            <input type="number" class="form-control form-control-lg"
+                   id="payAmount" name="amount"
+                   min="0.01" step="0.01" placeholder="০.০০" required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">পেমেন্ট পদ্ধতি</label>
+              <select class="form-select" id="payMethod" name="payment_method">
+                <option value="cash">নগদ</option>
+                <option value="mobile_banking">মোবাইল ব্যাংকিং</option>
+                <option value="cheque">চেক</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">তারিখ</label>
+              <input type="date" class="form-control" id="payDate"
+                     name="payment_date" value="<?= today() ?>">
+            </div>
+          </div>
+
+          <div id="refNoSection" class="mb-3 d-none">
+            <label class="form-label fw-semibold">রেফারেন্স নং (চেক/মোবাইল)</label>
+            <input type="text" class="form-control" id="payRefNo"
+                   name="reference_no" maxlength="100">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-muted">নোট</label>
+            <textarea class="form-control" id="payNote" name="note"
+                      rows="2" maxlength="500"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="submit" form="paymentForm" class="btn btn-success" id="submitPayBtn">
+          <i class="bi bi-check-circle me-2"></i>পেমেন্ট সংরক্ষণ করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CUSTOMER NOTES MODAL ===== -->
+<div class="modal fade" id="notesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-sticky me-2"></i>নোট — <span id="notesCustomerName"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (canWriteBranchData()): ?>
+        <form id="noteForm" class="mb-3" onsubmit="submitNote(event)">
+          <input type="hidden" id="noteCustomerId">
+          <label class="form-label fw-semibold">নতুন নোট যোগ করুন</label>
+          <textarea class="form-control mb-2" id="noteText" rows="2"
+                    maxlength="500" placeholder="যেমন: আগামী মাসে পরিশোধ করবে" required></textarea>
+          <button type="submit" class="btn btn-primary btn-sm" id="noteSaveBtn">
+            <i class="bi bi-plus-circle me-1"></i>নোট যোগ করুন
+          </button>
+        </form>
+        <hr>
+        <?php endif; ?>
+        <div id="notesList">
+          <div class="text-center text-muted py-3">লোড হচ্ছে...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
-const IS_ADMIN = <?= User::isAdmin() ? 'true' : 'false' ?>;
+const IS_ADMIN = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/payments.js"></script>
+<script src="<?= asset('assets/js/payments.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
