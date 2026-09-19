@@ -84,7 +84,7 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 
 - [x] Phase 1 — foundation, login, dashboard, customers
 - [x] Phase 2 — products, suppliers, users
-- [ ] Phase 3 — stock
+- [x] Phase 3 — stock
 - [ ] Phase 4 — sales
 - [ ] Phase 5 — payments / khata
 - [ ] Phase 6 — reports
@@ -94,10 +94,12 @@ Adding a page means copying its PHP markup to HTML, copying its script
 unchanged, and registering its endpoints in a new `assets/js/demo/api/*.js`
 with `ApiRouter.register({ ... })`.
 
-`assets/js/products.js` is the one page script that needed changing:
-`pages/products.php` rendered its tables in PHP, so the demo version fetches
-the rows and renders them before binding the row buttons. Every other page
-script is a byte-for-byte copy.
+`assets/js/products.js` and `assets/js/stock.js` are the page scripts that
+needed changing: `pages/products.php` and `pages/stock.php` rendered their
+tables — and, for stock, the low-stock banner and the modal's product and
+supplier dropdowns — in PHP. The demo versions fetch that data and render it
+before binding the row buttons. Every other page script is a byte-for-byte
+copy.
 
 Passwords are stored as plain text here because there is no server to verify
 a bcrypt hash against. The PHP app hashes them properly in `classes/User.php`.
