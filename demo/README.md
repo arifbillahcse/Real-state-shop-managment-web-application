@@ -85,10 +85,10 @@ Settings → Pages → Source: `main` (or this branch), folder `/demo`.
 - [x] Phase 1 — foundation, login, dashboard, customers
 - [x] Phase 2 — products, suppliers, users
 - [x] Phase 3 — stock
-- [ ] Phase 4 — sales
+- [x] Phase 4 — sales
 - [ ] Phase 5 — payments / khata
 - [ ] Phase 6 — reports
-- [ ] Phase 7 — print invoice, polish
+- [ ] Phase 7 — polish (print invoice already ships with sales)
 
 Adding a page means copying its PHP markup to HTML, copying its script
 unchanged, and registering its endpoints in a new `assets/js/demo/api/*.js`
