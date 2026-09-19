@@ -1,0 +1,93 @@
+# Front-end Demo (GitHub Pages)
+
+A static, database-free version of the Rod & Cement Shop Management System,
+built so the interface can be explored live without PHP or MySQL.
+
+The PHP application in the repository root is unchanged — this folder is a
+separate front-end prototype that reuses its markup, CSS and page scripts.
+
+## How it works
+
+The PHP app is already AJAX-driven: every page calls `api/*.php` and every
+endpoint returns the same `{ success, message, data }` JSON. The demo keeps
+that contract and swaps only the transport.
+
+```
+page script (customers.js, unchanged)
+        │  fetch('./api/get_customers.php')
+        ▼
+mockApi.js        intercepts window.fetch for /api/* URLs
+        ▼
+apiRouter.js      one JS handler per PHP endpoint
+        ▼
+db.js             localStorage, with auto-increment ids
+        ▲
+seed.js           demo data, generated relative to today
+compute.js        ports the SQL views (current stock, customer dues)
+```
+
+Because the interception happens at the `fetch` layer, the page scripts are
+byte-for-byte copies of the originals in `../assets/js/`.
+
+## Files
+
+| File | Replaces |
+|---|---|
+| `assets/js/demo/seed.js` | `sql/schema.sql` sample data |
+| `assets/js/demo/db.js` | `classes/Database.php` |
+| `assets/js/demo/compute.js` | `vw_current_stock`, `vw_customer_dues` |
+| `assets/js/demo/apiRouter.js` | `api/*.php` |
+| `assets/js/demo/mockApi.js` | Apache + PHP request handling |
+| `assets/js/demo/auth.js` | PHP session in `includes/init.php` |
+| `assets/js/demo/layout.js` | `includes/header.php`, `includes/sidebar.php` |
+
+## Demo accounts
+
+| Role | Username | Password |
+|---|---|---|
+| Admin | `admin` | `admin123` |
+| Staff | `staff` | `staff123` |
+
+These are printed on the login screen on purpose. Nothing here protects real
+data — it is a public prototype. The navbar menu also switches role in place,
+so the Admin and Staff sidebars can be compared without logging out.
+
+## Data
+
+All records live in `localStorage` under `rcshop_demo_v1` and survive a
+refresh. They are per-browser and never leave the visitor's machine. Use
+**ডেমো ডেটা রিসেট** in the navbar menu to restore the seed.
+
+Sale and payment dates are generated relative to the day the demo is opened,
+so the dashboard chart and "today's sales" are always populated.
+
+## Running locally
+
+Any static server works:
+
+```bash
+cd demo
+python3 -m http.server 8000
+```
+
+Then open <http://127.0.0.1:8000>.
+
+Opening `index.html` directly from the filesystem also works, because the seed
+data is a JavaScript file rather than a JSON file fetched over HTTP.
+
+## Deploying
+
+Settings → Pages → Source: `main` (or this branch), folder `/demo`.
+
+## Status
+
+- [x] Phase 1 — foundation, login, dashboard, customers
+- [ ] Phase 2 — products, suppliers, users
+- [ ] Phase 3 — stock
+- [ ] Phase 4 — sales
+- [ ] Phase 5 — payments / khata
+- [ ] Phase 6 — reports
+- [ ] Phase 7 — print invoice, polish
+
+Adding a page means copying its PHP markup to HTML, copying its script
+unchanged, and registering its endpoints with `ApiRouter.register({ ... })`.

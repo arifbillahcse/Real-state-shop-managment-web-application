@@ -1,0 +1,129 @@
+/* ==============================
+   Layout
+============================== */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+}
+
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    z-index: 1000;
+    transition: transform .25s ease;
+    scrollbar-width: thin;
+    scrollbar-color: #444 #222;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-240px);
+}
+
+.main-content {
+    margin-left: 240px;
+    margin-top: 56px;
+    padding: 1.5rem;
+    min-height: calc(100vh - 56px);
+    transition: margin-left .25s ease;
+}
+
+.main-content.expanded {
+    margin-left: 0;
+}
+
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-240px); }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .main-content { margin-left: 0; }
+}
+
+/* ==============================
+   Sidebar Menu
+============================== */
+.nav-link:hover {
+    background: rgba(255,255,255,.1);
+}
+
+.active-menu {
+    background: linear-gradient(135deg, #e63946, #c1121f) !important;
+    font-weight: 600;
+}
+
+/* ==============================
+   Cards
+============================== */
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    transition: transform .2s;
+}
+.stat-card:hover { transform: translateY(-3px); }
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+/* ==============================
+   Tables
+============================== */
+.table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #555;
+}
+
+.table-hover tbody tr:hover {
+    background: #fff8f8;
+}
+
+/* ==============================
+   Badges & Alerts
+============================== */
+.low-stock { color: #dc3545; font-weight: 600; }
+.badge-admin { background: #e63946; }
+.badge-staff { background: #457b9d; }
+
+/* ==============================
+   Buttons
+============================== */
+.btn-primary {
+    background: linear-gradient(135deg, #e63946, #c1121f);
+    border: none;
+}
+.btn-primary:hover { opacity: .9; }
+
+/* ==============================
+   Page Header
+============================== */
+.page-header {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.page-header h5 {
+    margin: 0;
+    font-weight: 700;
+    color: #1a1a2e;
+}
