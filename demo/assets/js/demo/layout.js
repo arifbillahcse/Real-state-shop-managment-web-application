@@ -56,7 +56,7 @@ const Layout = (() => {
 
     // Pages that are built. Anything else is greyed out with a hint, so a
     // visitor never lands on a 404 while the port is in progress.
-    const built = new Set(['dashboard.html', 'products.html']);
+    const built = new Set(['dashboard.html', 'products.html', 'stock.html']);
 
     function render() {
         const shell = document.getElementById('appShell');

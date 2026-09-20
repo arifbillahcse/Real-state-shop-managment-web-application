@@ -478,7 +478,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     <select id="adjProduct" class="form-select" required>
                         <option value="">— পণ্য নির্বাচন করুন —</option>
                         <?php foreach ($productsByType as $type => $list): ?>
-                        <optgroup label="<?= $type === 'rod' ? 'রড' : 'সিমেন্ট' ?>">
+                        <optgroup label="<?= e($type) ?>">
                             <?php foreach ($list as $p): ?>
                             <option value="<?= $p['id'] ?>" data-unit="<?= e($p['unit']) ?>"><?= e($p['name']) ?> (<?= e($p['size_brand']) ?>)</option>
                             <?php endforeach; ?>
@@ -553,7 +553,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     <select id="trfProduct" class="form-select" required>
                         <option value="">— পণ্য নির্বাচন করুন —</option>
                         <?php foreach ($productsByType as $type => $list): ?>
-                        <optgroup label="<?= $type === 'rod' ? 'রড' : 'সিমেন্ট' ?>">
+                        <optgroup label="<?= e($type) ?>">
                             <?php foreach ($list as $p): ?>
                             <option value="<?= $p['id'] ?>" data-unit="<?= e($p['unit']) ?>"><?= e($p['name']) ?> (<?= e($p['size_brand']) ?>)</option>
                             <?php endforeach; ?>
