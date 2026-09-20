@@ -78,8 +78,13 @@ data is a JavaScript file rather than a JSON file fetched over HTTP.
 
 ## Deploying
 
-Settings → Pages → Source: `main` (or this branch), folder `/demo`.
-The site is then served at the repository's Pages root.
+Two options in Settings → Pages:
+
+- Source folder `/demo` — the app is served at the Pages root URL.
+- Source folder `/ (root)` — the app is served under `/demo/`, and the Pages
+  root shows the repository README instead.
+
+Either works; the root README links to the second form.
 
 ## Status
 

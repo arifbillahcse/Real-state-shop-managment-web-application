@@ -7,7 +7,7 @@ Built with raw PHP (OOP, no framework) and MySQL. A database-free front-end
 build of the same interface runs on GitHub Pages so the UI can be explored
 without installing anything.
 
-### ▶ [Open the live demo](https://arifbillahcse.github.io/Real-state-shop-managment-web-application/)
+### ▶ [Open the live demo](https://arifbillahcse.github.io/Real-state-shop-managment-web-application/demo/)
 
 | Role | Username | Password |
 |---|---|---|
