@@ -1,8 +1,8 @@
 // ============================================
-// Mock API transport
-// Intercepts any fetch() to /api/*.php and answers it from
-// localStorage instead of the network. This is what lets the
-// page scripts (customers.js, sales.js, ...) run unmodified.
+// Mock API transport.
+// Intercepts any fetch() to /api/*.php and answers it from localStorage
+// instead of the network. This is what lets the page scripts
+// (sales.js, stock.js, …) run unmodified.
 // ============================================
 
 (() => {
@@ -10,18 +10,16 @@
     const realFetch = window.fetch ? window.fetch.bind(window) : null;
 
     // Small delay so loading spinners in the UI actually render.
-    const LATENCY_MS = 120;
+    const LATENCY_MS = 110;
 
     function parseParams(url, options) {
         const params = {};
 
-        // Query string
         const qIndex = url.indexOf('?');
         if (qIndex !== -1) {
             new URLSearchParams(url.slice(qIndex + 1)).forEach((v, k) => { params[k] = v; });
         }
 
-        // Body
         const body = options && options.body;
         if (!body) return params;
 
@@ -44,14 +42,12 @@
     function respond(payload) {
         const text = JSON.stringify(payload);
         return {
-            ok:         true,
-            status:     200,
-            statusText: 'OK',
-            headers:    new Headers({ 'Content-Type': 'application/json' }),
-            url:        '',
-            json:       () => Promise.resolve(JSON.parse(text)),
-            text:       () => Promise.resolve(text),
-            clone()     { return respond(payload); },
+            ok: true, status: 200, statusText: 'OK',
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+            url: '',
+            json: () => Promise.resolve(JSON.parse(text)),
+            text: () => Promise.resolve(text),
+            clone() { return respond(payload); },
         };
     }
 

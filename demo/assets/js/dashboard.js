@@ -1,7 +1,8 @@
 // ============================================
 // Dashboard
-// pages/dashboard.php rendered its stats server-side; here the
-// same numbers come from the mock API endpoint get_dashboard.php.
+// pages/dashboard.php rendered its stats server-side; here the same
+// numbers come from the mock endpoint get_dashboard.php. Which cards
+// appear depends on the signed-in role, exactly as the PHP does.
 // ============================================
 
 function dashEsc(str) {
@@ -11,10 +12,14 @@ function dashEsc(str) {
 }
 
 function dashMoney(n) {
-    return parseFloat(n || 0).toLocaleString('en-IN', {
+    return parseFloat(n || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2, maximumFractionDigits: 2
     }) + ' ৳';
 }
+
+function trimZeros(n) { return String(parseFloat(n || 0)); }
+
+const PAY_LABEL = { cash: 'নগদ', credit: 'বাকি', mobile_banking: 'মো.ব্যাং', cheque: 'চেক' };
 
 document.getElementById('todayLabel').textContent =
     new Date().toLocaleDateString('en-GB', {
@@ -25,60 +30,111 @@ fetch(BASE_URL + '/api/get_dashboard.php')
     .then(r => r.json())
     .then(res => {
         if (!res.success) return showToast(res.message, 'danger');
-        renderDashboard(res.data);
+        renderCards(res.data);
+        renderLowStock(res.data.low_stock);
+        renderChart(res.data.chart);
+        renderRecent(res.data.recent_sales);
+        if (typeof runCountUps === 'function') runCountUps();
     })
     .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 
-function renderDashboard(d) {
-    document.getElementById('statTodayTotal').textContent = dashMoney(d.today_total);
-    document.getElementById('statTodayPaid').textContent  = dashMoney(d.today_paid);
-    document.getElementById('statTotalDue').textContent   = dashMoney(d.total_due);
-    document.getElementById('statStockValue').textContent = dashMoney(d.stock_value);
-    document.getElementById('statTodayCount').textContent = d.today_count;
+function card(colClass, label, value, sub, icon, tone, valueClass = '') {
+    return `
+    <div class="${colClass}">
+        <div class="card stat-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted small mb-1">${label}</p>
+                    <h5 class="fw-bold mb-0 ${valueClass}" data-countup="${value}" data-suffix=" ৳">${dashMoney(value)}</h5>
+                    <small class="text-muted">${sub}</small>
+                </div>
+                <div class="stat-icon bg-${tone} bg-opacity-10 text-${tone}">
+                    <i class="bi ${icon}"></i>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
 
-    renderLowStock(d.low_stock);
-    renderChart(d.chart);
+function renderCards(d) {
+    // Staff see two cards, everyone else four — matching pages/dashboard.php
+    const col = d.is_staff ? 'col-6 col-md-6' : 'col-6 col-md-3';
+    let html = card(col, 'আজকের বিক্রয়', d.today_total,
+        d.today_count + 'টি লেনদেন', 'bi-cart-check', 'danger');
+
+    if (!d.is_staff) {
+        html += card(col, 'আজকের পেমেন্ট আদায়', d.today_payments_total,
+            d.today_payments_count + 'টি পেমেন্ট', 'bi-cash-stack', 'success', 'text-success');
+        html += card(col, 'মোট বাকি', d.total_due,
+            'সকল কাস্টমার', 'bi-wallet2', 'warning', 'text-danger');
+    }
+
+    html += card(col, 'স্টক মূল্য', d.stock_value,
+        d.branch_name ? dashEsc(d.branch_name) : 'বর্তমান স্টক', 'bi-boxes', 'info');
+
+    document.getElementById('statCards').innerHTML = html;
 }
 
 function renderLowStock(items) {
-    const alertBox = document.getElementById('lowStockAlert');
-    const panel    = document.getElementById('lowStockPanel');
+    const panel = document.getElementById('lowStockPanel');
 
     if (!items.length) {
-        alertBox.innerHTML = '';
-        panel.innerHTML    = '<p class="text-center text-muted py-4 small">সব পণ্যের স্টক ঠিক আছে।</p>';
+        panel.innerHTML = '<p class="text-center text-muted py-4 small">সব পণ্যের স্টক ঠিক আছে।</p>';
         return;
     }
 
-    alertBox.innerHTML = `
-        <div class="alert alert-warning alert-dismissible fade show mb-3">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>${items.length}টি পণ্যের স্টক কম!</strong>
-            ${items.map(i => `<span class="badge bg-danger ms-1">${dashEsc(i.product_name)} (${i.current_stock} ${dashEsc(i.unit)})</span>`).join('')}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
-
     panel.innerHTML = `
+        <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
             <thead><tr><th>পণ্য</th><th>স্টক</th><th>মিনিমাম</th></tr></thead>
             <tbody>
                 ${items.map(i => `
                     <tr>
                         <td>${dashEsc(i.product_name)}</td>
-                        <td class="low-stock">${i.current_stock} ${dashEsc(i.unit)}</td>
-                        <td>${i.min_stock} ${dashEsc(i.unit)}</td>
+                        <td class="low-stock">${trimZeros(i.current_stock)} ${dashEsc(i.unit)}</td>
+                        <td>${trimZeros(i.min_stock)} ${dashEsc(i.unit)}</td>
+                    </tr>`).join('')}
+            </tbody>
+        </table>
+        </div>`;
+}
+
+function renderRecent(rows) {
+    const panel = document.getElementById('recentSalesPanel');
+
+    if (!rows.length) {
+        panel.innerHTML = '<p class="text-center text-muted py-4 small">এখনো কোনো বিক্রয় নেই।</p>';
+        return;
+    }
+
+    panel.innerHTML = `
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ইনভয়েস</th><th>তারিখ</th><th>কাস্টমার</th><th>পেমেন্ট</th>
+                    <th class="text-end">মোট</th><th class="text-end">পরিশোধ</th><th class="text-end">বাকি</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(s => `
+                    <tr>
+                        <td class="fw-semibold">${dashEsc(s.invoice_number)}</td>
+                        <td>${dashEsc(s.sale_date)}</td>
+                        <td>${dashEsc(s.customer_name)}</td>
+                        <td><span class="badge bg-secondary">${PAY_LABEL[s.payment_method] || dashEsc(s.payment_method)}</span></td>
+                        <td class="text-end">${dashMoney(s.total_amount)}</td>
+                        <td class="text-end text-success">${dashMoney(s.paid_amount)}</td>
+                        <td class="text-end ${s.due_amount > 0 ? 'text-danger fw-semibold' : ''}">${dashMoney(s.due_amount)}</td>
                     </tr>`).join('')}
             </tbody>
         </table>`;
 }
 
 function renderChart(rows) {
-    const labels  = rows.map(r => {
-        const [y, m, day] = r.sale_date.split('-').map(Number);
-        return new Date(y, m - 1, day)
-            .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+    const labels = rows.map(r => {
+        const [y, m, d] = r.sale_date.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
     });
-    const amounts = rows.map(r => parseFloat(r.total) || 0);
 
     new Chart(document.getElementById('salesChart'), {
         type: 'bar',
@@ -86,7 +142,7 @@ function renderChart(rows) {
             labels,
             datasets: [{
                 label: 'বিক্রয় (৳)',
-                data: amounts,
+                data: rows.map(r => parseFloat(r.total) || 0),
                 backgroundColor: 'rgba(230,57,70,.75)',
                 borderRadius: 6
             }]

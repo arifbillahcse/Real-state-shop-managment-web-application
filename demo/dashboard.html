@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-bs-theme','dark');}catch(e){}})();</script>
     <title>ড্যাশবোর্ড</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
 <body>
 
@@ -20,73 +28,11 @@
         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><span id="todayLabel"></span></span>
     </div>
 
-    <div id="lowStockAlert"></div>
+    <!-- Stat cards (built to match the signed-in role) -->
+    <div class="row g-3 mb-4" id="statCards"></div>
 
-    <!-- Stat Cards -->
+    <!-- Sales chart + low stock -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="card stat-card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small mb-1">আজকের বিক্রয়</p>
-                        <h5 class="fw-bold mb-0" id="statTodayTotal">—</h5>
-                        <small class="text-muted"><span id="statTodayCount">0</span>টি লেনদেন</small>
-                    </div>
-                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
-                        <i class="bi bi-cart-check"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card stat-card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small mb-1">আজকের নগদ</p>
-                        <h5 class="fw-bold mb-0" id="statTodayPaid">—</h5>
-                        <small class="text-muted">প্রদত্ত</small>
-                    </div>
-                    <div class="stat-icon bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-cash-stack"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card stat-card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small mb-1">মোট বাকি</p>
-                        <h5 class="fw-bold text-danger mb-0" id="statTotalDue">—</h5>
-                        <small class="text-muted">সকল কাস্টমার</small>
-                    </div>
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                        <i class="bi bi-wallet2"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card stat-card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small mb-1">স্টক মূল্য</p>
-                        <h5 class="fw-bold mb-0" id="statStockValue">—</h5>
-                        <small class="text-muted">বর্তমান স্টক</small>
-                    </div>
-                    <div class="stat-icon bg-info bg-opacity-10 text-info">
-                        <i class="bi bi-boxes"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chart + Low Stock -->
-    <div class="row g-3">
         <div class="col-md-7">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold">
@@ -112,10 +58,22 @@
         </div>
     </div>
 
-</div>
+    <!-- Recent sales -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-clock-history me-1 text-danger"></i> সাম্প্রতিক বিক্রয়</span>
+            <a href="sales.html" class="btn btn-sm btn-outline-secondary demo-soon">
+                সব দেখুন <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="table-responsive" id="recentSalesPanel">
+            <p class="text-center text-muted py-4 small">
+                <span class="spinner-border spinner-border-sm me-2"></span>লোড হচ্ছে...
+            </p>
+        </div>
+    </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</div>
 
 <script src="assets/js/demo/seed.js"></script>
 <script src="assets/js/demo/db.js"></script>
@@ -123,15 +81,6 @@
 <script src="assets/js/demo/compute.js"></script>
 <script src="assets/js/demo/apiRouter.js"></script>
 <script src="assets/js/demo/api/dashboard.js"></script>
-<script src="assets/js/demo/api/customers.js"></script>
-<script src="assets/js/demo/api/payments.js"></script>
-<script src="assets/js/demo/api/products.js"></script>
-<script src="assets/js/demo/api/reports.js"></script>
-<script src="assets/js/demo/api/sales.js"></script>
-<script src="assets/js/demo/api/settings.js"></script>
-<script src="assets/js/demo/api/stock.js"></script>
-<script src="assets/js/demo/api/suppliers.js"></script>
-<script src="assets/js/demo/api/users.js"></script>
 <script src="assets/js/demo/mockApi.js"></script>
 <script src="assets/js/demo/layout.js"></script>
 

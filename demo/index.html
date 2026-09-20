@@ -3,96 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login — রড সিমেন্ট ম্যানেজমেন্ট</title>
-    <meta name="description" content="Rod &amp; Cement Shop Management System — front-end demo. No server, no database.">
+    <title>Login — নিহারিকা এন্টারপ্রাইজ</title>
+    <meta name="description" content="Multi-branch shop management system — front-end demo. No server, no database.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        :root { --brand:#e63946; --brand-dark:#c1121f; }
+        * { font-family: 'Hind Siliguri','Segoe UI',sans-serif; }
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #161a27 0%, #1f2433 55%, #2a1820 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', sans-serif;
-            padding: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow-x: hidden; padding: 1.5rem 1rem;
         }
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%; filter: blur(60px); opacity: .4;
+            animation: float 14s ease-in-out infinite;
+        }
+        body::before { width: 360px; height: 360px; background: #e63946; top: -80px; left: -60px; }
+        body::after  { width: 420px; height: 420px; background: #457b9d; bottom: -120px; right: -80px; animation-delay: -7s; }
+        @keyframes float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-30px) scale(1.1); } }
+
         .login-card {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 420px;
+            position: relative; z-index: 1;
+            background: rgba(255,255,255,.97);
+            backdrop-filter: blur(20px);
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            padding: 2.5rem 2.25rem;
+            width: 100%; max-width: 440px;
+            animation: cardIn .55s cubic-bezier(.2,.8,.2,1) both;
         }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+
         .brand-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #e63946, #457b9d);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
-            color: #fff;
+            width: 76px; height: 76px;
+            background: linear-gradient(135deg, #e63946, #c1121f);
+            border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.1rem; font-size: 2.1rem; color: #fff;
+            box-shadow: 0 12px 30px rgba(230,57,70,.45);
+            transform: rotate(-6deg);
         }
+        .login-card h4 { color: #1e2235; }
+        .form-label { font-weight: 600; color: #5b6070; font-size: .9rem; }
+        .form-control { border-radius: 11px; padding: .6rem .85rem; border-color: #eceef3; }
+        .form-control:focus { border-color: #e63946; box-shadow: 0 0 0 .2rem rgba(230,57,70,.18); }
+        .input-group-text { border-radius: 11px; background: #f7f8fc; border-color: #eceef3; color: #8a8fa3; }
         .btn-login {
             background: linear-gradient(135deg, #e63946, #c1121f);
-            border: none;
-            color: #fff;
-            font-weight: 600;
-            letter-spacing: .5px;
+            border: none; color: #fff; font-weight: 600; letter-spacing: .5px;
+            border-radius: 12px; box-shadow: 0 8px 22px rgba(230,57,70,.4);
+            transition: .2s;
         }
-        .btn-login:hover { opacity: .9; color: #fff; }
-        .form-control:focus { border-color: #e63946; box-shadow: 0 0 0 .2rem rgba(230,57,70,.2); }
-        .demo-hint {
-            background: #fff8e1;
-            border: 1px dashed #ffb300;
-            border-radius: 10px;
-            padding: .75rem 1rem;
-            font-size: .85rem;
+        .btn-login:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 12px 30px rgba(230,57,70,.5); filter: brightness(1.05); }
+        .alert { border: none; border-radius: 11px; border-left: 4px solid #e63946; background: #fdecee; color: #a01622; }
+
+        .demo-accounts { background:#fff8e1; border:1px dashed #ffb300; border-radius:12px; padding:.85rem 1rem; }
+        .acct {
+            display:flex; align-items:center; gap:.6rem; width:100%;
+            background:#fff; border:1px solid #ffe6a8; border-radius:9px;
+            padding:.45rem .6rem; margin-bottom:.4rem; cursor:pointer;
+            font-size:.84rem; text-align:left; transition:.15s;
         }
-        .demo-hint code {
-            background: #fff;
-            padding: .1rem .4rem;
-            border-radius: 4px;
-            color: #c1121f;
-        }
-        .cred-btn {
-            cursor: pointer;
-            border: none;
-            background: none;
-            padding: 0;
-            font: inherit;
-            color: inherit;
-            text-align: left;
-        }
+        .acct:hover { border-color:#e63946; transform:translateX(2px); }
+        .acct:last-child { margin-bottom:0; }
+        .acct .who { font-weight:600; color:#1e2235; }
+        .acct .cred { color:#8a8fa3; font-size:.78rem; }
+        .acct .tag { margin-left:auto; font-size:.68rem; }
     </style>
 </head>
 <body>
 
 <div class="login-card">
     <div class="brand-icon"><i class="bi bi-shop"></i></div>
-    <h4 class="text-center fw-bold mb-1">রড সিমেন্ট ম্যানেজমেন্ট</h4>
+    <h4 class="text-center fw-bold mb-1">নিহারিকা এন্টারপ্রাইজ</h4>
     <p class="text-center text-muted small mb-3">আপনার অ্যাকাউন্টে লগইন করুন</p>
 
-    <div class="demo-hint mb-3">
-        <div class="fw-semibold mb-2">
-            <i class="bi bi-info-circle-fill text-warning me-1"></i>ডেমো অ্যাকাউন্ট
+    <div class="demo-accounts mb-3">
+        <div class="fw-semibold mb-2 small">
+            <i class="bi bi-info-circle-fill text-warning me-1"></i>ডেমো অ্যাকাউন্ট — ক্লিক করলে পূরণ হবে
         </div>
-        <button class="cred-btn d-block mb-1" data-user="admin" data-pass="admin123">
-            <i class="bi bi-shield-check text-danger me-1"></i>
-            Admin — <code>admin</code> / <code>admin123</code>
+        <button class="acct" data-user="admin" data-pass="admin123">
+            <i class="bi bi-shield-check text-danger"></i>
+            <span><span class="who">অ্যাডমিন</span><br><span class="cred">admin / admin123</span></span>
+            <span class="badge bg-danger tag">সব অ্যাক্সেস</span>
         </button>
-        <button class="cred-btn d-block" data-user="staff" data-pass="staff123">
-            <i class="bi bi-person text-secondary me-1"></i>
-            Staff — <code>staff</code> / <code>staff123</code>
+        <button class="acct" data-user="manager" data-pass="manager123">
+            <i class="bi bi-person-badge text-primary"></i>
+            <span><span class="who">ম্যানেজার</span><br><span class="cred">manager / manager123</span></span>
+            <span class="badge bg-primary tag">সব ব্রাঞ্চ</span>
         </button>
-        <div class="text-muted mt-2" style="font-size:.78rem">
-            ক্লিক করলে স্বয়ংক্রিয়ভাবে পূরণ হবে।
-        </div>
+        <button class="acct" data-user="asst" data-pass="asst123">
+            <i class="bi bi-person-gear text-info"></i>
+            <span><span class="who">সহকারী ম্যানেজার</span><br><span class="cred">asst / asst123</span></span>
+            <span class="badge bg-info text-dark tag">মিরপুর</span>
+        </button>
+        <button class="acct" data-user="staff" data-pass="staff123">
+            <i class="bi bi-person text-secondary"></i>
+            <span><span class="who">স্টাফ</span><br><span class="cred">staff / staff123</span></span>
+            <span class="badge bg-secondary tag">মিরপুর</span>
+        </button>
     </div>
 
     <div id="loginError" class="alert alert-danger py-2 d-none">
@@ -121,7 +136,7 @@
         </button>
     </form>
 
-    <p class="text-center text-muted mt-4 mb-0" style="font-size:.78rem">
+    <p class="text-center text-muted mt-3 mb-0" style="font-size:.78rem">
         এটি একটি ফ্রন্ট-এন্ড প্রোটোটাইপ। সব ডেটা আপনার ব্রাউজারে থাকে —
         কোনো সার্ভার বা ডেটাবেস নেই।
     </p>
@@ -134,11 +149,9 @@
 <script>
 DemoDB.init();
 
-if (DemoAuth.isLoggedIn()) {
-    window.location.replace('dashboard.html');
-}
+if (DemoAuth.isLoggedIn()) window.location.replace('dashboard.html');
 
-document.querySelectorAll('.cred-btn').forEach(btn => {
+document.querySelectorAll('.acct').forEach(btn => {
     btn.addEventListener('click', () => {
         document.getElementById('username').value = btn.dataset.user;
         document.getElementById('password').value = btn.dataset.pass;
@@ -152,21 +165,16 @@ document.getElementById('loginForm').addEventListener('submit', e => {
     const user = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
 
-    if (!user.trim() || !pass) {
-        return showError('ইউজারনেম ও পাসওয়ার্ড দিন।');
-    }
-
-    const res = DemoAuth.login(user, pass);
-    if (res.success) {
-        window.location.href = 'dashboard.html';
-    } else {
-        showError(res.message);
-    }
-
-    function showError(msg) {
+    const showError = msg => {
         box.querySelector('span').textContent = msg;
         box.classList.remove('d-none');
-    }
+    };
+
+    if (!user.trim() || !pass) return showError('ইউজারনেম ও পাসওয়ার্ড দিন।');
+
+    const res = DemoAuth.login(user, pass);
+    if (res.success) window.location.href = 'dashboard.html';
+    else showError(res.message);
 });
 </script>
 </body>

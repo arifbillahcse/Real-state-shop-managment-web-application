@@ -1,34 +1,26 @@
 // ============================================
-// Demo storage layer
-// Stands in for classes/Database.php — every table lives in
-// localStorage under a single key, with auto-increment ids.
+// Demo storage layer — stands in for classes/Database.php.
+// Every table lives in localStorage under one key, with auto-increment ids.
 // ============================================
 
 const DemoDB = (() => {
 
-    const KEY = 'rcshop_demo_v1';
+    const KEY = 'niharika_demo_v2';
     let state = null;
 
-    // localStorage throws in private mode / blocked site data,
-    // so the demo falls back to an in-memory store for the page session.
+    // localStorage throws in private mode / with site data blocked, so fall
+    // back to an in-memory store for the page session.
     let persistent = true;
 
     function read() {
-        try {
-            return localStorage.getItem(KEY);
-        } catch (e) {
-            persistent = false;
-            return null;
-        }
+        try { return localStorage.getItem(KEY); }
+        catch (e) { persistent = false; return null; }
     }
 
     function write() {
         if (!persistent) return;
-        try {
-            localStorage.setItem(KEY, JSON.stringify(state));
-        } catch (e) {
-            persistent = false;
-        }
+        try { localStorage.setItem(KEY, JSON.stringify(state)); }
+        catch (e) { persistent = false; }
     }
 
     function init() {
@@ -38,13 +30,8 @@ const DemoDB = (() => {
         if (raw) {
             try {
                 const parsed = JSON.parse(raw);
-                if (parsed && parsed._version === 1) {
-                    state = parsed;
-                    return state;
-                }
-            } catch (e) {
-                // corrupt payload — fall through and reseed
-            }
+                if (parsed && parsed._version === 2) { state = parsed; return state; }
+            } catch (e) { /* corrupt payload — reseed */ }
         }
 
         state = Seed.build();
@@ -65,8 +52,7 @@ const DemoDB = (() => {
     }
 
     function nextId(name) {
-        const rows = table(name);
-        return rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
+        return table(name).reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
     }
 
     function insert(name, row) {
@@ -79,6 +65,7 @@ const DemoDB = (() => {
     }
 
     function find(name, id) {
+        if (id === null || id === undefined || id === '') return null;
         return table(name).find(r => Number(r.id) === Number(id)) || null;
     }
 
@@ -92,7 +79,7 @@ const DemoDB = (() => {
 
     function remove(name, id) {
         const rows = table(name);
-        const i    = rows.findIndex(r => Number(r.id) === Number(id));
+        const i = rows.findIndex(r => Number(r.id) === Number(id));
         if (i === -1) return false;
         rows.splice(i, 1);
         write();
@@ -114,12 +101,9 @@ const DemoDB = (() => {
     function log(action, module, referenceId, description) {
         const user = (typeof DemoAuth !== 'undefined') ? DemoAuth.current() : null;
         insert('activity_logs', {
-            user_id:      user ? user.id : null,
-            action:       action,
-            module:       module,
-            reference_id: referenceId,
-            description:  description,
-            ip_address:   '127.0.0.1',
+            user_id: user ? user.id : null,
+            action, module, reference_id: referenceId, description,
+            ip_address: '127.0.0.1',
         });
     }
 
@@ -130,13 +114,22 @@ const DemoDB = (() => {
                ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
     }
 
-    function today() {
-        return Seed.fmtDate(new Date());
+    function today() { return Seed.fmtDate(new Date()); }
+
+    // Whole-database export/import, used by the backup page.
+    function exportAll() { init(); return JSON.parse(JSON.stringify(state)); }
+
+    function importAll(data) {
+        if (!data || data._version !== 2) return false;
+        state = data;
+        write();
+        return true;
     }
 
     return {
         init, reset, table, find, insert, update, remove,
         setting, setSetting, log, today, nowStamp,
+        exportAll, importAll,
         isPersistent: () => persistent,
     };
 })();
