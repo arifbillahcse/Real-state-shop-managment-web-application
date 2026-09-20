@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-bs-theme','dark');}catch(e){}})();</script>
+    <title>পণ্য ম্যানেজমেন্ট</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <link href="assets/css/style.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+</head>
+<body>
+
+<div id="appShell"></div>
+
+<div class="main-content" id="mainContent">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h5><i class="bi bi-box-seam me-2 text-danger"></i>পণ্য ম্যানেজমেন্ট</h5>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary btn-sm" id="btnManageCategories"
+                    data-bs-toggle="modal" data-bs-target="#categoryModal">
+                <i class="bi bi-tags me-1"></i> ক্যাটাগরি
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnAddProduct">
+                <i class="bi bi-plus-lg me-1"></i> নতুন পণ্য
+            </button>
+        </div>
+    </div>
+
+    <!-- Search + Sub-category filter -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-7">
+                    <label class="form-label small text-muted mb-1">পণ্য খুঁজুন</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="productSearch"
+                               placeholder="পণ্যের নাম, কোড বা সাইজ/ব্র্যান্ড দিয়ে খুঁজুন...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">সাব-ক্যাটাগরি ফিল্টার</label>
+                    <select class="form-select form-select-sm" id="subcatFilter" data-no-search="1">
+                        <option value="">সব সাব-ক্যাটাগরি</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnClearFilter" title="ফিল্টার মুছুন">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category tabs + tables (rendered by the inline script below) -->
+    <ul class="nav nav-tabs mb-3" id="productTabs"></ul>
+    <div class="tab-content" id="productTabContent"></div>
+</div>
+
+<!-- ============ PRODUCT MODAL ============ -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="productForm">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="modalTitle">
+                        <i class="bi bi-box-seam me-1 text-danger"></i> নতুন পণ্য
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="productId">
+                    <input type="hidden" name="image" id="productImage">
+
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold">ক্যাটাগরি <span class="text-danger">*</span></label>
+                            <select name="category_id" id="productCategory" class="form-select" required>
+                                <option value="">— ক্যাটাগরি নির্বাচন করুন —</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold">সাব-ক্যাটাগরি</label>
+                            <select name="subcategory_id" id="productSubcategory" class="form-select" data-no-search="1">
+                                <option value="">— নেই —</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">পণ্যের নাম <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="productName" class="form-control"
+                               placeholder="যেমন: Steel Rod 12mm / Jamuna Cement" required>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">পণ্য কোড</label>
+                            <input type="text" name="product_code" id="productCode" class="form-control"
+                                   placeholder="খালি রাখলে অটো হবে" maxlength="50">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">সাইজ / ব্র্যান্ড</label>
+                            <input type="text" name="size_brand" id="sizeBrand" class="form-control"
+                                   placeholder="যেমন: 12mm / JAMUNA">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">ইউনিট <span class="text-danger">*</span></label>
+                            <select name="unit" id="productUnit" class="form-select" required>
+                                <option value="ton">টন (ton)</option>
+                                <option value="bag">ব্যাগ (bag)</option>
+                                <option value="pcs">পিস (pcs)</option>
+                                <option value="sqft">বর্গফুট (sqft)</option>
+                                <option value="cft">ঘনফুট (cft)</option>
+                                <option value="kg">কেজি (kg)</option>
+                                <option value="liter">লিটার (liter)</option>
+                                <option value="other">অন্যান্য</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">ক্রয় দাম (৳) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" name="buy_price"
+                                   id="buyPrice" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">বিক্রয় দাম (৳) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" name="sell_price"
+                                   id="sellPrice" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">পাইকারি দাম (৳)</label>
+                            <input type="number" step="0.01" min="0" name="wholesale_price"
+                                   id="wholesalePrice" class="form-control" value="0">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label fw-semibold">মিনিমাম স্টক (Alert)</label>
+                            <input type="number" step="0.01" min="0" name="min_stock"
+                                   id="minStock" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-8 mb-2">
+                            <label class="form-label fw-semibold">পণ্যের ছবি</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="file" class="form-control" id="imageFile" accept="image/jpeg,image/png,image/webp">
+                                <span id="imagePreviewWrap" class="d-none">
+                                    <img src="" id="imagePreview" class="rounded border"
+                                         style="width:44px;height:44px;object-fit:cover">
+                                </span>
+                            </div>
+                            <small class="text-muted">ডেমোতে ছবি আপলোড কাজ করে না — এর জন্য সার্ভার দরকার।</small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger py-2 d-none" id="formError"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" id="btnSave">
+                        <i class="bi bi-check-lg me-1"></i> সেভ করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============ QR MODAL ============ -->
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="bi bi-qr-code me-1 text-danger"></i> পণ্যের QR কোড</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" id="qrBody">
+                <div id="qrCanvas" class="d-inline-block p-2 bg-white border rounded"></div>
+                <p class="fw-semibold mt-2 mb-0" id="qrProductName"></p>
+                <code id="qrProductCode"></code>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">বন্ধ</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnPrintQr">
+                    <i class="bi bi-printer me-1"></i>প্রিন্ট
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ PRODUCT VIEW MODAL ============ -->
+<div class="modal fade" id="productViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="bi bi-eye me-1 text-info"></i> পণ্যের বিস্তারিত</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-4">
+                    <div class="col-md-5 text-center">
+                        <div id="pvImageWrap" class="border rounded bg-light d-flex align-items-center justify-content-center"
+                             style="min-height:240px;overflow:hidden">
+                            <img src="" id="pvImage" alt="" class="img-fluid d-none"
+                                 style="max-height:320px;object-fit:contain;cursor:zoom-in"
+                                 title="পূর্ণ আকারে দেখতে ক্লিক করুন">
+                            <span id="pvNoImage" class="text-muted"><i class="bi bi-image fs-1"></i><br>ছবি নেই</span>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <h4 class="fw-bold mb-1" id="pvName">—</h4>
+                        <p class="mb-3"><code id="pvCode" class="fs-6"></code></p>
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><td class="text-muted" style="width:45%">ক্যাটাগরি</td><td class="fw-semibold" id="pvCategory">—</td></tr>
+                                <tr><td class="text-muted">সাব-ক্যাটাগরি</td><td id="pvSubcategory">—</td></tr>
+                                <tr><td class="text-muted">সাইজ / ব্র্যান্ড</td><td id="pvSizeBrand">—</td></tr>
+                                <tr><td class="text-muted">ইউনিট</td><td id="pvUnit">—</td></tr>
+                                <tr><td class="text-muted">ক্রয় দাম</td><td class="fw-semibold" id="pvBuy">—</td></tr>
+                                <tr><td class="text-muted">বিক্রয় দাম</td><td class="fw-semibold text-success" id="pvSell">—</td></tr>
+                                <tr><td class="text-muted">পাইকারি দাম</td><td id="pvWholesale">—</td></tr>
+                                <tr><td class="text-muted">মিনিমাম স্টক (Alert)</td><td id="pvMinStock">—</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">বন্ধ</button>
+                <button type="button" class="btn btn-primary btn-sm" id="pvEditBtn">
+                    <i class="bi bi-pencil me-1"></i>সম্পাদনা
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ BRANCH PRICE MODAL ============ -->
+<div class="modal fade" id="branchPriceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-buildings me-1 text-danger"></i>
+                    ব্রাঞ্চ ভিত্তিক মূল্য — <span id="bpProductName"></span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">
+                    খালি রাখলে কেন্দ্রীয় (সেন্ট্রাল) দাম প্রযোজ্য হবে। শুধু যে ব্রাঞ্চে ভিন্ন দাম দরকার সেখানে লিখুন।
+                </p>
+                <input type="hidden" id="bpProductId">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ব্রাঞ্চ</th>
+                                <th style="width:120px">ক্রয় (৳)</th>
+                                <th style="width:120px">বিক্রয় (৳)</th>
+                                <th style="width:120px">পাইকারি (৳)</th>
+                                <th style="width:110px">মিন. স্টক</th>
+                                <th style="width:80px" class="text-center">বিক্রয়যোগ্য</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bpBody"></tbody>
+                    </table>
+                </div>
+                <div class="alert alert-danger py-2 mt-2 d-none" id="bpError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">বাতিল</button>
+                <button type="button" class="btn btn-primary" id="btnSaveBranchPrices">
+                    <i class="bi bi-check-lg me-1"></i> সংরক্ষণ করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ CATEGORY MANAGEMENT MODAL ============ -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="bi bi-tags me-1 text-danger"></i> ক্যাটাগরি ম্যানেজমেন্ট</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#catManageTab" type="button">ক্যাটাগরি</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#subcatManageTab" type="button">সাব-ক্যাটাগরি</button></li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="catManageTab">
+                        <ul class="list-group mb-3" id="categoryList"></ul>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newCategoryName"
+                                   placeholder="নতুন ক্যাটাগরির নাম" maxlength="100">
+                            <button class="btn btn-primary" id="btnAddCategory"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <div class="alert alert-danger py-2 mt-2 d-none" id="catError"></div>
+                    </div>
+
+                    <div class="tab-pane fade" id="subcatManageTab">
+                        <ul class="list-group mb-3" id="subcategoryList"></ul>
+                        <div class="row g-2">
+                            <div class="col-5">
+                                <select class="form-select" id="newSubcatCategory" data-no-search="1">
+                                    <option value="">ক্যাটাগরি</option>
+                                </select>
+                            </div>
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newSubcatName"
+                                           placeholder="সাব-ক্যাটাগরির নাম" maxlength="100">
+                                    <button class="btn btn-primary" id="btnAddSubcat"><i class="bi bi-plus-lg"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-danger py-2 mt-2 d-none" id="subcatError"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>রিফ্রেশ করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ DELETE CATEGORY CONFIRM MODAL ============ -->
+<div class="modal fade" id="delCatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i> ক্যাটাগরি ডিলিট</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2 small">
+                    আপনি <strong class="text-danger" id="delCatName"></strong> ক্যাটাগরিটি
+                    ডিলিট করতে চাচ্ছেন। এটি স্থায়ীভাবে মুছে যাবে।
+                </p>
+                <p class="mb-2 small text-muted">নিশ্চিত করতে নিচে ক্যাটাগরির নাম <strong>হুবহু</strong> লিখুন:</p>
+                <input type="text" class="form-control" id="delCatConfirmInput"
+                       placeholder="ক্যাটাগরির নাম লিখুন" autocomplete="off">
+                <input type="hidden" id="delCatId">
+                <div class="alert alert-danger py-2 mt-2 d-none" id="delCatError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">বাতিল</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelCat" disabled>
+                    <i class="bi bi-trash me-1"></i> ডিলিট নিশ্চিত করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script src="assets/js/demo/seed.js"></script>
+<script src="assets/js/demo/db.js"></script>
+<script src="assets/js/demo/auth.js"></script>
+<script src="assets/js/demo/compute.js"></script>
+<script src="assets/js/demo/apiRouter.js"></script>
+<script src="assets/js/demo/api/dashboard.js"></script>
+<script src="assets/js/demo/api/products.js"></script>
+<script src="assets/js/demo/mockApi.js"></script>
+<script src="assets/js/demo/layout.js"></script>
+
+<script>
+const BASE_URL = '.';
+const BASE     = '.';
+const IS_ADMIN = Layout.boot({ guard: 'managerOrAdmin' }) && DemoAuth.isAdmin();
+
+// pages/products.php rendered the tabs, tables and category lists in PHP.
+// The demo builds them here, synchronously, so assets/js/products.js runs
+// unmodified — it binds to these rows at load and reloads the page after a
+// save, which re-renders from localStorage.
+const CATEGORIES = DemoDB.table('product_categories')
+    .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+const SUBCATEGORIES = DemoDB.table('product_subcategories')
+    .map(s => Object.assign({}, s, {
+        category_name: (DemoDB.find('product_categories', s.category_id) || {}).name || '',
+    }))
+    .sort((a, b) =>
+        String(a.category_name).localeCompare(String(b.category_name)) ||
+        String(a.name).localeCompare(String(b.name)));
+
+const BRANCHES = DemoDB.table('branches').filter(b => Number(b.is_active) === 1);
+
+(() => {
+    const esc   = Layout.esc;
+    const money = n => parseFloat(n || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }) + ' ৳';
+    const trimZeros = n => String(parseFloat(n || 0));
+
+    const productsOf = (categoryId) => DemoDB.table('products')
+        .filter(p => Number(p.is_active) === 1 && Number(p.category_id) === Number(categoryId))
+        .map(p => Object.assign({}, p, {
+            subcategory_name: p.subcategory_id
+                ? (DemoDB.find('product_subcategories', p.subcategory_id) || {}).name || null
+                : null,
+        }))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+    function productRow(p) {
+        return `
+        <tr class="product-row"
+            data-name="${esc(String(p.name).toLowerCase())}"
+            data-code="${esc(String(p.product_code || '').toLowerCase())}"
+            data-size="${esc(String(p.size_brand || '').toLowerCase())}"
+            data-subcat-id="${p.subcategory_id ?? ''}">
+            <td>
+                <span class="d-inline-flex align-items-center justify-content-center rounded border bg-light text-muted"
+                      style="width:42px;height:42px"><i class="bi bi-image"></i></span>
+            </td>
+            <td class="fw-semibold">${esc(p.name)}</td>
+            <td><code class="small">${esc(p.product_code || '—')}</code></td>
+            <td>${p.subcategory_name
+                ? '<span class="badge bg-info-subtle text-info-emphasis border">' + esc(p.subcategory_name) + '</span>'
+                : '<span class="text-muted">—</span>'}</td>
+            <td><span class="badge bg-light text-dark border">${esc(p.size_brand || '—')}</span></td>
+            <td>${esc(p.unit)}</td>
+            <td class="text-end">${money(p.buy_price)}</td>
+            <td class="text-end">${money(p.sell_price)}</td>
+            <td class="text-end">${parseFloat(p.wholesale_price) > 0 ? money(p.wholesale_price) : '—'}</td>
+            <td class="text-end">${trimZeros(p.min_stock)} ${esc(p.unit)}</td>
+            <td class="text-center text-nowrap">
+                <button class="btn btn-sm btn-outline-info btn-view" data-id="${p.id}" title="বিস্তারিত দেখুন">
+                    <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary btn-qr"
+                        data-id="${p.id}" data-code="${esc(p.product_code || '')}"
+                        data-name="${esc(p.name)}" title="QR কোড">
+                    <i class="bi bi-qr-code"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success btn-branch-price"
+                        data-id="${p.id}" data-name="${esc(p.name)}" title="ব্রাঞ্চ মূল্য">
+                    <i class="bi bi-buildings"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${p.id}" title="সম্পাদনা">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger btn-delete"
+                        data-id="${p.id}" data-name="${esc(p.name)}" title="ডিলিট">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }
+
+    function productTable(items) {
+        const body = items.length
+            ? items.map(productRow).join('')
+            : `<tr class="row-empty"><td colspan="11" class="text-center text-muted py-4">
+                   কোন পণ্য নেই। "নতুন পণ্য" বাটনে ক্লিক করুন।
+               </td></tr>`;
+
+        return `
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:56px">ছবি</th>
+                                <th>পণ্যের নাম</th>
+                                <th>কোড</th>
+                                <th>সাব-ক্যাটাগরি</th>
+                                <th>সাইজ / ব্র্যান্ড</th>
+                                <th>ইউনিট</th>
+                                <th class="text-end">ক্রয় দাম</th>
+                                <th class="text-end">বিক্রয় দাম</th>
+                                <th class="text-end">পাইকারি</th>
+                                <th class="text-end">মিন. স্টক</th>
+                                <th class="text-center" style="width:170px">অ্যাকশন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${body}
+                            <tr class="row-no-match d-none">
+                                <td colspan="11" class="text-center text-muted py-4">
+                                    <i class="bi bi-search me-1"></i>ফিল্টারের সাথে মিলে এমন কোনো পণ্য নেই।
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Tabs + panes
+    document.getElementById('productTabs').innerHTML = CATEGORIES.map((c, i) => `
+        <li class="nav-item">
+            <button class="nav-link ${i === 0 ? 'active' : ''}" data-bs-toggle="tab"
+                    data-bs-target="#catTab${c.id}">
+                <i class="bi bi-tag me-1"></i>${esc(c.name)}
+                <span class="badge bg-secondary ms-1">${productsOf(c.id).length}</span>
+            </button>
+        </li>`).join('');
+
+    document.getElementById('productTabContent').innerHTML = CATEGORIES.map((c, i) => `
+        <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" id="catTab${c.id}" data-category-id="${c.id}">
+            ${productTable(productsOf(c.id))}
+        </div>`).join('');
+
+    // Product modal category options
+    document.getElementById('productCategory').innerHTML =
+        '<option value="">— ক্যাটাগরি নির্বাচন করুন —</option>' +
+        CATEGORIES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+
+    // Category management list
+    document.getElementById('categoryList').innerHTML = CATEGORIES.length
+        ? CATEGORIES.map(c => `
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <span>${esc(c.name)}</span>
+                <button class="btn btn-sm btn-outline-danger btn-del-cat"
+                        data-id="${c.id}" data-name="${esc(c.name)}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </li>`).join('')
+        : '<li class="list-group-item text-muted text-center" id="noCatMsg">কোনো ক্যাটাগরি নেই</li>';
+
+    // Sub-category management list
+    document.getElementById('subcategoryList').innerHTML = SUBCATEGORIES.length
+        ? SUBCATEGORIES.map(s => `
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2"
+                data-subcat-id="${s.id}">
+                <span>${esc(s.name)} <small class="text-muted">(${esc(s.category_name)})</small></span>
+                <button class="btn btn-sm btn-outline-danger btn-del-subcat" data-id="${s.id}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </li>`).join('')
+        : '<li class="list-group-item text-muted text-center" id="noSubcatMsg">কোনো সাব-ক্যাটাগরি নেই</li>';
+
+    document.getElementById('newSubcatCategory').innerHTML =
+        '<option value="">ক্যাটাগরি</option>' +
+        CATEGORIES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+})();
+</script>
+
+<script src="assets/js/app.js"></script>
+<!-- unchanged copy of the original assets/js/products.js -->
+<script src="assets/js/products.js"></script>
+</body>
+</html>
