@@ -91,7 +91,7 @@ Two options in Settings → Pages:
 Ported against `main` (25 pages, 125 endpoints, 38 tables).
 
 - [x] Foundation — storage, views, roles, branch scoping, layout, login, dashboard
-- [ ] Products, categories, stock, alert centre
+- [x] Products, categories, stock, alert centre
 - [ ] Transfers, branches
 - [ ] Sales and returns
 - [ ] Customers, customer account, khata, payments, installments
