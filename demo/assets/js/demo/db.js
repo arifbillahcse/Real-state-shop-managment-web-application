@@ -5,7 +5,7 @@
 
 const DemoDB = (() => {
 
-    const KEY = 'niharika_demo_v2';
+    const KEY = 'niharika_demo_v3';
     let state = null;
 
     // localStorage throws in private mode / with site data blocked, so fall
@@ -30,7 +30,7 @@ const DemoDB = (() => {
         if (raw) {
             try {
                 const parsed = JSON.parse(raw);
-                if (parsed && parsed._version === 2) { state = parsed; return state; }
+                if (parsed && parsed._version === 3) { state = parsed; return state; }
             } catch (e) { /* corrupt payload — reseed */ }
         }
 
@@ -120,7 +120,7 @@ const DemoDB = (() => {
     function exportAll() { init(); return JSON.parse(JSON.stringify(state)); }
 
     function importAll(data) {
-        if (!data || data._version !== 2) return false;
+        if (!data || data._version !== 3) return false;
         state = data;
         write();
         return true;

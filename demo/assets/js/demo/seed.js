@@ -167,10 +167,13 @@ const Seed = (() => {
     const settings = {
         shop_name:      'নিহারিকা এন্টারপ্রাইজ',
         shop_address:   'ঢাকা, বাংলাদেশ',
-        shop_phone:     '01XXXXXXXXX',
+        shop_phone:     '01711000000',
         shop_email:     'shop@example.com',
         currency:       'BDT',
         invoice_prefix: 'INV',
+        // install.sql ships these blank/placeholder; the demo fills them in so
+        // invoices and the alert centre have something real to show.
+        alert_phone:    '01711000000',
     };
 
     const expense_categories = [
@@ -194,6 +197,33 @@ const Seed = (() => {
     ].map(v => ({ version: v, name: 'migration_v' + v, applied_at: stamp(30) }));
 
     // ---- Builder ----
+
+    // ---- Low stock alert history ----
+    // AlertCenter::logToday() writes one row per product/branch/day. Seeding a
+    // few weeks of them gives the alert centre's history tab a demand signal
+    // to show on the first visit.
+    const low_stock_history = (() => {
+        const rows = [];
+        let id = 0;
+        // [product_id, branch_id, stock, threshold, tier, days ago]
+        const spec = [
+            [4, null, 0.8, 2, 'red',    1], [4, null, 0.8, 2, 'red',    3],
+            [4, null, 1.2, 2, 'yellow', 6], [4, null, 0.5, 2, 'red',    9],
+            [4, null, 1.6, 2, 'yellow', 14], [4, null, 0.9, 2, 'red',   21],
+            [4, null, 1.8, 2, 'yellow', 30], [4, null, 0.4, 2, 'red',   45],
+            [9, 3,    0.0, 1, 'red',    2], [9, 3,    0.0, 1, 'red',    11],
+            [9, 3,    0.0, 1, 'red',    25],
+            [7, null, 180, 200, 'yellow', 8], [7, null, 150, 200, 'yellow', 33],
+        ];
+        spec.forEach(([productId, branchId, qty, threshold, tier, ago]) => {
+            rows.push({
+                id: ++id, product_id: productId, branch_id: branchId,
+                stock_qty: qty, threshold, tier,
+                alerted_on: daysAgo(ago), created_at: stamp(ago),
+            });
+        });
+        return rows;
+    })();
 
     function build() {
         const stock_inbound = inboundSpec.map((row, i) => {
@@ -302,7 +332,7 @@ const Seed = (() => {
         });
 
         return {
-            _version:   2,
+            _version:   3,
             _seeded_at: new Date().toISOString(),
 
             // populated
@@ -325,7 +355,8 @@ const Seed = (() => {
             customer_ledger_items: [], customer_notes: [], customer_phones: [],
             customer_references: [], due_assignments: [], expenses: [],
             free_notes: [], installment_plans: [], installments: [],
-            low_stock_history: [], notification_log: [],
+            low_stock_history: clone(low_stock_history),
+            notification_log: [],
             purchase_agreement_items: [], purchase_agreements: [],
             quotation_items: [], quotations: [],
             sale_return_items: [], sale_returns: [], staff_tasks: [],

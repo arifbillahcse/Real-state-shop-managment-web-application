@@ -62,7 +62,7 @@ grants their role.
 
 ## Data
 
-Everything lives in `localStorage` under `niharika_demo_v2` and survives a
+Everything lives in `localStorage` under `niharika_demo_v3` and survives a
 refresh. It is per-browser and never leaves the visitor's machine. Use
 **ডেমো ডেটা রিসেট** in the navbar menu to restore the seed.
 
