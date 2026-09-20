@@ -1,11 +1,13 @@
 <?php
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
+require_once __DIR__ . '/../classes/Branch.php';
 requireLogin();
 requireAdmin();
 
 $pageTitle  = 'ব্যবহারকারী';
 $currentUid = (int)($_SESSION['user_id'] ?? 0);
+$branches   = Branch::getBranches();
 
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/sidebar.php';
@@ -13,7 +15,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i>ব্যবহারকারী ব্যবস্থাপনা</h4>
     <button class="btn btn-primary" onclick="openAddModal()">
       <i class="bi bi-person-plus me-1"></i>নতুন ব্যবহারকারী
@@ -29,6 +31,9 @@ include __DIR__ . '/../includes/sidebar.php';
             <th>নাম</th>
             <th>ইউজারনেম</th>
             <th class="text-center">রোল</th>
+            <?php if (!empty($branches)): ?>
+            <th>ব্রাঞ্চ</th>
+            <?php endif; ?>
             <th class="text-center">স্ট্যাটাস</th>
             <th class="text-center">একশন</th>
           </tr>
@@ -75,11 +80,25 @@ include __DIR__ . '/../includes/sidebar.php';
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">রোল</label>
-            <select class="form-select" id="userRole" name="role">
+            <select class="form-select" id="userRole" name="role" onchange="toggleBranchField()">
               <option value="staff">স্টাফ (Staff)</option>
+              <option value="assistant_manager">সহকারী ম্যানেজার (Assistant Manager)</option>
+              <option value="manager">ম্যানেজার (Manager)</option>
               <option value="admin">অ্যাডমিন (Admin)</option>
             </select>
           </div>
+          <?php if (!empty($branches)): ?>
+          <div class="mb-3" id="branchFieldGroup">
+            <label class="form-label fw-semibold">ব্রাঞ্চ <span class="text-danger">*</span></label>
+            <select class="form-select" id="userBranch" name="branch_id">
+              <option value="">— ব্রাঞ্চ নির্বাচন করুন —</option>
+              <?php foreach ($branches as $b): ?>
+              <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <small class="text-muted" id="branchFieldHint">স্টাফ ব্যবহারকারীর জন্য ব্রাঞ্চ নির্বাচন করুন।</small>
+          </div>
+          <?php endif; ?>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বাতিল</button>
@@ -121,6 +140,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <script>
 const BASE_URL    = '<?= BASE_URL ?>';
 const CURRENT_UID = <?= $currentUid ?>;
+const HAS_BRANCHES = <?= !empty($branches) ? 'true' : 'false' ?>;
 </script>
-<script src="<?= BASE_URL ?>/assets/js/users.js"></script>
+<script src="<?= asset('assets/js/users.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

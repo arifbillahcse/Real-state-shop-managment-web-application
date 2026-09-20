@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Supplier.php';
 requireLogin();
-requireAdmin();
+requireManagerOrAdmin();
 
 $pageTitle = 'সাপ্লাইয়ার';
 include __DIR__ . '/../includes/header.php';
@@ -12,7 +12,7 @@ include __DIR__ . '/../includes/sidebar.php';
 <div class="main-content" id="mainContent">
 <div class="container-fluid py-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="page-header">
     <h4 class="mb-0"><i class="bi bi-truck me-2"></i>সাপ্লাইয়ার ব্যবস্থাপনা</h4>
     <button class="btn btn-primary" onclick="openAddModal()">
       <i class="bi bi-plus-circle me-1"></i>নতুন সাপ্লাইয়ার
@@ -44,6 +44,10 @@ include __DIR__ . '/../includes/sidebar.php';
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="suppPaginationBar" style="display:none!important">
+      <small class="text-muted" id="suppPageInfo"></small>
+      <nav><ul class="pagination pagination-sm mb-0" id="suppPagination"></ul></nav>
     </div>
   </div>
 
@@ -87,5 +91,5 @@ include __DIR__ . '/../includes/sidebar.php';
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
 </script>
-<script src="<?= BASE_URL ?>/assets/js/suppliers.js"></script>
+<script src="<?= asset('assets/js/suppliers.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

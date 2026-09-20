@@ -3,7 +3,6 @@
 // ============================================
 
 let dailyChart = null;
-let typeChart  = null;
 
 // ---- Helpers ----
 function esc(str) {
@@ -82,9 +81,6 @@ function renderReport(d) {
     // --- Daily sales chart ---
     renderDailyChart(d.daily_sales || []);
 
-    // --- Type pie chart ---
-    renderTypeChart(d.sales_by_type || []);
-
     // --- Top products ---
     renderTopProducts(d.top_products || []);
 
@@ -139,34 +135,6 @@ function renderDailyChart(daily) {
     });
 }
 
-function renderTypeChart(byType) {
-    const map = { rod: 'রড', cement: 'সিমেন্ট' };
-    const labels = byType.map(r => map[r.product_type] || r.product_type);
-    const data   = byType.map(r => parseFloat(r.total_revenue));
-
-    if (typeChart) typeChart.destroy();
-
-    if (!byType.length) {
-        const ctx = document.getElementById('typeChart').getContext('2d');
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        return;
-    }
-
-    typeChart = new Chart(document.getElementById('typeChart'), {
-        type: 'doughnut',
-        data: {
-            labels,
-            datasets: [{
-                data,
-                backgroundColor: ['rgba(230,57,70,.8)', 'rgba(13,110,253,.8)']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
-}
 
 function renderTopProducts(list) {
     const tbody = document.getElementById('topProductsBody');

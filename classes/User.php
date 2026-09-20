@@ -23,6 +23,7 @@ class User extends BaseModel
         $_SESSION['user_name']          = $user['name'];
         $_SESSION['user_role']          = $user['role'];
         $_SESSION['user_username']      = $user['username'];
+        $_SESSION['user_branch_id']     = $user['branch_id'] ?? null;
         $_SESSION['last_regeneration']  = time();
         $_SESSION['login_time']         = time();
 
@@ -55,6 +56,16 @@ class User extends BaseModel
         return self::checkRole('admin');
     }
 
+    public static function isManager(): bool
+    {
+        return self::checkRole('manager');
+    }
+
+    public static function isAdminOrManager(): bool
+    {
+        return in_array($_SESSION['user_role'] ?? '', ['admin', 'manager'], true);
+    }
+
     public static function getCurrentUser(): array|false
     {
         if (!isLoggedIn()) return false;
@@ -67,21 +78,61 @@ class User extends BaseModel
     public static function getAll(): array
     {
         return Database::fetchAll(
-            'SELECT id, name, username, role, is_active, created_at FROM users ORDER BY id'
+            'SELECT u.id, u.name, u.username, u.role, u.is_active, u.created_at,
+                    u.branch_id, b.name AS branch_name
+             FROM users u
+             LEFT JOIN branches b ON b.id = u.branch_id
+             ORDER BY u.id'
         );
     }
 
-    public static function create(string $name, string $username, string $password, string $role): int|string
+    /** Every role the system accepts. */
+    public const ROLES = ['admin', 'manager', 'assistant_manager', 'staff'];
+
+    /**
+     * Roles that are pinned to a single branch. For these the branch is not
+     * optional — it IS the account's scope, and without it lockedBranchId()
+     * would return null and hand the user the whole business.
+     */
+    public const BRANCH_ROLES = ['assistant_manager', 'staff'];
+
+    /**
+     * Normalise the branch for a role: required for branch-scoped roles,
+     * always cleared for admin and manager (who work across branches).
+     * Returns 'BRANCH_REQUIRED' when a branch-scoped role has none.
+     */
+    private static function branchForRole(string $role, ?int $branchId): int|null|string
     {
+        if (!in_array($role, self::BRANCH_ROLES, true)) return null;
+        if ($branchId === null || $branchId <= 0)       return 'BRANCH_REQUIRED';
+
+        $branch = Database::fetchOne(
+            'SELECT id FROM branches WHERE id = ? AND is_active = 1 LIMIT 1', [$branchId]
+        );
+        return $branch ? $branchId : 'BRANCH_REQUIRED';
+    }
+
+    public static function create(
+        string $name,
+        string $username,
+        string $password,
+        string $role,
+        ?int   $branchId = null
+    ): int|string {
+        if (!in_array($role, self::ROLES, true)) return 'INVALID_ROLE';
+
         $exists = Database::fetchOne(
             'SELECT id FROM users WHERE username = ? LIMIT 1', [trim($username)]
         );
         if ($exists) return 'USERNAME_TAKEN';
 
+        $branchId = self::branchForRole($role, $branchId);
+        if (is_string($branchId)) return $branchId;
+
         $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $id = Database::insert(
-            'INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)',
-            [trim($name), trim($username), $hashed, $role]
+            'INSERT INTO users (name, username, password, role, branch_id) VALUES (?, ?, ?, ?, ?)',
+            [trim($name), trim($username), $hashed, $role, $branchId]
         );
         self::log('create_user', 'users', (int)$id, "Created user: $username");
         return (int)$id;
@@ -100,29 +151,32 @@ class User extends BaseModel
     public static function getById(int $id): array|false
     {
         return Database::fetchOne(
-            'SELECT id, name, username, role, is_active FROM users WHERE id = ? LIMIT 1',
+            'SELECT id, name, username, role, is_active, branch_id FROM users WHERE id = ? LIMIT 1',
             [$id]
         );
     }
 
-    /** Update a user's name and role (username is immutable). */
-    public static function updateUser(int $id, string $name, string $role): bool|string
+    /** Update a user's name, role, and branch (username is immutable). */
+    public static function updateUser(int $id, string $name, string $role, ?int $branchId = null): bool|string
     {
         $user = self::getById($id);
         if (!$user) return 'NOT_FOUND';
 
         $name = trim($name);
         if ($name === '') return 'NAME_REQUIRED';
-        if (!in_array($role, ['admin', 'staff'], true)) return 'INVALID_ROLE';
+        if (!in_array($role, self::ROLES, true)) return 'INVALID_ROLE';
 
         // Don't allow demoting the last active admin
         if ($user['role'] === 'admin' && $role !== 'admin' && self::countActiveAdmins() <= 1) {
             return 'LAST_ADMIN';
         }
 
+        $branchId = self::branchForRole($role, $branchId);
+        if (is_string($branchId)) return $branchId;
+
         Database::execute(
-            'UPDATE users SET name = ?, role = ? WHERE id = ?',
-            [$name, $role, $id]
+            'UPDATE users SET name = ?, role = ?, branch_id = ? WHERE id = ?',
+            [$name, $role, $branchId, $id]
         );
         self::log('update_user', 'users', $id, "Updated user: {$user['username']}");
         return true;
@@ -175,6 +229,7 @@ class User extends BaseModel
             'NOT_FOUND'       => 'ব্যবহারকারী খুঁজে পাওয়া যায়নি।',
             'NAME_REQUIRED'   => 'নাম দিন।',
             'INVALID_ROLE'    => 'সঠিক রোল নির্বাচন করুন।',
+            'BRANCH_REQUIRED' => 'এই রোলের জন্য একটি সক্রিয় ব্রাঞ্চ নির্বাচন করা বাধ্যতামূলক।',
             'LAST_ADMIN'      => 'শেষ অ্যাডমিনকে নিষ্ক্রিয় বা ডিমোট করা যাবে না।',
             'SELF_DEACTIVATE' => 'আপনি নিজের অ্যাকাউন্ট নিষ্ক্রিয় করতে পারবেন না।',
             'WEAK_PASSWORD'   => 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।',

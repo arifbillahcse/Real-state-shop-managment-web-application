@@ -3,7 +3,13 @@ require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../classes/User.php';
 requireLogin();
 
-$pageTitle = 'ড্যাশবোর্ড';
+$pageTitle   = 'ড্যাশবোর্ড';
+$branchId    = getSessionBranchId();   // null for admin
+$_isStaff    = isStaff();
+
+// Branch clause helpers
+$branchWhere = $branchId ? ' AND branch_id = ?' : '';
+$branchParam = $branchId ? [$branchId] : [];
 
 // --- Quick stats ---
 $todaySales = Database::fetchOne(
@@ -11,33 +17,77 @@ $todaySales = Database::fetchOne(
             COALESCE(SUM(paid_amount),0)  AS paid,
             COUNT(*) AS count
      FROM sales
-     WHERE sale_date = CURDATE() AND status = 'completed'"
+     WHERE sale_date = CURDATE() AND status = 'completed'" . $branchWhere,
+    $branchParam
 );
 
-$totalDue = Database::fetchOne(
-    "SELECT COALESCE(SUM(due_amount),0) AS total FROM sales WHERE status = 'completed'"
-);
+if (!$_isStaff) {
+    $todayPayments = Database::fetchOne(
+        "SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS count
+         FROM payments
+         WHERE payment_date = CURDATE()"
+    );
+    $totalDue = Database::fetchOne(
+        "SELECT COALESCE(SUM(due_amount),0) AS total
+         FROM sales WHERE status = 'completed' AND ledger_id IS NULL"
+    );
+}
 
-$stockValue = Database::fetchOne(
-    "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total FROM vw_current_stock"
-);
-
-$lowStockItems = Database::fetchAll(
-    'SELECT * FROM vw_current_stock WHERE current_stock <= min_stock AND min_stock > 0'
-);
+if ($branchId) {
+    try {
+        $stockValue = Database::fetchOne(
+            "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total
+             FROM vw_branch_stock WHERE branch_id = ?",
+            [$branchId]
+        );
+        $lowStockItems = Database::fetchAll(
+            'SELECT * FROM vw_branch_stock WHERE branch_id = ? AND current_stock <= min_stock AND min_stock > 0',
+            [$branchId]
+        );
+    } catch (\Throwable $e) {
+        error_log('vw_branch_stock error: ' . $e->getMessage());
+        $stockValue    = ['total' => 0];
+        $lowStockItems = [];
+        $viewError     = true;
+    }
+} else {
+    $stockValue = Database::fetchOne(
+        "SELECT COALESCE(SUM(current_stock * buy_price),0) AS total FROM vw_current_stock"
+    );
+    $lowStockItems = Database::fetchAll(
+        'SELECT * FROM vw_current_stock WHERE current_stock <= min_stock AND min_stock > 0'
+    );
+}
 
 // Last 7 days sales for chart
 $chartData = Database::fetchAll(
     "SELECT sale_date, COALESCE(SUM(total_amount),0) AS total
      FROM sales
      WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-       AND status = 'completed'
+       AND status = 'completed'" . $branchWhere . "
      GROUP BY sale_date
-     ORDER BY sale_date"
+     ORDER BY sale_date",
+    $branchParam
+);
+
+// Recent 5 sales
+$recentSales = Database::fetchAll(
+    "SELECT s.id, s.invoice_number, s.sale_date,
+            COALESCE(c.name, 'Walk-in') AS customer_name,
+            s.total_amount, s.paid_amount, s.due_amount,
+            s.payment_method
+     FROM sales s
+     LEFT JOIN customers c ON c.id = s.customer_id
+     WHERE s.status = 'completed'" . $branchWhere . "
+     ORDER BY s.created_at DESC
+     LIMIT 5",
+    $branchParam
 );
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/sidebar.php';
+
+$payLabel = ['cash' => 'নগদ', 'credit' => 'বাকি', 'mobile_banking' => 'মো.ব্যাং', 'cheque' => 'চেক'];
 ?>
 
 <div class="main-content" id="mainContent">
@@ -48,17 +98,12 @@ require_once __DIR__ . '/../includes/sidebar.php';
         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><?= date('d M Y, l') ?></span>
     </div>
 
-    <!-- Low stock alert -->
-    <?php if ($lowStockItems): ?>
-    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+    <!-- View error alert (staff only, vw_branch_stock outdated) -->
+    <?php if (!empty($viewError)): ?>
+    <div class="alert alert-danger mb-3">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <strong><?= count($lowStockItems) ?>টি পণ্যের স্টক কম!</strong>
-        <?php foreach ($lowStockItems as $item): ?>
-            <span class="badge bg-danger ms-1"><?= e($item['product_name']) ?>
-                (<?= $item['current_stock'] ?> <?= e($item['unit']) ?>)
-            </span>
-        <?php endforeach; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong>ডেটাবেস ভিউ আপডেট প্রয়োজন।</strong>
+        phpMyAdmin এ <code>fix_views_after_v6.sql</code> ফাইলটি রান করুন।
     </div>
     <?php endif; ?>
 
@@ -70,7 +115,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">আজকের বিক্রয়</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$todaySales['total']) ?></h5>
+                        <h5 class="fw-bold mb-0" data-countup="<?= (float)$todaySales['total'] ?>" data-suffix=" ৳"><?= money((float)$todaySales['total']) ?></h5>
                         <small class="text-muted"><?= $todaySales['count'] ?>টি লেনদেন</small>
                     </div>
                     <div class="stat-icon bg-danger bg-opacity-10 text-danger">
@@ -80,13 +125,14 @@ require_once __DIR__ . '/../includes/sidebar.php';
             </div>
         </div>
 
+        <?php if (!$_isStaff): ?>
         <div class="col-6 col-md-3">
             <div class="card stat-card p-3 h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small mb-1">আজকের নগদ</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$todaySales['paid']) ?></h5>
-                        <small class="text-muted">প্রদত্ত</small>
+                        <p class="text-muted small mb-1">আজকের পেমেন্ট আদায়</p>
+                        <h5 class="fw-bold mb-0 text-success" data-countup="<?= (float)$todayPayments['total'] ?>" data-suffix=" ৳"><?= money((float)$todayPayments['total']) ?></h5>
+                        <small class="text-muted"><?= $todayPayments['count'] ?>টি পেমেন্ট</small>
                     </div>
                     <div class="stat-icon bg-success bg-opacity-10 text-success">
                         <i class="bi bi-cash-stack"></i>
@@ -100,7 +146,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">মোট বাকি</p>
-                        <h5 class="fw-bold text-danger mb-0"><?= money((float)$totalDue['total']) ?></h5>
+                        <h5 class="fw-bold text-danger mb-0" data-countup="<?= (float)$totalDue['total'] ?>" data-suffix=" ৳"><?= money((float)$totalDue['total']) ?></h5>
                         <small class="text-muted">সকল কাস্টমার</small>
                     </div>
                     <div class="stat-icon bg-warning bg-opacity-10 text-warning">
@@ -109,14 +155,15 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <div class="col-6 col-md-3">
             <div class="card stat-card p-3 h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted small mb-1">স্টক মূল্য</p>
-                        <h5 class="fw-bold mb-0"><?= money((float)$stockValue['total']) ?></h5>
-                        <small class="text-muted">বর্তমান স্টক</small>
+                        <h5 class="fw-bold mb-0" data-countup="<?= (float)$stockValue['total'] ?>" data-suffix=" ৳"><?= money((float)$stockValue['total']) ?></h5>
+                        <small class="text-muted"><?= $_isStaff ? 'ব্রাঞ্চ স্টক' : 'বর্তমান স্টক' ?></small>
                     </div>
                     <div class="stat-icon bg-info bg-opacity-10 text-info">
                         <i class="bi bi-boxes"></i>
@@ -128,7 +175,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
     </div>
 
     <!-- Sales Chart + Low Stock Table -->
-    <div class="row g-3">
+    <div class="row g-3 mb-4">
 
         <div class="col-md-7">
             <div class="card border-0 shadow-sm">
@@ -150,6 +197,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     <?php if (empty($lowStockItems)): ?>
                     <p class="text-center text-muted py-4 small">সব পণ্যের স্টক ঠিক আছে।</p>
                     <?php else: ?>
+                    <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead><tr><th>পণ্য</th><th>স্টক</th><th>মিনিমাম</th></tr></thead>
                         <tbody>
@@ -162,12 +210,58 @@ require_once __DIR__ . '/../includes/sidebar.php';
                         <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
     </div>
+
+    <!-- Recent Sales -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-clock-history me-1 text-danger"></i> সাম্প্রতিক বিক্রয়</span>
+            <a href="<?= BASE_URL ?>/pages/sales.php" class="btn btn-sm btn-outline-secondary">
+                সব দেখুন <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="table-responsive">
+            <?php if (empty($recentSales)): ?>
+            <p class="text-center text-muted py-4 small">এখনো কোনো বিক্রয় নেই।</p>
+            <?php else: ?>
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ইনভয়েস</th>
+                        <th>তারিখ</th>
+                        <th>কাস্টমার</th>
+                        <th>পেমেন্ট</th>
+                        <th class="text-end">মোট</th>
+                        <th class="text-end">পরিশোধ</th>
+                        <th class="text-end">বাকি</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($recentSales as $s): ?>
+                <tr>
+                    <td class="fw-semibold"><?= e($s['invoice_number']) ?></td>
+                    <td><?= e($s['sale_date']) ?></td>
+                    <td><?= e($s['customer_name']) ?></td>
+                    <td><span class="badge bg-secondary"><?= e($payLabel[$s['payment_method']] ?? $s['payment_method']) ?></span></td>
+                    <td class="text-end"><?= money((float)$s['total_amount']) ?></td>
+                    <td class="text-end text-success"><?= money((float)$s['paid_amount']) ?></td>
+                    <td class="text-end <?= (float)$s['due_amount'] > 0 ? 'text-danger fw-semibold' : '' ?>">
+                        <?= money((float)$s['due_amount']) ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
 </div>
 
 <script>
