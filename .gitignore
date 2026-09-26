@@ -9,6 +9,8 @@ uploads/*
 !uploads/products/.gitkeep
 !uploads/customers/
 !uploads/customers/.gitkeep
+!uploads/shop/
+!uploads/shop/.gitkeep
 
 # Ignore OS files
 .DS_Store

@@ -13,4 +13,5 @@ jsonResponse(true, '', [
     'shop_name'    => Setting::get('shop_name',    APP_NAME),
     'shop_address' => Setting::get('shop_address', ''),
     'shop_phone'   => Setting::get('shop_phone',   ''),
+    'shop_logo'    => Setting::get('shop_logo',    ''),
 ]);

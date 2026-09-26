@@ -113,6 +113,29 @@ include __DIR__ . '/../includes/sidebar.php';
               <form id="settingsForm" onsubmit="saveSettings(event)">
 
                 <div class="mb-4">
+                  <label class="form-label fw-semibold text-muted small text-uppercase" style="letter-spacing:.5px">লোগো</label>
+                  <div class="d-flex align-items-center gap-3">
+                    <div id="shopLogoPreviewWrap" class="border rounded d-flex align-items-center justify-content-center flex-shrink-0 <?= empty($s['shop_logo']) ? 'd-none' : '' ?>"
+                         style="width:72px;height:72px;background:#fff">
+                      <img id="shopLogoPreview" src="<?= !empty($s['shop_logo']) ? e(asset($s['shop_logo'])) : '' ?>"
+                           style="max-width:100%;max-height:100%;object-fit:contain">
+                    </div>
+                    <div class="flex-grow-1">
+                      <input type="file" class="form-control form-control-sm" id="shopLogoFile"
+                             accept="image/jpeg,image/png,image/webp">
+                      <small class="text-muted d-block mt-1">
+                        ইনভয়েসের বাম পাশে দেখাবে। JPG/PNG/WebP, সর্বোচ্চ ৩ MB।
+                      </small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 <?= empty($s['shop_logo']) ? 'd-none' : '' ?>"
+                            id="btnRemoveShopLogo" onclick="removeShopLogo()" title="লোগো সরান">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                  <input type="hidden" name="shop_logo" id="shopLogoPath" value="<?= e($s['shop_logo'] ?? '') ?>">
+                </div>
+
+                <div class="mb-4">
                   <label class="form-label fw-semibold text-muted small text-uppercase" style="letter-spacing:.5px">দোকানের নাম</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-shop"></i></span>
@@ -232,16 +255,27 @@ include __DIR__ . '/../includes/sidebar.php';
             </div>
             <div class="card-body text-center py-4">
               <div class="border rounded p-3 bg-white text-start" style="font-size:.88rem">
-                <div class="fw-bold fs-5 text-center mb-1"><?= e($s['shop_name'] ?? 'দোকানের নাম') ?></div>
-                <div class="text-muted text-center small mb-1"><?= e($s['shop_address'] ?? 'ঠিকানা') ?></div>
-                <div class="text-muted text-center small">📞 <?= e($s['shop_phone'] ?? '—') ?></div>
+                <div class="d-flex align-items-center gap-2 mb-1" id="invoicePreviewHeader">
+                  <?php if (!empty($s['shop_logo'])): ?>
+                  <img id="invoicePreviewLogo" src="<?= e(asset($s['shop_logo'])) ?>"
+                       style="width:44px;height:44px;object-fit:contain;flex-shrink:0">
+                  <?php else: ?>
+                  <img id="invoicePreviewLogo" src="" class="d-none"
+                       style="width:44px;height:44px;object-fit:contain;flex-shrink:0">
+                  <?php endif; ?>
+                  <div class="flex-grow-1">
+                    <div class="fw-bold fs-5" id="invoicePreviewName"><?= e($s['shop_name'] ?? 'দোকানের নাম') ?></div>
+                    <div class="text-muted small" id="invoicePreviewAddress"><?= e($s['shop_address'] ?? 'ঠিকানা') ?></div>
+                    <div class="text-muted small" id="invoicePreviewPhone">📞 <?= e($s['shop_phone'] ?? '—') ?></div>
+                  </div>
+                </div>
                 <hr class="my-2">
                 <div class="d-flex justify-content-between small">
                   <span>ইনভয়েস নং:</span>
                   <span class="fw-semibold"><?= e($s['invoice_prefix'] ?? 'INV') ?>-20260601-0001</span>
                 </div>
               </div>
-              <small class="text-muted mt-2 d-block">সেটিংস সংরক্ষণের পর ইনভয়েস/কোটেশনে এভাবে দেখাবে</small>
+              <small class="text-muted mt-2 d-block">সেটিংস সংরক্ষণের পর ইনভয়েস/কোটেশনে এভাবে দেখাবে — লোগো বাম পাশে, তথ্য ডান পাশে</small>
             </div>
           </div>
 
@@ -453,6 +487,54 @@ function saveSettings(e) {
     ajaxPost(BASE_URL + '/api/save_settings.php', data, res => {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>সেটিংস সংরক্ষণ করুন';
+        showToast(res.message, res.success ? 'success' : 'danger');
+    });
+}
+
+// ── Logo upload ──────────────────────────────────────────────────────────────
+// Uploads (and, on the server, saves the setting) as soon as a file is
+// picked — the admin shouldn't have to also press "সংরক্ষণ করুন" for
+// something as self-contained as swapping a logo.
+const shopLogoFile = document.getElementById('shopLogoFile');
+shopLogoFile?.addEventListener('change', async () => {
+    if (!shopLogoFile.files.length) return;
+    shopLogoFile.disabled = true;
+    try {
+        const data = await uploadImageFile(
+            `${BASE_URL}/api/upload_shop_logo.php`, 'logo', shopLogoFile.files[0]);
+        if (data.success) {
+            applyShopLogo(data.path, data.version);
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message, 'danger');
+        }
+    } finally {
+        shopLogoFile.value = '';
+        shopLogoFile.disabled = false;
+    }
+});
+
+function applyShopLogo(path, version) {
+    const url = path ? `${BASE_URL}/${path}?v=${version || Date.now()}` : '';
+    document.getElementById('shopLogoPath').value = path || '';
+
+    const wrap = document.getElementById('shopLogoPreviewWrap');
+    const img  = document.getElementById('shopLogoPreview');
+    wrap?.classList.toggle('d-none', !path);
+    if (img) img.src = url;
+    document.getElementById('btnRemoveShopLogo')?.classList.toggle('d-none', !path);
+
+    const previewImg = document.getElementById('invoicePreviewLogo');
+    if (previewImg) {
+        previewImg.src = url;
+        previewImg.classList.toggle('d-none', !path);
+    }
+}
+
+function removeShopLogo() {
+    if (!confirm('লোগো সরিয়ে ফেলবেন?')) return;
+    ajaxPost(BASE_URL + '/api/save_settings.php', { shop_logo: '' }, res => {
+        if (res.success) applyShopLogo('', null);
         showToast(res.message, res.success ? 'success' : 'danger');
     });
 }
