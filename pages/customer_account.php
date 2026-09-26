@@ -644,6 +644,7 @@ const SHOP          = <?= json_encode([
     'name'    => Setting::get('shop_name', APP_NAME),
     'address' => Setting::get('shop_address', ''),
     'phone'   => Setting::get('shop_phone', ''),
+    'logo'    => Setting::get('shop_logo', ''),
 ]) ?>;
 </script>
 <script src="<?= asset('assets/js/customer_account.js') ?>"></script>

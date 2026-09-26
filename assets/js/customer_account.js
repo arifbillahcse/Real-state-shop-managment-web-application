@@ -12,6 +12,18 @@ function fmt(n) {
     }) + ' ৳';
 }
 
+// Shared by every print template below (খাতা, চুক্তিপত্র, রিটার্ন মেমো):
+// logo to the left of the shop name when one is set, otherwise the
+// original centered name only — same treatment as the sales invoice.
+function shopHeaderHtml() {
+    if (!SHOP.logo) return `<h2>${esc(SHOP.name)}</h2>`;
+    return `
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px">
+            <img src="${BASE_URL}/${esc(SHOP.logo)}" alt="logo" style="width:48px;height:48px;object-fit:contain">
+            <h2 style="text-align:left">${esc(SHOP.name)}</h2>
+        </div>`;
+}
+
 const TYPE_LABELS = {
     goods:          ['মালামাল',      'primary'],
     deposit:        ['টাকা জমা',     'success'],
@@ -883,7 +895,7 @@ function printLedger() {
             th, td { border: 1px solid #999; padding: 5px 8px; }
             th { background: #eee; }
         </style></head><body>
-        <h2>${esc(SHOP.name)}</h2>
+        ${shopHeaderHtml()}
         <div class="meta">${esc(SHOP.address)} · ${esc(SHOP.phone)}</div>
         <h4>কাস্টমার খাতা — ${esc(CUSTOMER.name)} ${CUSTOMER.account_no ? '(' + esc(CUSTOMER.account_no) + ')' : ''}</h4>
         <div class="meta">${esc(CUSTOMER.phone || '')} · ${esc(CUSTOMER.address || '')}</div>
@@ -931,7 +943,7 @@ function printAgreement() {
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
             .page2 { page-break-before: always; }
         </style></head><body>
-        <h2>${esc(SHOP.name)}</h2>
+        ${shopHeaderHtml()}
         <div class="meta">${esc(SHOP.address)} · ${esc(SHOP.phone)}</div>
         <h3>অগ্রিম পণ্য ক্রয় রশিদ</h3>
         <div class="meta">নং: ${esc(a.agreement_no)} · তারিখ: ${esc(a.agreement_date)}</div>
@@ -1149,7 +1161,7 @@ function printReturnMemo(entryId) {
             .sign { margin-top: 46px; display: flex; justify-content: space-between; }
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
         </style></head><body>
-        <h2>${esc(SHOP.name)}</h2>
+        ${shopHeaderHtml()}
         ${SHOP.address ? `<div class="meta">${esc(SHOP.address)}${SHOP.phone ? ' — ' + esc(SHOP.phone) : ''}</div>` : ''}
         <h4>পণ্য রিটার্ন মেমো</h4>
         <div class="meta">

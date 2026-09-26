@@ -1,4 +1,4 @@
-/* global BASE_URL, PRE_SEL, SHOP_NAME, TomSelect */
+/* global BASE_URL, PRE_SEL, SHOP_NAME, SHOP_LOGO, TomSelect */
 
 const sel = document.getElementById('ledgerCustomer');
 let ts;
@@ -264,6 +264,7 @@ function printLedger() {
     }).join('');
 
     const shopName = (typeof SHOP_NAME !== 'undefined' ? SHOP_NAME : '') || 'খাতা';
+    const shopLogo = typeof SHOP_LOGO !== 'undefined' ? SHOP_LOGO : '';
 
     const html = `<!DOCTYPE html>
 <html lang="bn">
@@ -317,8 +318,13 @@ function printLedger() {
 <body>
 
 <div class="header">
-  <h1>${shopName}</h1>
-  <p>কাস্টমার খাতা — লেনদেনের সম্পূর্ণ বিবরণ</p>
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px">
+    ${shopLogo ? `<img src="${BASE_URL}/${shopLogo}" alt="logo" style="width:48px;height:48px;object-fit:contain">` : ''}
+    <div style="text-align:${shopLogo ? 'left' : 'center'}">
+      <h1 style="margin:0">${shopName}</h1>
+      <p style="margin:2px 0 0">কাস্টমার খাতা — লেনদেনের সম্পূর্ণ বিবরণ</p>
+    </div>
+  </div>
 </div>
 
 <div class="info-box">

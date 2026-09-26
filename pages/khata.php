@@ -62,6 +62,7 @@ const BASE_URL  = '<?= BASE_URL ?>';
 const IS_ADMIN  = <?= canWriteBranchData() ? 'true' : 'false' ?>;
 const PRE_SEL   = <?= $preSelected ?>;
 const SHOP_NAME = '<?= e(Setting::get('shop_name', 'দোকানের খাতা')) ?>';
+const SHOP_LOGO = '<?= e(Setting::get('shop_logo', '')) ?>';
 </script>
 <script src="<?= asset('assets/js/khata.js') ?>"></script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

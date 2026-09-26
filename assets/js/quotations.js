@@ -132,10 +132,15 @@ function buildQuoteHTML(res) {
         <div style="background:linear-gradient(135deg,#1d4ed8 0%,#1e3a8a 100%);padding:28px 32px 22px;position:relative;overflow:hidden">
             <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.06)"></div>
             <div style="position:absolute;bottom:-50px;left:-20px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
-            <div style="position:relative;z-index:1;text-align:center">
-                <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${esc(res.shop_name)}</div>
-                ${res.shop_address ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:4px">${esc(res.shop_address)}</div>` : ''}
-                ${res.shop_phone   ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:2px">&#9990; ${esc(res.shop_phone)}</div>` : ''}
+            <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:16px">
+                ${res.shop_logo ? `
+                <img src="${BASE_URL}/${esc(res.shop_logo)}" alt="logo"
+                     style="width:60px;height:60px;object-fit:contain;background:#fff;border-radius:10px;padding:6px;flex-shrink:0">` : ''}
+                <div style="text-align:${res.shop_logo ? 'left' : 'center'}">
+                    <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${esc(res.shop_name)}</div>
+                    ${res.shop_address ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:4px">${esc(res.shop_address)}</div>` : ''}
+                    ${res.shop_phone   ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:2px">&#9990; ${esc(res.shop_phone)}</div>` : ''}
+                </div>
             </div>
         </div>
 
