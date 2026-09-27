@@ -882,7 +882,7 @@ function buildInvoiceHTML(res, forPrint = false) {
             ${res.shop_logo ? `
             <img src="${BASE_URL}/${esc(res.shop_logo)}" alt="logo"
                  style="position:absolute;left:32px;top:50%;transform:translateY(-50%);width:56px;height:56px;object-fit:contain;background:#fff;border-radius:10px;padding:6px;z-index:2">` : ''}
-            <div style="position:relative;z-index:1;text-align:center">
+            <div style="position:relative;z-index:1;text-align:${res.shop_logo ? 'right' : 'center'}">
                 <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${esc(res.shop_name)}</div>
                 ${res.shop_address ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:4px">${esc(res.shop_address)}</div>` : ''}
                 ${res.shop_phone   ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;margin-top:2px">&#9990; ${esc(res.shop_phone)}</div>` : ''}

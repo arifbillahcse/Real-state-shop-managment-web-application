@@ -317,7 +317,7 @@ function printLedger() {
 </head>
 <body>
 
-<div class="header" style="position:relative">
+<div class="header" style="position:relative;text-align:${shopLogo ? 'right' : 'center'}">
   ${shopLogo ? `<img src="${BASE_URL}/${shopLogo}" alt="logo" style="position:absolute;left:0;top:0;width:48px;height:48px;object-fit:contain">` : ''}
   <h1>${shopName}</h1>
   <p>কাস্টমার খাতা — লেনদেনের সম্পূর্ণ বিবরণ</p>

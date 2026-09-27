@@ -21,7 +21,7 @@ function shopHeaderHtml() {
         <div style="position:relative">
             <img src="${BASE_URL}/${esc(SHOP.logo)}" alt="logo"
                  style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:48px;height:48px;object-fit:contain">
-            <h2>${esc(SHOP.name)}</h2>
+            <h2 style="text-align:right">${esc(SHOP.name)}</h2>
         </div>`;
 }
 
