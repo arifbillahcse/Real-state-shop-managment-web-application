@@ -317,14 +317,10 @@ function printLedger() {
 </head>
 <body>
 
-<div class="header">
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px">
-    ${shopLogo ? `<img src="${BASE_URL}/${shopLogo}" alt="logo" style="width:48px;height:48px;object-fit:contain">` : ''}
-    <div style="text-align:${shopLogo ? 'left' : 'center'}">
-      <h1 style="margin:0">${shopName}</h1>
-      <p style="margin:2px 0 0">কাস্টমার খাতা — লেনদেনের সম্পূর্ণ বিবরণ</p>
-    </div>
-  </div>
+<div class="header" style="position:relative">
+  ${shopLogo ? `<img src="${BASE_URL}/${shopLogo}" alt="logo" style="position:absolute;left:0;top:0;width:48px;height:48px;object-fit:contain">` : ''}
+  <h1>${shopName}</h1>
+  <p>কাস্টমার খাতা — লেনদেনের সম্পূর্ণ বিবরণ</p>
 </div>
 
 <div class="info-box">
