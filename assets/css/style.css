@@ -341,18 +341,6 @@ a { text-decoration: none; }
    Modals
    ===================================================================== */
 .modal-content { border: none; border-radius: var(--radius); box-shadow: 0 24px 60px rgba(28,32,55,.25); overflow: hidden; }
-/* Several modals wrap modal-body + modal-footer in a <form> (so one submit
-   covers both) instead of having them as direct children of modal-content.
-   Bootstrap's scrollable-modal CSS sizes modal-body via flexbox on
-   modal-content's direct children — a <form> in between isn't flex-aware,
-   so it renders at its full natural height instead of being clipped to the
-   available space, which pushes the footer (and often several fields) past
-   modal-content's own overflow:hidden with no scrollbar ever appearing.
-   display:contents removes the <form> from the flex box model while
-   keeping it in the DOM, so modal-body/modal-footer behave exactly as if
-   they were direct children again — restores the intended scroll, and
-   changes nothing about form submission. */
-.modal-content > form { display: contents; }
 .modal-header { border-bottom: 1px solid var(--line); padding: 1.1rem 1.3rem; }
 .modal-header.bg-primary, .modal-header.bg-danger { background: var(--brand-grad) !important; }
 .modal-footer { border-top: 1px solid var(--line); }
