@@ -322,7 +322,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
-        <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>টাকা জমা</h5>
+        <h5 class="modal-title" id="depositModalTitle"><i class="bi bi-cash-coin me-2"></i>টাকা জমা</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -372,7 +372,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title"><i class="bi bi-cash-stack me-2"></i>টাকা ফেরত (রিটার্ন)</h5>
+        <h5 class="modal-title" id="moneyReturnModalTitle"><i class="bi bi-cash-stack me-2"></i>টাকা ফেরত (রিটার্ন)</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -411,7 +411,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-warning">
-        <h5 class="modal-title"><i class="bi bi-arrow-return-left me-2"></i>রিটার্ন পণ্য</h5>
+        <h5 class="modal-title" id="productReturnModalTitle"><i class="bi bi-arrow-return-left me-2"></i>রিটার্ন পণ্য</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -511,7 +511,7 @@ include __DIR__ . '/../includes/sidebar.php';
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-secondary text-white">
-        <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>অন্যান্য খরচ</h5>
+        <h5 class="modal-title" id="expenseModalTitle"><i class="bi bi-receipt me-2"></i>অন্যান্য খরচ</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">

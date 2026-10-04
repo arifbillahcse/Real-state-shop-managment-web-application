@@ -288,6 +288,214 @@ class Ledger extends BaseModel
         return $ledgerId;
     }
 
+    // ── Edit a final entry ───────────────────────────────────────────────────
+    /**
+     * Direct edit of an already-final khata entry — a deliberate exception to
+     * this class's own "final entries are immutable" rule, allowed per
+     * explicit request. The one guard kept non-negotiable: an entry copied
+     * here from a pushed sale (ref_table = 'sales') is refused, because
+     * editing the copy would silently disagree with the sales row it came
+     * from — exactly the kind of two-systems-out-of-sync bug already fixed
+     * once elsewhere in this app. Edit the sale itself instead.
+     *
+     * Every successful edit is logged with the before/after numbers, since
+     * broad write access to final entries means the activity log is the
+     * only trail left of what a figure used to be.
+     *
+     * $data shape depends on entry_type:
+     *   goods:          items[], unload_bill, labor_bill, transport_bill, note, entry_date
+     *   product_return: items[], branch_id, note, entry_date
+     *   deposit:        amount, method, note, entry_date
+     *   money_return:   amount, reason, received_by, entry_date
+     *   expense:        amount, description, entry_date
+     */
+    public static function updateEntry(int $id, int $customerId, array $data, ?int $userId): bool|string
+    {
+        $entry = Database::fetchOne('SELECT * FROM customer_ledger WHERE id = ? LIMIT 1', [$id]);
+        if (!$entry) return 'NOT_FOUND';
+        // The API layer already confirmed the caller may write THIS customer
+        // (branch-scoped) — if the entry id actually belongs to someone
+        // else, that branch check would otherwise be bypassed entirely by
+        // just supplying a different entry id.
+        if ((int)$entry['customer_id'] !== $customerId) return 'NOT_FOUND';
+        if ($entry['status'] !== 'final') return 'NOT_FINAL';
+        if ($entry['ref_table'] !== null) return 'LINKED_LOCKED';
+
+        $date = trim($data['entry_date'] ?? '');
+        if ($date === '' || !strtotime($date)) return 'INVALID_DATE';
+
+        $customerId = (int)$entry['customer_id'];
+        $oldDebit   = (float)$entry['debit'];
+        $oldCredit  = (float)$entry['credit'];
+
+        Database::beginTransaction();
+        try {
+            switch ($entry['entry_type']) {
+                case 'goods': {
+                    $items = $data['items'] ?? [];
+                    if (empty($items)) { Database::rollback(); return 'ITEMS_REQUIRED'; }
+                    $itemsTotal = 0.0; $itemCharges = 0.0; $clean = [];
+                    foreach ($items as $it) {
+                        $qty = (float)($it['quantity'] ?? 0); $price = (float)($it['unit_price'] ?? 0);
+                        $name = trim($it['product_name'] ?? '');
+                        if ($qty <= 0 || $price < 0 || $name === '') { Database::rollback(); return 'INVALID_ITEM'; }
+                        $lineTotal = round($qty * $price, 2);
+                        $u = max(0, (float)($it['unload_bill'] ?? 0));
+                        $l = max(0, (float)($it['labor_bill'] ?? 0));
+                        $t = max(0, (float)($it['transport_bill'] ?? 0));
+                        $itemsTotal += $lineTotal; $itemCharges += $u + $l + $t;
+                        $clean[] = ['product_id' => (int)($it['product_id'] ?? 0) ?: null,
+                            'product_name' => $name, 'quantity' => $qty, 'unit' => trim($it['unit'] ?? ''),
+                            'unit_price' => $price, 'line_total' => $lineTotal,
+                            'unload_bill' => $u, 'labor_bill' => $l, 'transport_bill' => $t];
+                    }
+                    $unload = max(0, (float)($data['unload_bill'] ?? 0));
+                    $labor  = max(0, (float)($data['labor_bill']  ?? 0));
+                    $transport = max(0, (float)($data['transport_bill'] ?? 0));
+                    $debit  = round($itemsTotal + $itemCharges + $unload + $labor + $transport, 2);
+
+                    Database::execute('DELETE FROM customer_ledger_items WHERE ledger_id = ?', [$id]);
+                    foreach ($clean as $ci) {
+                        Database::insert(
+                            'INSERT INTO customer_ledger_items
+                                (ledger_id, product_id, product_name, quantity, unit, unit_price,
+                                 line_total, unload_bill, labor_bill, transport_bill)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                            [$id, $ci['product_id'], $ci['product_name'], $ci['quantity'], $ci['unit'],
+                             $ci['unit_price'], $ci['line_total'], $ci['unload_bill'], $ci['labor_bill'], $ci['transport_bill']]
+                        );
+                    }
+                    Database::execute(
+                        'UPDATE customer_ledger SET entry_date = ?, debit = ?, credit = 0,
+                            unload_bill = ?, labor_bill = ?, transport_bill = ?, note = ? WHERE id = ?',
+                        [$date, $debit, $unload, $labor, $transport, trim($data['note'] ?? '') ?: null, $id]
+                    );
+                    break;
+                }
+
+                case 'product_return': {
+                    $items = $data['items'] ?? [];
+                    if (empty($items)) { Database::rollback(); return 'ITEMS_REQUIRED'; }
+
+                    $branchId = isset($data['branch_id']) && $data['branch_id'] !== ''
+                        ? (int)$data['branch_id'] : null;
+                    if ($branchId !== null) {
+                        $br = Database::fetchOne('SELECT id FROM branches WHERE id = ? AND is_active = 1', [$branchId]);
+                        if (!$br) { Database::rollback(); return 'INVALID_BRANCH'; }
+                    } elseif (Database::fetchOne('SELECT id FROM branches WHERE is_active = 1 LIMIT 1')) {
+                        Database::rollback();
+                        return 'BRANCH_REQUIRED';
+                    }
+
+                    $oldItems = Database::fetchAll(
+                        'SELECT product_id, quantity FROM customer_ledger_items WHERE ledger_id = ?', [$id]
+                    );
+                    $oldQtyByProduct = [];
+                    foreach ($oldItems as $oi) {
+                        if (!$oi['product_id']) continue;
+                        $oldQtyByProduct[(int)$oi['product_id']] = ($oldQtyByProduct[(int)$oi['product_id']] ?? 0) + (float)$oi['quantity'];
+                    }
+
+                    $total = 0.0; $clean = []; $newQtyByProduct = [];
+                    foreach ($items as $it) {
+                        $qty = (float)($it['quantity'] ?? 0); $price = (float)($it['unit_price'] ?? 0);
+                        $name = trim($it['product_name'] ?? '');
+                        if ($qty <= 0 || $price < 0 || $name === '') { Database::rollback(); return 'INVALID_ITEM'; }
+                        $lineTotal = round($qty * $price, 2);
+                        $total += $lineTotal;
+                        $pid = (int)($it['product_id'] ?? 0) ?: null;
+                        $clean[] = ['product_id' => $pid, 'product_name' => $name, 'quantity' => $qty,
+                            'unit' => trim($it['unit'] ?? ''), 'unit_price' => $price, 'line_total' => $lineTotal];
+                        if ($pid) $newQtyByProduct[$pid] = ($newQtyByProduct[$pid] ?? 0) + $qty;
+                    }
+
+                    // The stock was already adjusted once at creation time for the
+                    // old quantities — only the DELTA needs posting now, not the
+                    // full new amount, or the shelf count would double-count.
+                    $allProducts = array_unique(array_merge(array_keys($oldQtyByProduct), array_keys($newQtyByProduct)));
+                    foreach ($allProducts as $pid) {
+                        $delta = ($newQtyByProduct[$pid] ?? 0) - ($oldQtyByProduct[$pid] ?? 0);
+                        if (abs($delta) < 0.0001) continue;
+                        Database::insert(
+                            'INSERT INTO stock_adjustments
+                                (product_id, branch_id, quantity, reason, note, created_by)
+                             VALUES (?, ?, ?, "return", ?, ?)',
+                            [$pid, $branchId, $delta,
+                             "কাস্টমার #$customerId রিটার্ন সংশোধন (লেজার #$id)", $userId]
+                        );
+                    }
+
+                    Database::execute('DELETE FROM customer_ledger_items WHERE ledger_id = ?', [$id]);
+                    foreach ($clean as $ci) {
+                        Database::insert(
+                            'INSERT INTO customer_ledger_items
+                                (ledger_id, product_id, product_name, quantity, unit, unit_price, line_total)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            [$id, $ci['product_id'], $ci['product_name'], $ci['quantity'], $ci['unit'],
+                             $ci['unit_price'], $ci['line_total']]
+                        );
+                    }
+                    Database::execute(
+                        'UPDATE customer_ledger SET entry_date = ?, debit = 0, credit = ?, note = ? WHERE id = ?',
+                        [$date, round($total, 2), trim($data['note'] ?? '') ?: null, $id]
+                    );
+                    break;
+                }
+
+                case 'deposit': {
+                    $amount = (float)($data['amount'] ?? 0);
+                    if ($amount <= 0) { Database::rollback(); return 'INVALID_AMOUNT'; }
+                    $method = trim($data['method'] ?? '');
+                    $noteFull = $method !== '' ? trim("[$method] " . ($data['note'] ?? '')) : trim($data['note'] ?? '');
+                    Database::execute(
+                        'UPDATE customer_ledger SET entry_date = ?, debit = 0, credit = ?, note = ? WHERE id = ?',
+                        [$date, $amount, $noteFull ?: null, $id]
+                    );
+                    break;
+                }
+
+                case 'money_return': {
+                    $amount = (float)($data['amount'] ?? 0);
+                    if ($amount <= 0) { Database::rollback(); return 'INVALID_AMOUNT'; }
+                    Database::execute(
+                        'UPDATE customer_ledger SET entry_date = ?, debit = ?, credit = 0,
+                            note = ?, received_by = ? WHERE id = ?',
+                        [$date, $amount, trim($data['reason'] ?? '') ?: null,
+                         trim($data['received_by'] ?? '') ?: null, $id]
+                    );
+                    break;
+                }
+
+                case 'expense': {
+                    $amount = (float)($data['amount'] ?? 0);
+                    $description = trim($data['description'] ?? '');
+                    if ($amount <= 0) { Database::rollback(); return 'INVALID_AMOUNT'; }
+                    if ($description === '') { Database::rollback(); return 'NOTE_REQUIRED'; }
+                    Database::execute(
+                        'UPDATE customer_ledger SET entry_date = ?, debit = ?, credit = 0, note = ? WHERE id = ?',
+                        [$date, $amount, $description, $id]
+                    );
+                    break;
+                }
+
+                default:
+                    Database::rollback();
+                    return 'UNSUPPORTED_TYPE';
+            }
+            Database::commit();
+        } catch (Throwable $e) {
+            Database::rollback();
+            error_log('Ledger updateEntry failed: ' . $e->getMessage());
+            return 'DB_ERROR';
+        }
+
+        $fresh = Database::fetchOne('SELECT debit, credit FROM customer_ledger WHERE id = ?', [$id]);
+        self::log('ledger_entry_updated', 'customer_ledger', $id,
+            "Entry #$id ({$entry['entry_type']}) for customer #$customerId edited: " .
+            "debit {$oldDebit}→{$fresh['debit']}, credit {$oldCredit}→{$fresh['credit']}");
+        return true;
+    }
+
     // ── Draft memo handling ──────────────────────────────────────────────────
     public static function finalizeDraft(int $ledgerId, string $date): bool|string
     {
@@ -399,6 +607,9 @@ class Ledger extends BaseModel
             'BRANCH_REQUIRED' => 'পণ্য কোন ব্রাঞ্চের স্টকে ফেরত যাবে তা নির্বাচন করুন।',
             'INVALID_BRANCH'  => 'সঠিক ব্রাঞ্চ নির্বাচন করুন।',
             'NOT_DRAFT'       => 'শুধুমাত্র খসড়া মেমো পরিবর্তন/ডিলিট করা যায়।',
+            'NOT_FINAL'       => 'এই এন্ট্রিটি খসড়া — এডিট করতে আগে একাউন্টে যুক্ত করুন।',
+            'LINKED_LOCKED'   => 'এই এন্ট্রিটি একটি বিক্রয় মেমো থেকে এসেছে — সংশোধন বিক্রয় পেজ থেকে করুন।',
+            'UNSUPPORTED_TYPE'=> 'এই ধরনের এন্ট্রি এডিট করা যায় না।',
             'DB_ERROR'        => 'ডাটাবেজে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }

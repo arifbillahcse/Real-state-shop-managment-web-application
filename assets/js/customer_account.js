@@ -36,6 +36,10 @@ const TYPE_LABELS = {
 };
 
 let _entries = [];
+// Which final ledger entry (if any) the currently-open add modal is actually
+// editing. null means the modal is in its normal "add new" mode — every
+// save function below branches on this to decide add vs. update endpoint.
+let _editingLedgerId = null;
 let _agreements = [];
 let _currentAgreement = null;
 
@@ -87,21 +91,32 @@ function renderLedger() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">কোনো লেনদেন নেই</td></tr>';
         return;
     }
-    tbody.innerHTML = finals.map(e => `
+    // Entry types this page can actually create/edit — due_transfer/opening
+    // have no entry form anywhere, so an edit button for them would just 404.
+    const EDITABLE_TYPES = ['goods', 'deposit', 'money_return', 'product_return', 'expense'];
+    tbody.innerHTML = finals.map(e => {
+        const canEdit = CAN_WRITE && !e.ref_table && EDITABLE_TYPES.includes(e.entry_type);
+        return `
         <tr>
             <td class="text-nowrap">${esc(e.entry_date)}</td>
             <td>${entryDescription(e)}
-                ${e.entry_type === 'product_return' ? `
-                <button class="btn btn-sm btn-outline-secondary ms-2 py-0"
-                        onclick="printReturnMemo(${e.id})" title="রিটার্ন মেমো প্রিন্ট">
-                    <i class="bi bi-printer"></i>
-                </button>` : ''}</td>
+                <div class="btn-group btn-group-sm ms-2">
+                    ${canEdit ? `
+                    <button class="btn btn-outline-primary py-0" onclick="editLedgerEntry(${e.id})" title="এডিট">
+                        <i class="bi bi-pencil"></i>
+                    </button>` : ''}
+                    <button class="btn btn-outline-secondary py-0" onclick="printLedgerEntry(${e.id})" title="প্রিন্ট">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                </div>
+            </td>
             <td class="text-end">${parseFloat(e.debit)  > 0 ? fmt(e.debit)  : '—'}</td>
             <td class="text-end">${parseFloat(e.credit) > 0 ? fmt(e.credit) : '—'}</td>
             <td class="text-end fw-semibold ${parseFloat(e.running_balance) > 0 ? 'text-danger' : 'text-success'}">
                 ${fmt(e.running_balance)}
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 }
 
 function renderDrafts() {
@@ -177,10 +192,13 @@ function productOptions() {
 }
 
 function openGoodsModal(finalize) {
+    _editingLedgerId = null;
     gFinalizeMode = finalize;
     document.getElementById('goodsModalTitle').innerHTML = finalize
         ? '<i class="bi bi-cart-plus me-2"></i>মালামাল এন্ট্রি'
         : '<i class="bi bi-journal-text me-2"></i>খসড়া মেমো';
+    document.getElementById('btnSaveDraft').classList.remove('d-none');
+    document.getElementById('btnSaveGoods').innerHTML = '<i class="bi bi-check-circle me-1"></i>সেভ (একাউন্টে যুক্ত)';
     document.getElementById('gItemsBody').innerHTML = '';
     document.getElementById('gDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('gNote').value = '';
@@ -195,6 +213,35 @@ function openGoodsModal(finalize) {
     goodsModal.show();
 }
 
+function editGoodsEntry(e) {
+    _editingLedgerId = e.id;
+    gFinalizeMode = true;
+    document.getElementById('goodsModalTitle').innerHTML =
+        '<i class="bi bi-pencil-square me-2"></i>মালামাল এন্ট্রি সংশোধন';
+    // A draft here would mean finalizing twice — editing only ever touches an
+    // already-final entry, so the draft option doesn't apply.
+    document.getElementById('btnSaveDraft').classList.add('d-none');
+    document.getElementById('btnSaveGoods').innerHTML = '<i class="bi bi-check-circle me-1"></i>সংশোধন সংরক্ষণ করুন';
+    document.getElementById('gItemsBody').innerHTML = '';
+    document.getElementById('gDate').value = e.entry_date;
+    document.getElementById('gNote').value = e.note || '';
+    const items = e.items || [];
+    const perItem = items.some(it =>
+        parseFloat(it.unload_bill) > 0 || parseFloat(it.labor_bill) > 0 || parseFloat(it.transport_bill) > 0);
+    document.getElementById('chargePerItem').checked = perItem;
+    document.getElementById('chargeCombined').checked = !perItem;
+    document.getElementById('gUnload').value = e.unload_bill || 0;
+    document.getElementById('gLabor').value = e.labor_bill || 0;
+    document.getElementById('gTransport').value = e.transport_bill || 0;
+    document.getElementById('gError').classList.add('d-none');
+    applyChargeMode();
+    gRowCounter = 0;
+    if (items.length) items.forEach(it => addGoodsRow(it));
+    else addGoodsRow();
+    calcGoodsTotal();
+    goodsModal.show();
+}
+
 function applyChargeMode() {
     const perItem = document.getElementById('chargePerItem').checked;
     document.querySelectorAll('.charge-col, .charge-cell').forEach(el =>
@@ -205,7 +252,7 @@ function applyChargeMode() {
 document.getElementById('chargeCombined').addEventListener('change', applyChargeMode);
 document.getElementById('chargePerItem').addEventListener('change', applyChargeMode);
 
-function addGoodsRow() {
+function addGoodsRow(item) {
     gRowCounter++;
     const id = gRowCounter;
     const perItem = document.getElementById('chargePerItem').checked;
@@ -230,6 +277,26 @@ function addGoodsRow() {
             </button>
         </td>`;
     document.getElementById('gItemsBody').appendChild(tr);
+
+    if (item) {
+        const sel = tr.querySelector('.g-product');
+        // product_id may not match any currently-active product (discontinued,
+        // or it was a free-typed name to begin with) — fall back to "অন্যান্য"
+        // with the original name preserved either way.
+        const hasOption = item.product_id && [...sel.options].some(o => o.value === String(item.product_id));
+        sel.value = hasOption ? String(item.product_id) : '0';
+        if (!hasOption) {
+            tr.querySelector('.g-custom-name').classList.remove('d-none');
+            tr.querySelector('.g-custom-name').value = item.product_name || '';
+        }
+        tr.querySelector('.g-qty').value   = item.quantity;
+        tr.querySelector('.g-price').value = item.unit_price;
+        if (perItem) {
+            tr.querySelector('.g-unload').value    = item.unload_bill    || 0;
+            tr.querySelector('.g-labor').value      = item.labor_bill     || 0;
+            tr.querySelector('.g-transport').value  = item.transport_bill || 0;
+        }
+    }
 }
 
 function onGProductChange(sel, id) {
@@ -307,7 +374,7 @@ function saveGoods(finalize) {
     const perItem = document.getElementById('chargePerItem').checked;
     const btn = finalize ? document.getElementById('btnSaveGoods') : document.getElementById('btnSaveDraft');
     btn.disabled = true;
-    ajaxPost(`${BASE_URL}/api/ledger_add_goods.php`, {
+    const payload = {
         customer_id:    CUSTOMER_ID,
         entry_date:     document.getElementById('gDate').value,
         items:          JSON.stringify(items),
@@ -316,7 +383,12 @@ function saveGoods(finalize) {
         transport_bill: perItem ? 0 : (document.getElementById('gTransport').value || 0),
         note:           document.getElementById('gNote').value,
         finalize:       finalize ? '1' : '0',
-    }, res => {
+    };
+    const url = _editingLedgerId
+        ? `${BASE_URL}/api/ledger_update_entry.php`
+        : `${BASE_URL}/api/ledger_add_goods.php`;
+    if (_editingLedgerId) payload.id = _editingLedgerId;
+    ajaxPost(url, payload, res => {
         btn.disabled = false;
         if (res.success) {
             goodsModal.hide();
@@ -332,24 +404,56 @@ function saveGoods(finalize) {
 // ── Deposit ──────────────────────────────────────────────────────────────────
 const depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
 function openDepositModal() {
+    _editingLedgerId = null;
+    document.getElementById('depositModalTitle') && (document.getElementById('depositModalTitle').innerHTML =
+        '<i class="bi bi-cash-coin me-2"></i>টাকা জমা');
+    document.getElementById('btnSaveDeposit').innerHTML = '<i class="bi bi-check-circle me-1"></i>জমা করুন';
     document.getElementById('dAmount').value = '';
+    document.getElementById('dMethod').value = 'নগদ';
     document.getElementById('dNote').value = '';
     document.getElementById('dDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('dError').classList.add('d-none');
     depositModal.show();
 }
+
+// A deposit's method and note are stored together as "[method] rest of note"
+// — split that back apart so editing shows them in their own fields again.
+function splitMethodNote(note) {
+    const m = /^\[([^\]]+)\]\s*(.*)$/s.exec(note || '');
+    return m ? { method: m[1], note: m[2] } : { method: '', note: note || '' };
+}
+
+function editDepositEntry(e) {
+    _editingLedgerId = e.id;
+    document.getElementById('depositModalTitle') && (document.getElementById('depositModalTitle').innerHTML =
+        '<i class="bi bi-pencil-square me-2"></i>টাকা জমা সংশোধন');
+    document.getElementById('btnSaveDeposit').innerHTML = '<i class="bi bi-check-circle me-1"></i>সংশোধন সংরক্ষণ করুন';
+    const { method, note } = splitMethodNote(e.note);
+    document.getElementById('dAmount').value = e.credit;
+    document.getElementById('dMethod').value = method || 'নগদ';
+    document.getElementById('dNote').value = note;
+    document.getElementById('dDate').value = e.entry_date;
+    document.getElementById('dError').classList.add('d-none');
+    depositModal.show();
+}
+
 function saveDeposit() {
     const err = document.getElementById('dError');
     err.classList.add('d-none');
     const btn = document.getElementById('btnSaveDeposit');
     btn.disabled = true;
-    ajaxPost(`${BASE_URL}/api/ledger_add_deposit.php`, {
+    const payload = {
         customer_id: CUSTOMER_ID,
         entry_date:  document.getElementById('dDate').value,
         amount:      document.getElementById('dAmount').value,
         method:      document.getElementById('dMethod').value,
         note:        document.getElementById('dNote').value,
-    }, res => {
+    };
+    const url = _editingLedgerId
+        ? `${BASE_URL}/api/ledger_update_entry.php`
+        : `${BASE_URL}/api/ledger_add_deposit.php`;
+    if (_editingLedgerId) payload.id = _editingLedgerId;
+    ajaxPost(url, payload, res => {
         btn.disabled = false;
         if (res.success) {
             depositModal.hide();
@@ -365,6 +469,10 @@ function saveDeposit() {
 // ── Money return ─────────────────────────────────────────────────────────────
 const moneyReturnModal = new bootstrap.Modal(document.getElementById('moneyReturnModal'));
 function openMoneyReturnModal() {
+    _editingLedgerId = null;
+    document.getElementById('moneyReturnModalTitle').innerHTML =
+        '<i class="bi bi-cash-stack me-2"></i>টাকা ফেরত (রিটার্ন)';
+    document.getElementById('btnSaveMoneyReturn').innerHTML = '<i class="bi bi-check-circle me-1"></i>ফেরত এন্ট্রি করুন';
     document.getElementById('mrAmount').value = '';
     document.getElementById('mrReason').value = '';
     document.getElementById('mrReceivedBy').value = '';
@@ -372,18 +480,37 @@ function openMoneyReturnModal() {
     document.getElementById('mrError').classList.add('d-none');
     moneyReturnModal.show();
 }
+
+function editMoneyReturnEntry(e) {
+    _editingLedgerId = e.id;
+    document.getElementById('moneyReturnModalTitle').innerHTML =
+        '<i class="bi bi-pencil-square me-2"></i>টাকা ফেরত সংশোধন';
+    document.getElementById('btnSaveMoneyReturn').innerHTML = '<i class="bi bi-check-circle me-1"></i>সংশোধন সংরক্ষণ করুন';
+    document.getElementById('mrAmount').value = e.debit;
+    document.getElementById('mrReason').value = e.note || '';
+    document.getElementById('mrReceivedBy').value = e.received_by || '';
+    document.getElementById('mrDate').value = e.entry_date;
+    document.getElementById('mrError').classList.add('d-none');
+    moneyReturnModal.show();
+}
+
 function saveMoneyReturn() {
     const err = document.getElementById('mrError');
     err.classList.add('d-none');
     const btn = document.getElementById('btnSaveMoneyReturn');
     btn.disabled = true;
-    ajaxPost(`${BASE_URL}/api/ledger_add_money_return.php`, {
+    const payload = {
         customer_id: CUSTOMER_ID,
         entry_date:  document.getElementById('mrDate').value,
         amount:      document.getElementById('mrAmount').value,
         reason:      document.getElementById('mrReason').value,
         received_by: document.getElementById('mrReceivedBy').value,
-    }, res => {
+    };
+    const url = _editingLedgerId
+        ? `${BASE_URL}/api/ledger_update_entry.php`
+        : `${BASE_URL}/api/ledger_add_money_return.php`;
+    if (_editingLedgerId) payload.id = _editingLedgerId;
+    ajaxPost(url, payload, res => {
         btn.disabled = false;
         if (res.success) {
             moneyReturnModal.hide();
@@ -401,10 +528,39 @@ const productReturnModal = new bootstrap.Modal(document.getElementById('productR
 let prItems = [];
 
 function openProductReturnModal() {
+    _editingLedgerId = null;
+    document.getElementById('productReturnModalTitle').innerHTML =
+        '<i class="bi bi-arrow-return-left me-2"></i>রিটার্ন পণ্য';
+    document.getElementById('btnSaveProductReturn').innerHTML = '<i class="bi bi-check-circle me-1"></i>রিটার্ন সম্পন্ন করুন';
     prItems = [];
     renderPrItems();
     document.getElementById('prDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('prNote').value = '';
+    document.getElementById('prQty').value = '';
+    tsSet(document.getElementById('prProduct'), '', true);
+    document.getElementById('prError').classList.add('d-none');
+    resetPrRates();
+    productReturnModal.show();
+}
+
+// Stock was already adjusted once when this return was first created — the
+// branch picker here is for which branch's stock the EDIT's delta applies
+// to, same as creating one, not a record of where the original went.
+function editProductReturnEntry(e) {
+    _editingLedgerId = e.id;
+    document.getElementById('productReturnModalTitle').innerHTML =
+        '<i class="bi bi-pencil-square me-2"></i>রিটার্ন পণ্য সংশোধন';
+    document.getElementById('btnSaveProductReturn').innerHTML = '<i class="bi bi-check-circle me-1"></i>সংশোধন সংরক্ষণ করুন';
+    prItems = (e.items || []).map(it => ({
+        product_id:   it.product_id ? parseInt(it.product_id) : 0,
+        product_name: it.product_name,
+        unit:         it.unit,
+        quantity:     parseFloat(it.quantity),
+        unit_price:   parseFloat(it.unit_price),
+    }));
+    renderPrItems();
+    document.getElementById('prDate').value = e.entry_date;
+    document.getElementById('prNote').value = e.note || '';
     document.getElementById('prQty').value = '';
     tsSet(document.getElementById('prProduct'), '', true);
     document.getElementById('prError').classList.add('d-none');
@@ -510,13 +666,18 @@ function saveProductReturn() {
     }
     const btn = document.getElementById('btnSaveProductReturn');
     btn.disabled = true;
-    ajaxPost(`${BASE_URL}/api/ledger_add_product_return.php`, {
+    const payload = {
         customer_id: CUSTOMER_ID,
         entry_date:  document.getElementById('prDate').value,
         branch_id:   branchSel ? branchSel.value : '',
         items:       JSON.stringify(prItems),
         note:        document.getElementById('prNote').value,
-    }, res => {
+    };
+    const url = _editingLedgerId
+        ? `${BASE_URL}/api/ledger_update_entry.php`
+        : `${BASE_URL}/api/ledger_add_product_return.php`;
+    if (_editingLedgerId) payload.id = _editingLedgerId;
+    ajaxPost(url, payload, res => {
         btn.disabled = false;
         if (res.success) {
             productReturnModal.hide();
@@ -532,23 +693,43 @@ function saveProductReturn() {
 // ── Expense ──────────────────────────────────────────────────────────────────
 const expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'));
 function openExpenseModal() {
+    _editingLedgerId = null;
+    document.getElementById('expenseModalTitle').innerHTML = '<i class="bi bi-receipt me-2"></i>অন্যান্য খরচ';
+    document.getElementById('btnSaveExpense').innerHTML = '<i class="bi bi-check-circle me-1"></i>খরচ এন্ট্রি করুন';
     document.getElementById('eAmount').value = '';
     document.getElementById('eDescription').value = '';
     document.getElementById('eDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('eError').classList.add('d-none');
     expenseModal.show();
 }
+
+function editExpenseEntry(e) {
+    _editingLedgerId = e.id;
+    document.getElementById('expenseModalTitle').innerHTML = '<i class="bi bi-pencil-square me-2"></i>খরচ সংশোধন';
+    document.getElementById('btnSaveExpense').innerHTML = '<i class="bi bi-check-circle me-1"></i>সংশোধন সংরক্ষণ করুন';
+    document.getElementById('eAmount').value = e.debit;
+    document.getElementById('eDescription').value = e.note || '';
+    document.getElementById('eDate').value = e.entry_date;
+    document.getElementById('eError').classList.add('d-none');
+    expenseModal.show();
+}
+
 function saveExpense() {
     const err = document.getElementById('eError');
     err.classList.add('d-none');
     const btn = document.getElementById('btnSaveExpense');
     btn.disabled = true;
-    ajaxPost(`${BASE_URL}/api/ledger_add_expense.php`, {
+    const payload = {
         customer_id: CUSTOMER_ID,
         entry_date:  document.getElementById('eDate').value,
         amount:      document.getElementById('eAmount').value,
         description: document.getElementById('eDescription').value,
-    }, res => {
+    };
+    const url = _editingLedgerId
+        ? `${BASE_URL}/api/ledger_update_entry.php`
+        : `${BASE_URL}/api/ledger_add_expense.php`;
+    if (_editingLedgerId) payload.id = _editingLedgerId;
+    ajaxPost(url, payload, res => {
         btn.disabled = false;
         if (res.success) {
             expenseModal.hide();
@@ -1121,6 +1302,149 @@ function shareViaImo(phone, customerName) {
     }
 }
 
+
+// ── Ledger entry edit (router) ───────────────────────────────────────────────
+// Reuses the same add modal each entry type already has — populates it from
+// the existing entry and flips its save function to the update endpoint,
+// rather than building a second set of forms.
+function editLedgerEntry(id) {
+    const e = _entries.find(x => String(x.id) === String(id));
+    if (!e) { showToast('এন্ট্রি খুঁজে পাওয়া যায়নি', 'danger'); return; }
+    const handlers = {
+        goods:          editGoodsEntry,
+        deposit:        editDepositEntry,
+        money_return:   editMoneyReturnEntry,
+        product_return: editProductReturnEntry,
+        expense:        editExpenseEntry,
+    };
+    const handler = handlers[e.entry_type];
+    if (!handler) { showToast('এই ধরনের এন্ট্রি এডিট করা যায় না।', 'warning'); return; }
+    handler(e);
+}
+
+// ── Ledger entry memo (print) ────────────────────────────────────────────────
+// Every finalized entry can be reprinted as a standalone slip — same idea as
+// the return memo, generalized to every entry type.
+function printLedgerEntry(entryId) {
+    const e = _entries.find(x => String(x.id) === String(entryId));
+    if (!e) { showToast('এন্ট্রি খুঁজে পাওয়া যায়নি', 'danger'); return; }
+    if (e.entry_type === 'product_return') { printReturnMemo(entryId); return; }
+    if (e.entry_type === 'goods')          { printGoodsMemo(entryId);  return; }
+    printSimpleLedgerMemo(entryId);
+}
+
+function printGoodsMemo(entryId) {
+    const e = _entries.find(x => String(x.id) === String(entryId));
+    if (!e) return;
+    const items = e.items || [];
+    const rows = items.map((it, i) => {
+        const qty = parseFloat(it.quantity), rate = parseFloat(it.unit_price);
+        return `<tr>
+            <td style="text-align:center">${i + 1}</td>
+            <td>${esc(it.product_name)}</td>
+            <td style="text-align:right">${qty} ${esc(it.unit)}</td>
+            <td style="text-align:right">${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td style="text-align:right">${(qty * rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+        </tr>`;
+    }).join('');
+    const charges = [
+        ['আনলোড বিল', e.unload_bill], ['লেবার বিল', e.labor_bill], ['গাড়িভাড়া', e.transport_bill],
+    ].filter(([, v]) => parseFloat(v || 0) > 0);
+    const chargeRows = charges.map(([label, v]) => `
+        <tr><td colspan="4" style="text-align:right">${label}</td>
+            <td style="text-align:right">${parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`).join('');
+    const total = parseFloat(e.debit) || 0;
+    const words = (typeof bnMoneyWords === 'function') ? bnMoneyWords(total) : '';
+
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
+        <title>মালামাল এন্ট্রি — ${esc(CUSTOMER.name)}</title>
+        <style>
+            * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+            body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
+            h2, h4 { margin: 0; text-align: center; }
+            .meta { text-align: center; color: #555; margin-bottom: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #999; padding: 5px 8px; }
+            th { background: #eee; }
+            .tot { text-align: right; font-weight: 700; }
+            .sign { margin-top: 46px; display: flex; justify-content: space-between; }
+            .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
+        </style></head><body>
+        ${shopHeaderHtml()}
+        ${SHOP.address ? `<div class="meta">${esc(SHOP.address)}${SHOP.phone ? ' — ' + esc(SHOP.phone) : ''}</div>` : ''}
+        <h4>মালামাল এন্ট্রি মেমো</h4>
+        <div class="meta">
+            কাস্টমার: <strong>${esc(CUSTOMER.name)}</strong>
+            ${CUSTOMER.phone ? ' — ' + esc(CUSTOMER.phone) : ''}<br>
+            তারিখ: ${esc(e.entry_date)} &nbsp;|&nbsp; মেমো নং: G-${esc(String(e.id))}
+        </div>
+        <table>
+            <thead><tr>
+                <th style="width:40px">ক্রম</th><th>পণ্য</th>
+                <th style="width:110px">পরিমাণ</th><th style="width:110px">দর (৳)</th>
+                <th style="width:120px">মোট (৳)</th>
+            </tr></thead>
+            <tbody>${rows || '<tr><td colspan="5" style="text-align:center">কোনো পণ্য নেই</td></tr>'}</tbody>
+            <tfoot>
+                ${chargeRows}
+                <tr><td colspan="4" class="tot">সর্বমোট</td>
+                    <td class="tot">${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
+            </tfoot>
+        </table>
+        ${words ? `<p style="margin-top:8px">কথায়: ${esc(words)}</p>` : ''}
+        ${e.note ? `<p style="margin-top:8px">নোট: ${esc(e.note)}</p>` : ''}
+        <div class="sign"><div>কাস্টমারের স্বাক্ষর</div><div>কর্তৃপক্ষের স্বাক্ষর</div></div>
+        <script>window.onload = () => window.print();<\/script>
+        </body></html>`);
+    w.document.close();
+}
+
+const LEDGER_MEMO_TITLE = {
+    deposit:      'টাকা জমার রশিদ',
+    money_return: 'টাকা ফেরতের রশিদ',
+    expense:      'খরচের রশিদ',
+};
+
+function printSimpleLedgerMemo(entryId) {
+    const e = _entries.find(x => String(x.id) === String(entryId));
+    if (!e) return;
+    const amount = parseFloat(e.debit) > 0 ? parseFloat(e.debit) : parseFloat(e.credit) || 0;
+    const words  = (typeof bnMoneyWords === 'function') ? bnMoneyWords(amount) : '';
+    const title  = LEDGER_MEMO_TITLE[e.entry_type] || 'রশিদ';
+
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
+        <title>${esc(title)} — ${esc(CUSTOMER.name)}</title>
+        <style>
+            * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+            body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
+            h2, h4 { margin: 0; text-align: center; }
+            .meta { text-align: center; color: #555; margin-bottom: 14px; }
+            .amount-box { border: 1px solid #999; border-radius: 6px; padding: 16px; margin-top: 16px; text-align: center; }
+            .amount-box .amt { font-size: 22px; font-weight: 800; }
+            .sign { margin-top: 56px; display: flex; justify-content: space-between; }
+            .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
+        </style></head><body>
+        ${shopHeaderHtml()}
+        ${SHOP.address ? `<div class="meta">${esc(SHOP.address)}${SHOP.phone ? ' — ' + esc(SHOP.phone) : ''}</div>` : ''}
+        <h4>${esc(title)}</h4>
+        <div class="meta">
+            কাস্টমার: <strong>${esc(CUSTOMER.name)}</strong>
+            ${CUSTOMER.phone ? ' — ' + esc(CUSTOMER.phone) : ''}<br>
+            তারিখ: ${esc(e.entry_date)} &nbsp;|&nbsp; মেমো নং: ${e.entry_type.slice(0,1).toUpperCase()}-${esc(String(e.id))}
+        </div>
+        <div class="amount-box">
+            <div class="amt">${amount.toLocaleString('en-IN', {minimumFractionDigits: 2})} ৳</div>
+            ${words ? `<div style="margin-top:4px;color:#555">কথায়: ${esc(words)}</div>` : ''}
+        </div>
+        ${e.note ? `<p style="margin-top:12px">বিবরণ: ${esc(e.note)}</p>` : ''}
+        ${e.received_by ? `<p>গ্রহণকারী: ${esc(e.received_by)}</p>` : ''}
+        <div class="sign"><div>কাস্টমারের স্বাক্ষর</div><div>কর্তৃপক্ষের স্বাক্ষর</div></div>
+        <script>window.onload = () => window.print();<\/script>
+        </body></html>`);
+    w.document.close();
+}
 
 // ── Return memo ─────────────────────────────────────────────────────────────
 // A product return gets its own printable slip for the customer, separate
