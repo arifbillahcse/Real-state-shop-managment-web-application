@@ -1073,10 +1073,11 @@ function printLedger() {
             * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
             body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
             h2, h4 { margin: 0; text-align: center; }
+            h2 { color: #c0392b; }
             .meta { text-align: center; color: #555; margin-bottom: 14px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #999; padding: 5px 8px; }
-            th { background: #eee; }
+            th { background: #c0392b; color: #fff; }
         </style></head><body>
         ${shopHeaderHtml()}
         <div class="meta">${esc(SHOP.address)} · ${esc(SHOP.phone)}</div>
@@ -1118,10 +1119,11 @@ function printAgreement() {
             * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
             body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
             h2, h3 { margin: 0; text-align: center; }
+            h2 { color: #c0392b; }
             .meta { text-align: center; color: #555; margin-bottom: 8px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #999; padding: 5px 8px; }
-            th { background: #eee; }
+            th { background: #c0392b; color: #fff; }
             .sign { display: flex; justify-content: space-between; margin-top: 70px; }
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
             .page2 { page-break-before: always; }
@@ -1364,11 +1366,12 @@ function printGoodsMemo(entryId) {
             * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
             body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
             h2, h4 { margin: 0; text-align: center; }
+            h2 { color: #c0392b; }
             .meta { text-align: center; color: #555; margin-bottom: 14px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #999; padding: 5px 8px; }
-            th { background: #eee; }
-            .tot { text-align: right; font-weight: 700; }
+            th { background: #c0392b; color: #fff; }
+            .tot { text-align: right; font-weight: 700; color: #c0392b; }
             .sign { margin-top: 46px; display: flex; justify-content: space-between; }
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
         </style></head><body>
@@ -1421,9 +1424,10 @@ function printSimpleLedgerMemo(entryId) {
             * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
             body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
             h2, h4 { margin: 0; text-align: center; }
+            h2 { color: #c0392b; }
             .meta { text-align: center; color: #555; margin-bottom: 14px; }
-            .amount-box { border: 1px solid #999; border-radius: 6px; padding: 16px; margin-top: 16px; text-align: center; }
-            .amount-box .amt { font-size: 22px; font-weight: 800; }
+            .amount-box { border: 1px solid #e0b4ac; border-radius: 6px; padding: 16px; margin-top: 16px; text-align: center; background: #fdf3f2; }
+            .amount-box .amt { font-size: 22px; font-weight: 800; color: #c0392b; }
             .sign { margin-top: 56px; display: flex; justify-content: space-between; }
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
         </style></head><body>
@@ -1479,11 +1483,12 @@ function printReturnMemo(entryId) {
             * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
             body { font-family: 'Hind Siliguri', sans-serif; padding: 24px; font-size: 13px; }
             h2, h4 { margin: 0; text-align: center; }
+            h2 { color: #c0392b; }
             .meta { text-align: center; color: #555; margin-bottom: 14px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #999; padding: 5px 8px; }
-            th { background: #eee; }
-            .tot { text-align: right; font-weight: 700; }
+            th { background: #c0392b; color: #fff; }
+            .tot { text-align: right; font-weight: 700; color: #c0392b; }
             .sign { margin-top: 46px; display: flex; justify-content: space-between; }
             .sign div { border-top: 1px solid #333; padding-top: 4px; width: 200px; text-align: center; }
         </style></head><body>
