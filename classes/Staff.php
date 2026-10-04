@@ -148,6 +148,38 @@ class Staff extends BaseModel
         );
     }
 
+    /**
+     * Customer entries (ডেটা-এন্ট্রি), not referrals — which staff member
+     * actually created the account, counted by when it was created.
+     *
+     * @return array one row per staff member, most entries first
+     */
+    public static function customerEntrySummary(string $from, string $to): array
+    {
+        return Database::fetchAll(
+            'SELECT u.id, u.name, u.role,
+                    COUNT(c.id) AS customer_count
+             FROM users u
+             JOIN customers c ON c.created_by = u.id
+                              AND DATE(c.created_at) BETWEEN ? AND ?
+             GROUP BY u.id
+             ORDER BY customer_count DESC, u.name',
+            [$from, $to]
+        );
+    }
+
+    /** The customers one staff member entered, in range. */
+    public static function customerEntryDetail(int $userId, string $from, string $to): array
+    {
+        return Database::fetchAll(
+            'SELECT c.id, c.name, c.phone, c.account_no, c.account_type, c.created_at
+             FROM customers c
+             WHERE c.created_by = ? AND DATE(c.created_at) BETWEEN ? AND ?
+             ORDER BY c.created_at DESC',
+            [$userId, $from, $to]
+        );
+    }
+
     // ── Tasks ────────────────────────────────────────────────────────────────
     public static function addTask(
         int $userId, string $title, string $details, string $dueDate, ?int $assignedBy

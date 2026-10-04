@@ -8,7 +8,7 @@ class Customer extends BaseModel
 
     public static function addCustomer(
         string $name, string $phone = '', string $address = '',
-        array  $extra = []
+        array  $extra = [], ?int $userId = null
     ): int|string {
         $name = trim($name);
         if ($name === '') return 'NAME_REQUIRED';
@@ -29,11 +29,11 @@ class Customer extends BaseModel
                 $id = Database::insert(
                     'INSERT INTO customers
                         (name, phone, whatsapp, imo, address, photo,
-                         book_no, account_no, account_type, due_limit)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                         book_no, account_no, account_type, due_limit, created_by)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [$name, trim($phone), $whatsapp ?: null, $imo ?: null,
                      trim($address), $photo ?: null,
-                     $bookNo ?: null, $accountNo, $accountType, $dueLimit]
+                     $bookNo ?: null, $accountNo, $accountType, $dueLimit, $userId]
                 );
                 break;
             } catch (PDOException $e) {

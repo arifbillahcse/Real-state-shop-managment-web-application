@@ -19,7 +19,7 @@ $result = Customer::addCustomer($name, $phone, $address, [
     'account_type' => $_POST['account_type'] ?? 'full',
     'due_limit'    => $_POST['due_limit']    ?? 0,
     'phones'       => $phones,
-]);
+], getUserId());
 
 if (!is_int($result)) {
     jsonResponse(false, Customer::errorMessage($result));

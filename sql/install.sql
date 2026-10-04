@@ -217,10 +217,12 @@ CREATE TABLE IF NOT EXISTS customers (
     account_no   VARCHAR(30)   NULL DEFAULT NULL,
     account_type ENUM('full','short') NOT NULL DEFAULT 'full',
     due_limit    DECIMAL(14,2) NOT NULL DEFAULT 0.00 COMMENT '0 = no limit',
+    created_by   INT UNSIGNED  NULL DEFAULT NULL COMMENT 'staff who entered this customer',
     is_active    TINYINT(1)    NOT NULL DEFAULT 1,
     created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_account_no (account_no)
+    UNIQUE KEY uq_account_no (account_no),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO customers (name, phone) VALUES ('Walk-in Customer', '0000000000');
@@ -788,4 +790,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (19, 'sale_salesperson'),
     (20, 'sale_previous_due'),
     (21, 'sale_walkin_and_ledger'),
-    (22, 'fix_branch_stock_view');
+    (22, 'fix_branch_stock_view'),
+    (23, 'customer_created_by');

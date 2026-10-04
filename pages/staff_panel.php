@@ -37,6 +37,8 @@ include __DIR__ . '/../includes/sidebar.php';
     <?php if ($canWrite): ?>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#refSalesTab" type="button" id="refSalesTabBtn">
       <i class="bi bi-person-check me-1"></i>রেফারেন্স সেলস</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#custEntryTab" type="button" id="custEntryTabBtn">
+      <i class="bi bi-person-plus me-1"></i>কাস্টমার এন্ট্রি</button></li>
     <?php endif; ?>
     <?php endif; ?>
   </ul>
@@ -228,6 +230,57 @@ include __DIR__ . '/../includes/sidebar.php';
               </tr>
             </thead>
             <tbody id="refDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="custEntryTab">
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-8 col-md-3">
+              <label class="form-label small text-muted mb-1">মাস</label>
+              <input type="month" class="form-control form-control-sm" id="custEntryMonth" value="<?= date('Y-m') ?>">
+            </div>
+            <div class="col-4 col-md-2 d-grid">
+              <button class="btn btn-primary btn-sm" onclick="loadCustomerEntries()">দেখুন</button>
+            </div>
+            <div class="col-12">
+              <small class="text-muted">
+                কোন স্টাফ কতজন নতুন কাস্টমার যুক্ত করেছে (কাস্টমার তৈরির তারিখ অনুযায়ী)।
+                নামের উপর ক্লিক করলে তার যুক্ত করা কাস্টমারদের তালিকা দেখাবে।
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>স্টাফ</th>
+                <th class="text-end">কাস্টমার যুক্ত করেছে</th>
+              </tr>
+            </thead>
+            <tbody id="custEntryBody">
+              <tr><td colspan="2" class="text-center text-muted py-3">মাস নির্বাচন করে দেখুন</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="custEntryDetailWrap" class="card shadow-sm mt-3 d-none">
+        <div class="card-header bg-white fw-semibold" id="custEntryDetailTitle"></div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>কাস্টমার</th><th>একাউন্ট নং</th><th>ফোন</th>
+                <th>ধরন</th><th>তৈরির তারিখ</th>
+              </tr>
+            </thead>
+            <tbody id="custEntryDetailBody"></tbody>
           </table>
         </div>
       </div>
@@ -445,6 +498,56 @@ async function loadReferralDetail(userId, name) {
     }
 }
 
+// ── Customer entries (data-entry attribution) ────────────────────────────────
+async function loadCustomerEntries() {
+    const tbody = document.getElementById('custEntryBody');
+    if (!tbody) return;
+    const month = document.getElementById('custEntryMonth').value;
+    document.getElementById('custEntryDetailWrap').classList.add('d-none');
+    tbody.innerHTML = '<tr><td colspan="2" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_customer_entries.php?month=${month}`);
+        const data = await res.json();
+        const rows = (data.rows) || [];
+        tbody.innerHTML = rows.length ? rows.map(r => `
+            <tr style="cursor:pointer" data-name="${esc(r.name)}" onclick="loadCustomerEntryDetail(${r.id}, this.dataset.name)">
+                <td class="fw-semibold">${esc(r.name)}
+                    <span class="badge bg-light text-dark border">${esc(r.role)}</span></td>
+                <td class="text-end fw-bold">${r.customer_count}</td>
+            </tr>`).join('')
+            : '<tr><td colspan="2" class="text-center text-muted py-3">এই মাসে কেউ কাস্টমার যুক্ত করেনি</td></tr>';
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
+    }
+}
+
+const CUST_TYPE_LABEL = { full: 'ফুল', short: 'শর্ট' };
+
+async function loadCustomerEntryDetail(userId, name) {
+    const wrap  = document.getElementById('custEntryDetailWrap');
+    const tbody = document.getElementById('custEntryDetailBody');
+    const month = document.getElementById('custEntryMonth').value;
+    document.getElementById('custEntryDetailTitle').textContent = name + ' — যুক্ত করা কাস্টমার';
+    wrap.classList.remove('d-none');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_customer_entries.php?month=${month}&user_id=${userId}`);
+        const data = await res.json();
+        const rows = (data.customers) || [];
+        tbody.innerHTML = rows.length ? rows.map(c => `
+            <tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.account_no || '—')}</td>
+                <td>${esc(c.phone || '—')}</td>
+                <td>${CUST_TYPE_LABEL[c.account_type] || esc(c.account_type)}</td>
+                <td class="small text-muted">${esc(c.created_at)}</td>
+            </tr>`).join('')
+            : '<tr><td colspan="5" class="text-center text-muted py-3">কোনো কাস্টমার নেই</td></tr>';
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
+    }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadTasks();
 loadAssignments();
@@ -453,6 +556,12 @@ document.getElementById('refSalesTabBtn')?.addEventListener('click', () => {
     if (!document.getElementById('refSalesBody').dataset.loaded) {
         document.getElementById('refSalesBody').dataset.loaded = '1';
         loadReferralSales();
+    }
+});
+document.getElementById('custEntryTabBtn')?.addEventListener('click', () => {
+    if (!document.getElementById('custEntryBody').dataset.loaded) {
+        document.getElementById('custEntryBody').dataset.loaded = '1';
+        loadCustomerEntries();
     }
 });
 </script>
