@@ -132,6 +132,26 @@ include __DIR__ . '/../includes/sidebar.php';
             <i class="bi bi-printer me-1"></i>খাতা প্রিন্ট
           </button>
         </div>
+        <div class="row g-2 p-3 pb-0">
+          <div class="col-4">
+            <div class="border rounded p-2 text-center h-100">
+              <small class="text-muted d-block">মোট মালামাল ও খরচ</small>
+              <span class="fw-bold text-danger" id="ledgerTotalDebit">০.০০ ৳</span>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded p-2 text-center h-100">
+              <small class="text-muted d-block">মোট জমা ও রিটার্ন</small>
+              <span class="fw-bold text-success" id="ledgerTotalCredit">০.০০ ৳</span>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded p-2 text-center h-100">
+              <small class="text-muted d-block">বর্তমান বাকি</small>
+              <span class="fw-bold" id="ledgerTotalBalance">০.০০ ৳</span>
+            </div>
+          </div>
+        </div>
         <div class="table-responsive">
           <table class="table table-hover table-sm mb-0 align-middle">
             <thead class="table-dark">
