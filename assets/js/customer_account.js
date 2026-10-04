@@ -88,7 +88,7 @@ function renderLedger() {
     const tbody  = document.getElementById('ledgerBody');
     const finals = _entries.filter(e => e.status === 'final');
     if (!finals.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">কোনো লেনদেন নেই</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">কোনো লেনদেন নেই</td></tr>';
         return;
     }
     // Entry types this page can actually create/edit — due_transfer/opening
@@ -98,22 +98,23 @@ function renderLedger() {
         const canEdit = CAN_WRITE && !e.ref_table && EDITABLE_TYPES.includes(e.entry_type);
         return `
         <tr>
-            <td class="text-nowrap">${esc(e.entry_date)}</td>
-            <td>${entryDescription(e)}
-                <div class="btn-group btn-group-sm ms-2">
-                    ${canEdit ? `
-                    <button class="btn btn-outline-primary py-0" onclick="editLedgerEntry(${e.id})" title="এডিট">
-                        <i class="bi bi-pencil"></i>
-                    </button>` : ''}
-                    <button class="btn btn-outline-secondary py-0" onclick="printLedgerEntry(${e.id})" title="প্রিন্ট">
-                        <i class="bi bi-printer"></i>
-                    </button>
-                </div>
+            <td class="text-center">
+                ${canEdit ? `
+                <button class="btn btn-sm btn-outline-primary py-0" onclick="editLedgerEntry(${e.id})" title="এডিট">
+                    <i class="bi bi-pencil"></i>
+                </button>` : ''}
             </td>
+            <td class="text-nowrap">${esc(e.entry_date)}</td>
+            <td>${entryDescription(e)}</td>
             <td class="text-end">${parseFloat(e.debit)  > 0 ? fmt(e.debit)  : '—'}</td>
             <td class="text-end">${parseFloat(e.credit) > 0 ? fmt(e.credit) : '—'}</td>
             <td class="text-end fw-semibold ${parseFloat(e.running_balance) > 0 ? 'text-danger' : 'text-success'}">
                 ${fmt(e.running_balance)}
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-secondary py-0" onclick="printLedgerEntry(${e.id})" title="প্রিন্ট">
+                    <i class="bi bi-printer"></i>
+                </button>
             </td>
         </tr>`;
     }).join('');

@@ -136,15 +136,17 @@ include __DIR__ . '/../includes/sidebar.php';
           <table class="table table-hover table-sm mb-0 align-middle">
             <thead class="table-dark">
               <tr>
+                <th style="width:44px"></th>
                 <th>তারিখ</th>
                 <th>বিবরণ</th>
                 <th class="text-end">ডেবিট (৳)</th>
                 <th class="text-end">ক্রেডিট (৳)</th>
                 <th class="text-end">ব্যালেন্স (৳)</th>
+                <th style="width:44px"></th>
               </tr>
             </thead>
             <tbody id="ledgerBody">
-              <tr><td colspan="5" class="text-center text-muted py-4">
+              <tr><td colspan="7" class="text-center text-muted py-4">
                 <span class="spinner-border spinner-border-sm me-1"></span>লোড হচ্ছে...
               </td></tr>
             </tbody>
