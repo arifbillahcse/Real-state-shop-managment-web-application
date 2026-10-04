@@ -87,19 +87,6 @@ function entryDescription(e) {
 function renderLedger() {
     const tbody  = document.getElementById('ledgerBody');
     const finals = _entries.filter(e => e.status === 'final');
-
-    // মোট মালামাল ও খরচ / মোট জমা ও রিটার্ন / বর্তমান বাকি — every debit and
-    // credit across all entry types, not just goods/deposit, since money
-    // returned or an "অন্যান্য খরচ" moves the balance exactly the same way.
-    const totalDebit  = finals.reduce((s, e) => s + (parseFloat(e.debit)  || 0), 0);
-    const totalCredit = finals.reduce((s, e) => s + (parseFloat(e.credit) || 0), 0);
-    const netBalance  = totalDebit - totalCredit;
-    document.getElementById('ledgerTotalDebit').textContent  = fmt(totalDebit);
-    document.getElementById('ledgerTotalCredit').textContent = fmt(totalCredit);
-    const balEl = document.getElementById('ledgerTotalBalance');
-    balEl.textContent = fmt(Math.abs(netBalance));
-    balEl.className = 'fw-bold ' + (netBalance > 0 ? 'text-danger' : 'text-success');
-
     if (!finals.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">কোনো লেনদেন নেই</td></tr>';
         return;
