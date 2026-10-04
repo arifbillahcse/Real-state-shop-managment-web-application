@@ -225,7 +225,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <!-- Invoice Modal -->
 <div class="modal fade" id="invoiceModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-file-earmark-text me-2"></i>ইনভয়েস</h5>

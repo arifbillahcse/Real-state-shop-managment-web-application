@@ -193,7 +193,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 
 <!-- ===== STOCK INBOUND MODAL ===== -->
 <div class="modal fade" id="inboundModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
         <div class="modal-content">
             <form id="inboundForm">
                 <div class="modal-header">

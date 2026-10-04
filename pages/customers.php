@@ -53,7 +53,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <!-- Add / Edit Modal -->
 <div class="modal fade" id="customerModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="modalTitle">নতুন কাস্টমার</h5>

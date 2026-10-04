@@ -49,7 +49,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <!-- Add / Edit User Modal -->
 <div class="modal fade" id="userModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="userModalTitle">নতুন ব্যবহারকারী</h5>
@@ -92,7 +92,7 @@ include __DIR__ . '/../includes/sidebar.php';
 
 <!-- Reset Password Modal -->
 <div class="modal fade" id="passwordModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-warning">
         <h5 class="modal-title"><i class="bi bi-key me-1"></i>পাসওয়ার্ড রিসেট</h5>

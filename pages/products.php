@@ -103,7 +103,7 @@ function renderProductTable(array $items, string $type): void {
 
 <!-- ============ PRODUCT MODAL ============ -->
 <div class="modal fade" id="productModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
         <div class="modal-content">
             <form id="productForm">
                 <div class="modal-header">

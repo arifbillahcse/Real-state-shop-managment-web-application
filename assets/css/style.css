@@ -107,6 +107,21 @@ body {
 .btn-primary:hover { opacity: .9; }
 
 /* ==============================
+   Modal — scrollable fix
+============================== */
+
+/* modal-body always scrolls when content is taller than viewport */
+.modal-dialog-scrollable .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* max-height so modal never goes off screen */
+.modal-dialog-scrollable .modal-content {
+    max-height: calc(100vh - 80px);
+}
+
+/* ==============================
    Page Header
 ============================== */
 .page-header {
