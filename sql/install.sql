@@ -727,7 +727,8 @@ JOIN   product_categories pc ON pc.id = p.category_id
 LEFT   JOIN product_subcategories psc ON psc.id = p.subcategory_id
 LEFT   JOIN branch_products bp ON bp.branch_id = b.id AND bp.product_id = p.id
 WHERE  p.is_active = 1
-  AND  b.is_active = 1;
+  AND  b.is_active = 1
+  AND  COALESCE(bp.is_active, 1) = 1;
 
 -- Customer outstanding dues (invoice-based).
 -- Memos pushed into the khata (ledger_id set) are excluded: their receivable
@@ -791,4 +792,5 @@ INSERT IGNORE INTO schema_migrations (version, name) VALUES
     (20, 'sale_previous_due'),
     (21, 'sale_walkin_and_ledger'),
     (22, 'fix_branch_stock_view'),
-    (23, 'customer_created_by');
+    (23, 'customer_created_by'),
+    (24, 'branch_stock_respects_active');

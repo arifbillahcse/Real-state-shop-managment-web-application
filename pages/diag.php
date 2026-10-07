@@ -45,7 +45,7 @@ function check(string $label, bool $pass, array &$issues, int &$ok): void {
 }
 
 echo "======================================================================\n";
-echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v18, plus v22)\n";
+echo " SCHEMA HEALTH CHECK — v3.0.0 (migrations v11 through v18, plus v22, v24)\n";
 echo " Generated: " . date('Y-m-d H:i:s') . "\n";
 echo "======================================================================\n\n";
 
@@ -207,6 +207,12 @@ check(
     "vw_branch_stock counts stock_transfers by status (v22 fix)"
     . ($branchStockDef === '' ? ' — view missing, see above' : ''),
     str_contains($branchStockDef, 'stock_transfers') && str_contains($branchStockDef, 'received'),
+    $issues, $ok
+);
+check(
+    "vw_branch_stock honors branch_products.is_active (v24 fix)"
+    . ($branchStockDef === '' ? ' — view missing, see above' : ''),
+    str_contains($branchStockDef, 'bp.is_active') || str_contains($branchStockDef, 'bp`.`is_active'),
     $issues, $ok
 );
 echo "\n";
