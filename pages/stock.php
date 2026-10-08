@@ -10,8 +10,12 @@ requireLogin();
 $pageTitle   = 'স্টক ম্যানেজমেন্ট';
 $_isStaff    = isStaff();
 $staffBranch = getSessionBranchId();
-$allStock    = Stock::getAllStock();
-$history     = Stock::getStockInbound(null, $_isStaff ? $staffBranch : null);
+$lockedBranch = lockedBranchId();
+// Branch-locked roles (staff AND assistant_manager) must see their own
+// branch's transfer-aware stock, not the global view which structurally
+// excludes transfer effects (they net to zero at the global level).
+$allStock    = $lockedBranch !== null ? Stock::getBranchStock($lockedBranch) : Stock::getAllStock();
+$history     = Stock::getStockInbound(null, $lockedBranch);
 $suppliers   = Supplier::getSuppliers();
 $products    = Product::getProducts();
 $branches    = Branch::getVisibleBranches();
