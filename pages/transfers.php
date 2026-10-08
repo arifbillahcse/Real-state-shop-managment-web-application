@@ -52,6 +52,8 @@ include __DIR__ . '/../includes/sidebar.php';
       <i class="bi bi-search me-1"></i>সার্চ</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#receiveTab" type="button" id="receiveTabBtn">
       <i class="bi bi-box-arrow-in-down me-1"></i>পণ্য রিসিভ <span class="badge bg-danger d-none" id="incomingCount"></span></button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#receiveHistTab" type="button" id="receiveHistTabBtn">
+      <i class="bi bi-clock-history me-1"></i>রিসিভ ইতিহাস</button></li>
   </ul>
 
   <div class="tab-content">
@@ -316,19 +318,38 @@ include __DIR__ . '/../includes/sidebar.php';
           </table>
         </div>
       </div>
+    </div>
 
-      <!-- ═══ Receive history — already IN'd or ফেরত করা transfers for this branch ═══ -->
-      <div class="card shadow-sm mt-4">
-        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span><i class="bi bi-clock-history me-1 text-danger"></i>রিসিভ ইতিহাস</span>
-          <div class="d-flex align-items-center gap-2">
-            <label class="form-label small fw-semibold mb-0">তারিখ (খালি = সব)</label>
-            <input type="date" class="form-control form-control-sm" id="rcvHistDate" style="width:150px">
-            <button class="btn btn-outline-secondary btn-sm" onclick="loadReceiveHistory()">
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
+    <!-- ═══ Receive history — already IN'd or ফেরত করা transfers for this branch ═══ -->
+    <div class="tab-pane fade" id="receiveHistTab">
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+              <label class="form-label small fw-semibold">গ্রহণকারী ব্রাঞ্চ</label>
+              <select class="form-select form-select-sm" id="rcvHistBranch"
+                      <?= $lockedBranch !== null ? 'disabled' : '' ?>>
+                <?php foreach (($lockedBranch !== null ? $sourceBranches : $branches) as $b): ?>
+                <option value="<?= $b['id'] ?>"
+                        <?= ($lockedBranch !== null || ($_isStaff && $staffBranch == $b['id'])) ? 'selected' : '' ?>>
+                  <?= e($b['name']) ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-8 col-md-4">
+              <label class="form-label small fw-semibold">তারিখ (খালি = সব)</label>
+              <input type="date" class="form-control form-control-sm" id="rcvHistDate">
+            </div>
+            <div class="col-4 col-md-3 d-grid">
+              <button class="btn btn-primary btn-sm" onclick="loadReceiveHistory()">
+                <i class="bi bi-arrow-clockwise me-1"></i>লোড করুন
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+      <div class="card shadow-sm">
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-dark">
@@ -339,7 +360,7 @@ include __DIR__ . '/../includes/sidebar.php';
               </tr>
             </thead>
             <tbody id="receiveHistBody">
-              <tr><td colspan="8" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
+              <tr><td colspan="8" class="text-center text-muted py-3">লোড করুন বাটনে ক্লিক করুন</td></tr>
             </tbody>
           </table>
         </div>

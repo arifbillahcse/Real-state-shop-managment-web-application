@@ -471,13 +471,12 @@ async function loadIncoming() {
     } catch {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
     }
-    loadReceiveHistory();
 }
 
-// ── Receive history — already IN'd or ফেরত করা, so they don't just
-// disappear from the receive tab the moment someone acts on them ───────────
+// ── Receive history — its own tab, own branch/date filters, since once a
+// transfer is IN'd or ফেরত করা it drops off the pending list above ──────────
 async function loadReceiveHistory() {
-    const branchId = document.getElementById('rcvBranch').value;
+    const branchId = document.getElementById('rcvHistBranch').value;
     const date     = document.getElementById('rcvHistDate').value;
     const tbody    = document.getElementById('receiveHistBody');
     if (!tbody) return;
@@ -530,3 +529,9 @@ if (IS_STAFF && STAFF_BRANCH) {
     document.getElementById('receiveTabBtn')?.click();
     loadIncoming();
 }
+document.getElementById('receiveHistTabBtn')?.addEventListener('click', () => {
+    if (!document.getElementById('receiveHistBody').dataset.loaded) {
+        document.getElementById('receiveHistBody').dataset.loaded = '1';
+        loadReceiveHistory();
+    }
+});
