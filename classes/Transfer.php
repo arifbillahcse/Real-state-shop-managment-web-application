@@ -278,6 +278,31 @@ class Transfer extends BaseModel
         );
     }
 
+    // What this branch has already acted on (§4) — received or returned,
+    // newest action first. Filtered by the day it was ACTED on (received_at),
+    // not transfer_date — "কবে পাঠানো হয়েছিল" and "কবে রিসিভ করা হয়েছে" are
+    // often different days, and this list answers the second question.
+    public static function getReceivedHistory(int $branchId, string $date = ''): array
+    {
+        $where  = 't.to_branch_id = ? AND t.status IN ("received", "returned")';
+        $params = [$branchId];
+        if ($date !== '') { $where .= ' AND DATE(t.received_at) = ?'; $params[] = $date; }
+        return Database::fetchAll(
+            "SELECT t.*, p.name AS product_name, p.unit,
+                    fb.name AS from_branch_name, tb.name AS to_branch_name,
+                    u.name AS received_by_name
+             FROM stock_transfers t
+             JOIN products p  ON p.id  = t.product_id
+             JOIN branches fb ON fb.id = t.from_branch_id
+             JOIN branches tb ON tb.id = t.to_branch_id
+             LEFT JOIN users u ON u.id = t.received_by
+             WHERE $where
+             ORDER BY t.received_at DESC, t.id DESC
+             LIMIT 200",
+            $params
+        );
+    }
+
     // Customer / driver search (৩.৩) — matches name or mobile, groups by date
     public static function search(string $q, string $type = 'customer'): array
     {

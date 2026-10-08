@@ -316,6 +316,34 @@ include __DIR__ . '/../includes/sidebar.php';
           </table>
         </div>
       </div>
+
+      <!-- ═══ Receive history — already IN'd or ফেরত করা transfers for this branch ═══ -->
+      <div class="card shadow-sm mt-4">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span><i class="bi bi-clock-history me-1 text-danger"></i>রিসিভ ইতিহাস</span>
+          <div class="d-flex align-items-center gap-2">
+            <label class="form-label small fw-semibold mb-0">তারিখ (খালি = সব)</label>
+            <input type="date" class="form-control form-control-sm" id="rcvHistDate" style="width:150px">
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadReceiveHistory()">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>রিসিভের সময়</th><th>প্রেরক ব্রাঞ্চ</th><th>কাস্টমার</th><th>পণ্য</th>
+                <th class="text-end">পরিমাণ</th><th>ড্রাইভার</th>
+                <th class="text-center">স্ট্যাটাস</th><th>গ্রহণকারী</th>
+              </tr>
+            </thead>
+            <tbody id="receiveHistBody">
+              <tr><td colspan="8" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
   </div>

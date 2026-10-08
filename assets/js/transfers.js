@@ -471,6 +471,38 @@ async function loadIncoming() {
     } catch {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
     }
+    loadReceiveHistory();
+}
+
+// ── Receive history — already IN'd or ফেরত করা, so they don't just
+// disappear from the receive tab the moment someone acts on them ───────────
+async function loadReceiveHistory() {
+    const branchId = document.getElementById('rcvBranch').value;
+    const date     = document.getElementById('rcvHistDate').value;
+    const tbody    = document.getElementById('receiveHistBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_transfer_receive_history.php?branch_id=${branchId}&date=${date}`);
+        const data = await res.json();
+        const rows = (data.entries) || [];
+        tbody.innerHTML = rows.length ? rows.map(t => `
+            <tr>
+                <td class="small">${esc(t.received_at || '—')}</td>
+                <td>${esc(t.from_branch_name)}</td>
+                <td>${esc(t.customer_name)}
+                    ${t.customer_mobile ? `<div class="small text-muted">${esc(t.customer_mobile)}</div>` : ''}</td>
+                <td>${esc(t.product_name)}</td>
+                <td class="text-end">${parseFloat(t.quantity)} ${esc(t.unit)}</td>
+                <td class="small">${esc(t.driver_name || '—')}</td>
+                <td class="text-center">${statusBadge(t.status)}
+                    ${t.return_note ? `<div class="small text-danger">${esc(t.return_note)}</div>` : ''}</td>
+                <td class="small">${esc(t.received_by_name || '—')}</td>
+            </tr>`).join('')
+            : `<tr><td colspan="8" class="text-center text-muted py-3">কোনো ইতিহাস নেই</td></tr>`;
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">লোড করা যায়নি</td></tr>';
+    }
 }
 
 function receiveTransfer(id, action) {
