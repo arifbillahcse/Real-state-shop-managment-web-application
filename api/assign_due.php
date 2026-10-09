@@ -9,7 +9,8 @@ $result = Staff::assignDue(
     (int)($_POST['customer_id'] ?? 0),
     (int)($_POST['staff_id']    ?? 0),
     $_POST['note'] ?? '',
-    getUserId()
+    getUserId(),
+    (int)($_POST['branch_id'] ?? 0) ?: null
 );
 
 if (is_int($result)) {

@@ -12,16 +12,25 @@ class Staff extends BaseModel
 
     // ── Due assignments (হিসাব ট্রান্সফার) ──────────────────────────────────
     public static function assignDue(
-        int $customerId, int $staffId, string $note, ?int $assignedBy
+        int $customerId, int $staffId, string $note, ?int $assignedBy, ?int $branchId = null
     ): int|string {
         $cust = Database::fetchOne(
             'SELECT id FROM customers WHERE id = ? AND is_active = 1', [$customerId]
         );
         if (!$cust) return 'CUSTOMER_NOT_FOUND';
         $staff = Database::fetchOne(
-            'SELECT id FROM users WHERE id = ? AND is_active = 1', [$staffId]
+            "SELECT id FROM users WHERE id = ? AND is_active = 1 AND role IN ('staff', 'assistant_manager')",
+            [$staffId]
         );
         if (!$staff) return 'STAFF_NOT_FOUND';
+        // Branch-wise permission: the staff member must belong to the branch
+        // the picker was narrowed to, not just any branch in the business.
+        if ($branchId !== null) {
+            $inBranch = Database::fetchOne(
+                'SELECT id FROM users WHERE id = ? AND branch_id = ?', [$staffId, $branchId]
+            );
+            if (!$inBranch) return 'STAFF_NOT_IN_BRANCH';
+        }
 
         // One active assignment per customer — reassigning closes the old one
         Database::execute(
@@ -56,6 +65,17 @@ class Staff extends BaseModel
             [$customerId]
         );
         return $row ? (int)$row['staff_id'] : null;
+    }
+
+    /** Branch-locked staff/assistant managers of one branch, for the due-transfer picker. */
+    public static function getBranchStaff(int $branchId): array
+    {
+        return Database::fetchAll(
+            "SELECT id, name, role FROM users
+             WHERE branch_id = ? AND is_active = 1 AND role IN ('staff', 'assistant_manager')
+             ORDER BY name",
+            [$branchId]
+        );
     }
 
     public static function getAssignments(?int $staffId = null): array
@@ -269,8 +289,9 @@ class Staff extends BaseModel
     public static function errorMessage(string $code): string
     {
         return [
-            'CUSTOMER_NOT_FOUND' => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
-            'STAFF_NOT_FOUND'    => 'স্টাফ/সদস্য খুঁজে পাওয়া যায়নি।',
+            'CUSTOMER_NOT_FOUND'  => 'কাস্টমার খুঁজে পাওয়া যায়নি।',
+            'STAFF_NOT_FOUND'     => 'স্টাফ/সদস্য খুঁজে পাওয়া যায়নি।',
+            'STAFF_NOT_IN_BRANCH' => 'নির্বাচিত স্টাফ এই ব্রাঞ্চের নয়।',
             'NOT_FOUND'          => 'রেকর্ড খুঁজে পাওয়া যায়নি।',
             'TITLE_REQUIRED'     => 'কাজের শিরোনাম দিন।',
             'INVALID_STATUS'     => 'ভুল স্ট্যাটাস।',

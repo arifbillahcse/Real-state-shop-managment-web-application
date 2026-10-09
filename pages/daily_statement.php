@@ -141,8 +141,47 @@ include __DIR__ . '/../includes/sidebar.php';
 </div>
 </div>
 
+<!-- হিসাব ট্রান্সফার modal -->
+<div class="modal fade" id="dueTransferModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-arrow-left-right me-1"></i>হিসাব ট্রান্সফার</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="dtCustomerId">
+        <p class="mb-2">কাস্টমার: <strong id="dtCustomerName"></strong></p>
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">ব্রাঞ্চ</label>
+          <select class="form-select form-select-sm" id="dtBranch">
+            <option value="">— ব্রাঞ্চ নির্বাচন করুন —</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">স্টাফ</label>
+          <select class="form-select form-select-sm" id="dtStaff" disabled>
+            <option value="">— আগে ব্রাঞ্চ নির্বাচন করুন —</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">নোট (ঐচ্ছিক)</label>
+          <input type="text" class="form-control form-control-sm" id="dtNote">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">বাতিল</button>
+        <button type="button" class="btn btn-sm btn-primary" id="dtSaveBtn" onclick="saveDueTransfer()">
+          <i class="bi bi-check-lg me-1"></i>ট্রান্সফার করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const BASE_URL = '<?= BASE_URL ?>';
+const IS_ADMIN = <?= isAdminOrManager() ? 'true' : 'false' ?>;
 
 function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -163,7 +202,14 @@ function accountRow(r) {
         <td class="text-end text-success">${parseFloat(r.deposit) > 0 ? fmt(r.deposit) : '—'}</td>
         <td class="text-end">${fmt(r.previous_due)}</td>
         <td class="text-end fw-semibold ${parseFloat(r.current_balance) > 0 ? 'text-danger' : 'text-success'}">${fmt(r.current_balance)}</td>
-        <td class="small">${r.collector ? esc(r.collector) : '—'}</td>
+        <td class="small">
+            ${r.collector_id
+                ? `<span class="badge bg-info-subtle text-info-emphasis">${esc(r.collector_code)} — ${esc(r.collector)}</span>`
+                : `<span class="text-muted">Not Assigned</span>`}
+            ${IS_ADMIN ? `<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 ms-1"
+                onclick='openDueTransfer(${r.id}, ${JSON.stringify(r.name)})' title="হিসাব ট্রান্সফার">
+                <i class="bi bi-arrow-left-right"></i></button>` : ''}
+        </td>
         <td class="text-end">${parseFloat(r.other_expense) > 0 ? fmt(r.other_expense) : '—'}</td>
         <td class="text-end">${parseFloat(r.money_returned) > 0 ? fmt(r.money_returned) : '—'}</td>
     </tr>`;
@@ -239,6 +285,94 @@ async function loadStatement() {
         showToast('স্টেটমেন্ট লোড করা যায়নি: ' + (err && err.message ? err.message : err), 'danger');
     } finally {
         document.getElementById('stLoading').classList.add('d-none');
+    }
+}
+
+// ── হিসাব ট্রান্সফার ─────────────────────────────────────────────────────
+let dueTransferModal = null;
+async function loadBranchesIntoTransferModal() {
+    const sel = document.getElementById('dtBranch');
+    if (sel.dataset.loaded) return;
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_branches.php`);
+        const data = await res.json();
+        (data.data || []).forEach(b => {
+            sel.insertAdjacentHTML('beforeend', `<option value="${b.id}">${esc(b.name)}</option>`);
+        });
+        sel.dataset.loaded = '1';
+    } catch (err) {
+        console.error('branch list load failed:', err);
+    }
+}
+
+async function openDueTransfer(customerId, customerName) {
+    if (!IS_ADMIN) return;
+    document.getElementById('dtCustomerId').value   = customerId;
+    document.getElementById('dtCustomerName').textContent = customerName;
+    document.getElementById('dtNote').value = '';
+    const staffSel = document.getElementById('dtStaff');
+    staffSel.innerHTML = '<option value="">— আগে ব্রাঞ্চ নির্বাচন করুন —</option>';
+    staffSel.disabled = true;
+    await loadBranchesIntoTransferModal();
+    document.getElementById('dtBranch').value = '';
+    if (!dueTransferModal) {
+        dueTransferModal = new bootstrap.Modal(document.getElementById('dueTransferModal'));
+    }
+    dueTransferModal.show();
+}
+
+document.getElementById('dtBranch').addEventListener('change', async function () {
+    const staffSel = document.getElementById('dtStaff');
+    const branchId = this.value;
+    staffSel.innerHTML = '<option value="">লোড হচ্ছে...</option>';
+    staffSel.disabled = true;
+    if (!branchId) {
+        staffSel.innerHTML = '<option value="">— আগে ব্রাঞ্চ নির্বাচন করুন —</option>';
+        return;
+    }
+    try {
+        const res  = await fetch(`${BASE_URL}/api/get_branch_staff.php?branch_id=${branchId}`);
+        const data = await res.json();
+        if (!data.success) { showToast(data.message, 'danger'); return; }
+        const staff = data.staff || [];
+        staffSel.innerHTML = staff.length
+            ? '<option value="">— স্টাফ নির্বাচন করুন —</option>' + staff.map(s =>
+                `<option value="${s.id}">STF-${String(s.id).padStart(4, '0')} — ${esc(s.name)}</option>`
+              ).join('')
+            : '<option value="">এই ব্রাঞ্চে কোনো স্টাফ নেই</option>';
+        staffSel.disabled = false;
+    } catch (err) {
+        console.error('branch staff load failed:', err);
+        staffSel.innerHTML = '<option value="">লোড করা যায়নি</option>';
+    }
+});
+
+async function saveDueTransfer() {
+    const customerId = document.getElementById('dtCustomerId').value;
+    const branchId    = document.getElementById('dtBranch').value;
+    const staffId     = document.getElementById('dtStaff').value;
+    const note        = document.getElementById('dtNote').value;
+    if (!branchId) { showToast('ব্রাঞ্চ নির্বাচন করুন।', 'danger'); return; }
+    if (!staffId)  { showToast('স্টাফ নির্বাচন করুন।', 'danger'); return; }
+
+    const btn = document.getElementById('dtSaveBtn');
+    btn.disabled = true;
+    try {
+        const res  = await fetch(`${BASE_URL}/api/assign_due.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ customer_id: customerId, staff_id: staffId, branch_id: branchId, note })
+        });
+        const data = await res.json();
+        if (!data.success) { showToast(data.message, 'danger'); return; }
+        showToast(data.message, 'success');
+        dueTransferModal.hide();
+        loadStatement();
+    } catch (err) {
+        console.error('assign_due failed:', err);
+        showToast('ট্রান্সফার করা যায়নি।', 'danger');
+    } finally {
+        btn.disabled = false;
     }
 }
 

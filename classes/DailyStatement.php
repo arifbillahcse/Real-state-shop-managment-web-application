@@ -90,13 +90,16 @@ class DailyStatement
 
             // Active collector (হিসাব ট্রান্সফার)
             $collector = Database::fetchOne(
-                'SELECT u.name FROM due_assignments a
+                'SELECT u.id, u.name FROM due_assignments a
                  JOIN users u ON u.id = a.staff_id
                  WHERE a.customer_id = ? AND a.status = "active"
                  ORDER BY a.id DESC LIMIT 1',
                 [$r['id']]
             );
-            $r['collector'] = $collector['name'] ?? null;
+            $r['collector']      = $collector['name'] ?? null; // kept for backward compat
+            $r['collector_id']   = $collector['id'] ?? null;
+            $r['collector_code'] = $collector
+                ? ('STF-' . str_pad((string)$collector['id'], 4, '0', STR_PAD_LEFT)) : null;
         }
         return $rows;
     }
