@@ -292,7 +292,7 @@ include __DIR__ . '/../includes/sidebar.php';
                 <p class="text-white-50 small mb-1">এই সফটওয়্যারটি তৈরি করেছে</p>
                 <h5 class="text-white fw-bold mb-1">Softorio</h5>
                 <p class="text-white-50 small mb-3">Custom Software Development<br>Bangladesh</p>
-                <a href="https://softorio.com/our-founders.html" target="_blank" rel="noopener noreferrer"
+                <a href="https://softorio.com" target="_blank" rel="noopener noreferrer"
                    class="btn btn-sm btn-outline-light px-4">
                   <i class="bi bi-people me-1"></i>আমাদের সম্পর্কে
                 </a>
