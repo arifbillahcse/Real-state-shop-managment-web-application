@@ -44,23 +44,34 @@ require_once __DIR__ . '/../includes/sidebar.php';
     </div>
     <?php else: ?>
 
-    <!-- Search + Sub-category filter -->
+    <!-- Category / Sub-category / Search filter -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-end">
-                <div class="col-md-7">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">ক্যাটাগরি</label>
+                    <select class="form-select form-select-sm" id="categoryFilter" data-no-search="1">
+                        <option value="">সব ক্যাটাগরি</option>
+                        <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>">
+                            <?= e($cat['name']) ?> (<?= count($productsByCategory[$cat['id']]) ?>)
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">সাব-ক্যাটাগরি</label>
+                    <select class="form-select form-select-sm" id="subcatFilter" data-no-search="1">
+                        <option value="">সব সাব-ক্যাটাগরি</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
                     <label class="form-label small text-muted mb-1">পণ্য খুঁজুন</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" class="form-control" id="productSearch"
                                placeholder="পণ্যের নাম, কোড বা সাইজ/ব্র্যান্ড দিয়ে খুঁজুন...">
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">সাব-ক্যাটাগরি ফিল্টার</label>
-                    <select class="form-select form-select-sm" id="subcatFilter" data-no-search="1">
-                        <option value="">সব সাব-ক্যাটাগরি</option>
-                    </select>
                 </div>
                 <div class="col-md-1">
                     <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnClearFilter" title="ফিল্টার মুছুন">
@@ -71,28 +82,10 @@ require_once __DIR__ . '/../includes/sidebar.php';
         </div>
     </div>
 
-    <!-- Category Tabs -->
-    <ul class="nav nav-tabs mb-3" id="productTabs">
-        <?php foreach ($categories as $i => $cat): ?>
-        <li class="nav-item">
-            <button class="nav-link <?= $i === 0 ? 'active' : '' ?>"
-                    data-bs-toggle="tab"
-                    data-bs-target="#catTab<?= $cat['id'] ?>">
-                <i class="bi bi-tag me-1"></i>
-                <?= e($cat['name']) ?>
-                <span class="badge bg-secondary ms-1"><?= count($productsByCategory[$cat['id']]) ?></span>
-            </button>
-        </li>
-        <?php endforeach; ?>
-    </ul>
-
-    <div class="tab-content">
-        <?php foreach ($categories as $i => $cat): ?>
-        <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="catTab<?= $cat['id'] ?>" data-category-id="<?= $cat['id'] ?>">
-            <?php renderProductTable($productsByCategory[$cat['id']], !empty($branches)); ?>
-        </div>
-        <?php endforeach; ?>
-    </div>
+    <?php
+    $allProducts = array_merge(...array_values($productsByCategory));
+    renderProductTable($allProducts, !empty($branches));
+    ?>
 
     <?php endif; ?>
 </div>
@@ -108,6 +101,7 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             <th style="width:56px">ছবি</th>
                             <th>পণ্যের নাম</th>
                             <th>কোড</th>
+                            <th>ক্যাটাগরি</th>
                             <th>সাব-ক্যাটাগরি</th>
                             <th>সাইজ / ব্র্যান্ড</th>
                             <th>ইউনিট</th>
@@ -118,9 +112,9 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             <th class="text-center" style="width:170px">অ্যাকশন</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="productsTableBody">
                     <?php if (empty($items)): ?>
-                        <tr class="row-empty"><td colspan="11" class="text-center text-muted py-4">
+                        <tr class="row-empty"><td colspan="12" class="text-center text-muted py-4">
                             কোন পণ্য নেই। "নতুন পণ্য" বাটনে ক্লিক করুন।
                         </td></tr>
                     <?php else: foreach ($items as $p): ?>
@@ -128,6 +122,7 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             data-name="<?= e(mb_strtolower($p['name'])) ?>"
                             data-code="<?= e(mb_strtolower((string)($p['product_code'] ?? ''))) ?>"
                             data-size="<?= e(mb_strtolower((string)($p['size_brand'] ?? ''))) ?>"
+                            data-category-id="<?= $p['category_id'] ?>"
                             data-subcat-id="<?= $p['subcategory_id'] ?? '' ?>">
                             <td>
                                 <?php if (!empty($p['image'])): ?>
@@ -141,6 +136,7 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                             </td>
                             <td class="fw-semibold"><?= e($p['name']) ?></td>
                             <td><code class="small"><?= e($p['product_code'] ?? '—') ?></code></td>
+                            <td><span class="badge bg-secondary-subtle text-secondary-emphasis border"><?= e($p['category_name']) ?></span></td>
                             <td><?= $p['subcategory_name'] ? '<span class="badge bg-info-subtle text-info-emphasis border">' . e($p['subcategory_name']) . '</span>' : '<span class="text-muted">—</span>' ?></td>
                             <td><span class="badge bg-light text-dark border"><?= e($p['size_brand'] ?: '—') ?></span></td>
                             <td><?= e($p['unit']) ?></td>
@@ -176,7 +172,7 @@ function renderProductTable(array $items, bool $hasBranches): void { ?>
                         </tr>
                     <?php endforeach; endif; ?>
                     <tr class="row-no-match d-none">
-                        <td colspan="11" class="text-center text-muted py-4">
+                        <td colspan="12" class="text-center text-muted py-4">
                             <i class="bi bi-search me-1"></i>ফিল্টারের সাথে মিলে এমন কোনো পণ্য নেই।
                         </td>
                     </tr>

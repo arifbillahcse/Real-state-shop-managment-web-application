@@ -34,72 +34,68 @@ function fillSubcatOptions(categoryId, selectedId) {
 
 catSelect.addEventListener('change', () => fillSubcatOptions(catSelect.value, ''));
 
-// ── Search + sub-category filter (products table) ───────────────────────────
-const productSearch = document.getElementById('productSearch');
-const subcatFilter  = document.getElementById('subcatFilter');
+// ── Category + Sub-category + Search filter (single products table) ────────
+const productSearch  = document.getElementById('productSearch');
+const categoryFilter = document.getElementById('categoryFilter');
+const subcatFilter   = document.getElementById('subcatFilter');
 const btnClearFilter = document.getElementById('btnClearFilter');
+const productsTbody  = document.getElementById('productsTableBody');
 
-function activeTabPane() {
-    return document.querySelector('#productTabs .nav-link.active')?.dataset.bsTarget
-        ? document.querySelector(document.querySelector('#productTabs .nav-link.active').dataset.bsTarget)
-        : document.querySelector('.tab-pane.active');
-}
-
-// Populate the filter dropdown with only the sub-categories that belong to
-// the currently active category tab.
+// Populate the sub-category dropdown with only the sub-categories that
+// belong to the currently selected category (or all, if none is selected).
 function fillSubcatFilterOptions() {
     if (!subcatFilter) return;
-    const pane = activeTabPane();
-    const categoryId = pane ? pane.dataset.categoryId : null;
-    const items = subcats.filter(s => String(s.category_id) === String(categoryId));
+    const categoryId = categoryFilter?.value || '';
+    const items = categoryId
+        ? subcats.filter(s => String(s.category_id) === String(categoryId))
+        : subcats;
 
     const prevValue = subcatFilter.value;
     let html = '<option value="">সব সাব-ক্যাটাগরি</option>';
     items.forEach(s => { html += `<option value="${s.id}">${escHtml(s.name)}</option>`; });
     subcatFilter.innerHTML = html;
-    // Keep the previous selection only if it still exists for this category
+    // Keep the previous selection only if it still applies under the new category
     if (items.some(s => String(s.id) === prevValue)) subcatFilter.value = prevValue;
 }
 
 function applyProductFilter() {
-    const pane = activeTabPane();
-    if (!pane) return;
-    const q         = (productSearch?.value || '').trim().toLowerCase();
-    const subcatId  = subcatFilter?.value || '';
-    let anyVisible  = false;
+    if (!productsTbody) return;
+    const q          = (productSearch?.value || '').trim().toLowerCase();
+    const categoryId = categoryFilter?.value || '';
+    const subcatId   = subcatFilter?.value || '';
+    let anyVisible   = false;
 
-    pane.querySelectorAll('tbody tr.product-row').forEach(row => {
+    productsTbody.querySelectorAll('tr.product-row').forEach(row => {
         const matchesText = !q
             || row.dataset.name.includes(q)
             || row.dataset.code.includes(q)
             || row.dataset.size.includes(q);
-        const matchesSubcat = !subcatId || row.dataset.subcatId === subcatId;
-        const visible = matchesText && matchesSubcat;
+        const matchesCategory = !categoryId || row.dataset.categoryId === categoryId;
+        const matchesSubcat   = !subcatId || row.dataset.subcatId === subcatId;
+        const visible = matchesText && matchesCategory && matchesSubcat;
         row.classList.toggle('d-none', !visible);
         if (visible) anyVisible = true;
     });
 
-    const noMatchRow = pane.querySelector('tr.row-no-match');
+    const noMatchRow = productsTbody.querySelector('tr.row-no-match');
     if (noMatchRow) {
-        const hasAnyRows = pane.querySelectorAll('tbody tr.product-row').length > 0;
+        const hasAnyRows = productsTbody.querySelectorAll('tr.product-row').length > 0;
         noMatchRow.classList.toggle('d-none', !hasAnyRows || anyVisible);
     }
 }
 
 productSearch?.addEventListener('input', applyProductFilter);
 subcatFilter?.addEventListener('change', applyProductFilter);
-btnClearFilter?.addEventListener('click', () => {
-    if (productSearch) productSearch.value = '';
-    if (subcatFilter)  subcatFilter.value  = '';
+categoryFilter?.addEventListener('change', () => {
+    fillSubcatFilterOptions();
     applyProductFilter();
 });
-
-// Re-scope the sub-category dropdown and re-apply filters when switching tabs
-document.querySelectorAll('#productTabs .nav-link').forEach(tabBtn => {
-    tabBtn.addEventListener('shown.bs.tab', () => {
-        fillSubcatFilterOptions();
-        applyProductFilter();
-    });
+btnClearFilter?.addEventListener('click', () => {
+    if (productSearch)  productSearch.value  = '';
+    if (categoryFilter) categoryFilter.value = '';
+    if (subcatFilter)   subcatFilter.value   = '';
+    fillSubcatFilterOptions();
+    applyProductFilter();
 });
 
 fillSubcatFilterOptions();
