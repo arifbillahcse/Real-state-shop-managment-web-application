@@ -311,8 +311,11 @@ include __DIR__ . '/../includes/sidebar.php';
         <!-- Software -->
         <div class="col-md-6">
           <div class="card shadow-sm border-0 h-100">
-            <div class="card-header fw-semibold py-3 d-flex align-items-center gap-2">
-              <i class="bi bi-box-seam text-primary"></i>সফটওয়্যার তথ্য
+            <div class="card-header fw-semibold py-3 d-flex align-items-center justify-content-between gap-2">
+              <span><i class="bi bi-box-seam text-primary me-2"></i>সফটওয়্যার তথ্য</span>
+              <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearCache">
+                <i class="bi bi-trash3 me-1"></i>ক্যাশ ক্লিয়ার করুন
+              </button>
             </div>
             <div class="list-group list-group-flush">
               <?php
@@ -490,6 +493,20 @@ function saveSettings(e) {
         showToast(res.message, res.success ? 'success' : 'danger');
     });
 }
+
+// ── Clear cache ──────────────────────────────────────────────────────────────
+document.getElementById('btnClearCache')?.addEventListener('click', function () {
+    if (!confirm('সিস্টেম ক্যাশ ক্লিয়ার করবেন? নতুন কোনো আপডেটের পর পুরনো কোড আটকে থাকলে এটা সমাধান করবে।')) return;
+    const btn = this;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>ক্লিয়ার হচ্ছে...';
+    ajaxPost(BASE_URL + '/api/clear_cache.php', {}, res => {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        showToast(res.message, res.success ? 'success' : 'danger');
+    });
+});
 
 // ── Logo upload ──────────────────────────────────────────────────────────────
 // Uploads (and, on the server, saves the setting) as soon as a file is
