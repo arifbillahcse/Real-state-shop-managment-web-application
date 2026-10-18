@@ -11,10 +11,11 @@ $categories    = Category::getAll();
 $subcategories = Product::getSubcategories();
 $branches      = Branch::getBranches();
 
-// Build products grouped by category
-$productsByCategory = [];
-foreach ($categories as $cat) {
-    $productsByCategory[$cat['id']] = Product::getProducts((int)$cat['id']);
+// Build products grouped by category — one query for all products, then
+// split in PHP, instead of one query per category (N+1).
+$productsByCategory = array_fill_keys(array_column($categories, 'id'), []);
+foreach (Product::getProducts() as $p) {
+    $productsByCategory[$p['category_id']][] = $p;
 }
 
 require_once __DIR__ . '/../includes/header.php';
