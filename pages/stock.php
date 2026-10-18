@@ -110,6 +110,18 @@ require_once __DIR__ . '/../includes/sidebar.php';
         <!-- ===== CURRENT STOCK TAB ===== -->
         <?php if (!$_isStaff): ?>
         <div class="tab-pane fade show active" id="currentStockTab">
+            <div class="d-flex justify-content-end mb-2">
+                <div class="btn-group btn-group-sm" role="group" id="stockStatusFilter">
+                    <input type="radio" class="btn-check" name="stockStatus" id="stockStatusAll" value="" checked>
+                    <label class="btn btn-outline-secondary" for="stockStatusAll">সব</label>
+
+                    <input type="radio" class="btn-check" name="stockStatus" id="stockStatusOk" value="ok">
+                    <label class="btn btn-outline-success" for="stockStatusOk">স্টকে আছে</label>
+
+                    <input type="radio" class="btn-check" name="stockStatus" id="stockStatusLow" value="low">
+                    <label class="btn btn-outline-danger" for="stockStatusLow">কম স্টক</label>
+                </div>
+            </div>
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -136,7 +148,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     $qty   = rtrim(rtrim($r['current_stock'],'0'),'.');
                                     $total = (float)$r['current_stock'] * (float)$r['buy_price'];
                                 ?>
-                                <tr class="<?= $low ? 'table-danger' : '' ?>">
+                                <tr class="<?= $low ? 'table-danger' : '' ?>" data-status="<?= $low ? 'low' : 'ok' ?>">
                                     <td class="fw-semibold"><?= e($r['product_name']) ?></td>
                                     <td><span class="badge bg-secondary"><?= e($r['product_type']) ?></span></td>
                                     <td><?= e($r['size_brand'] ?? '—') ?></td>
@@ -158,6 +170,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
+                                <tr class="row-no-match d-none">
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="bi bi-search me-1"></i>এই অবস্থার কোনো পণ্য নেই।
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                             </tbody>
                         </table>

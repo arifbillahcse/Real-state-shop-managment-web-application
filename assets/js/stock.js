@@ -604,6 +604,28 @@ async function postForm(url, formData) {
     const r = await fetch(url, { method:'POST', body: formData });
     return r.json();
 }
+// ── বর্তমান স্টক: সব / স্টকে আছে / কম স্টক pill filter ───────────────────────
+(function () {
+    const body = document.getElementById('currentStockBody');
+    if (!body) return;
+    document.querySelectorAll('#stockStatusFilter input[name="stockStatus"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const status = radio.value;
+            let anyVisible = false;
+            body.querySelectorAll('tr[data-status]').forEach(row => {
+                const visible = !status || row.dataset.status === status;
+                row.classList.toggle('d-none', !visible);
+                if (visible) anyVisible = true;
+            });
+            const noMatchRow = body.querySelector('tr.row-no-match');
+            if (noMatchRow) {
+                const hasAnyRows = body.querySelectorAll('tr[data-status]').length > 0;
+                noMatchRow.classList.toggle('d-none', !hasAnyRows || anyVisible);
+            }
+        });
+    });
+})();
+
 function showErr(el, msg) { el.textContent = msg; el.classList.remove('d-none'); }
 async function submitWithSpinner(btn, fn) {
     const orig = btn.innerHTML;
