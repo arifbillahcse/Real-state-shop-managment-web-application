@@ -15,7 +15,6 @@ $lockedBranch = lockedBranchId();
 // branch's transfer-aware stock, not the global view which structurally
 // excludes transfer effects (they net to zero at the global level).
 $allStock    = $lockedBranch !== null ? Stock::getBranchStock($lockedBranch) : Stock::getAllStock();
-$history     = Stock::getStockInbound(null, $lockedBranch);
 $suppliers   = Supplier::getSuppliers();
 $products    = Product::getProducts();
 $branches    = Branch::getVisibleBranches();
@@ -85,23 +84,10 @@ require_once __DIR__ . '/../includes/sidebar.php';
         <?php endif; ?>
         <?php if (!$_isStaff): ?>
         <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#inboundTab">
-                <i class="bi bi-arrow-down-circle me-1"></i>ক্রয় ইতিহাস
-                <span class="badge bg-secondary ms-1"><?= count($history) ?></span>
-            </button>
-        </li>
-        <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#adjustTab" id="btnAdjustTab">
                 <i class="bi bi-sliders me-1"></i>সংশোধন ইতিহাস
             </button>
         </li>
-        <?php if (!empty($branches)): ?>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#transferTab" id="btnTransferTab">
-                <i class="bi bi-arrow-left-right me-1"></i>ট্রান্সফার ইতিহাস
-            </button>
-        </li>
-        <?php endif; ?>
         <?php endif; ?>
     </ul>
 
@@ -303,55 +289,8 @@ require_once __DIR__ . '/../includes/sidebar.php';
         </div>
         <?php endif; ?>
 
-        <!-- ===== INBOUND HISTORY TAB ===== -->
-        <?php if (!$_isStaff): ?>
-        <div class="tab-pane fade" id="inboundTab">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>তারিখ</th><th>পণ্য</th><th>ব্রাঞ্চ</th><th>সাপ্লাইয়ার</th>
-                                    <th class="text-end">পরিমাণ</th>
-                                    <th class="text-end">ক্রয় দাম</th>
-                                    <th class="text-end">মোট খরচ</th>
-                                    <th>নোট</th>
-                                    <th class="text-center" style="width:100px">অ্যাকশন</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inboundBody">
-                            <?php if (empty($history)): ?>
-                                <tr><td colspan="9" class="text-center text-muted py-4">এখনো কোনো ক্রয় রেকর্ড নেই।</td></tr>
-                            <?php else: ?>
-                                <?php foreach ($history as $h): ?>
-                                <tr>
-                                    <td><?= date('d M Y', strtotime($h['inbound_date'])) ?></td>
-                                    <td>
-                                        <div class="fw-semibold"><?= e($h['product_name']) ?></div>
-                                        <small class="text-muted"><?= e($h['product_type']) ?></small>
-                                    </td>
-                                    <td><?= !empty($h['branch_name']) ? '<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>'.e($h['branch_name']).'</span>' : '<span class="text-muted">—</span>' ?></td>
-                                    <td><?= e($h['supplier_name'] ?? '—') ?></td>
-                                    <td class="text-end"><?= rtrim(rtrim($h['quantity'],'0'),'.') ?> <?= e($h['unit']) ?></td>
-                                    <td class="text-end"><?= money((float)$h['buy_price']) ?></td>
-                                    <td class="text-end fw-semibold"><?= money((float)$h['total_cost']) ?></td>
-                                    <td><small class="text-muted"><?= e($h['note'] ?? '') ?></small></td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary btn-edit-inbound" data-id="<?= $h['id'] ?>"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-outline-danger btn-delete-inbound" data-id="<?= $h['id'] ?>" data-name="<?= e($h['product_name']) ?>"><i class="bi bi-trash"></i></button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- ===== ADJUSTMENT HISTORY TAB ===== -->
+        <?php if (!$_isStaff): ?>
         <div class="tab-pane fade" id="adjustTab">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
@@ -373,33 +312,6 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 </div>
             </div>
         </div>
-
-        <!-- ===== TRANSFER HISTORY TAB ===== -->
-        <?php if (!empty($branches)): ?>
-        <div class="tab-pane fade" id="transferTab">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>তারিখ</th><th>পণ্য</th>
-                                    <th>উৎস ব্রাঞ্চ</th>
-                                    <th>গন্তব্য ব্রাঞ্চ</th>
-                                    <th class="text-end">পরিমাণ</th>
-                                    <th>নোট</th><th>করেছেন</th>
-                                    <th class="text-center">একশন</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transferBody">
-                                <tr><td colspan="8" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>লোড হচ্ছে...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
         <?php endif; /* !$_isStaff */ ?>
 
     </div><!-- /tab-content -->

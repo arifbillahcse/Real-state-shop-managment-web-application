@@ -18,7 +18,7 @@ const modalTitle  = document.getElementById('inboundModalTitle');
 
 // Edit-state for adjustments / transfers
 let editAdjId = null, editTrfId = null;
-let adjustmentsCache = {}, transfersCache = {};
+let adjustmentsCache = {};
 const qtyInput    = document.getElementById('inboundQty');
 const priceInput  = document.getElementById('inboundPrice');
 const totalPreview = document.getElementById('totalPreview');
@@ -49,30 +49,6 @@ document.getElementById('btnAddInbound')?.addEventListener('click', () => {
     inboundModal.show();
 });
 
-document.querySelectorAll('.btn-edit-inbound').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        formError.classList.add('d-none');
-        if (totalPreview) totalPreview.style.display = 'none';
-        try {
-            const data = await fetchJSON(`${BASE}/api/get_stock_inbound.php?id=${btn.dataset.id}`);
-            if (!data.success) { showToast(data.message, 'danger'); return; }
-            const r = data.record;
-            document.getElementById('inboundId').value       = r.id;
-            tsSet('inboundProduct', r.product_id, true);
-            qtyInput.value                                   = r.quantity;
-            priceInput.value                                 = r.buy_price;
-            tsSet('inboundSupplier', r.supplier_id || '', true);
-            document.getElementById('inboundDate').value     = r.inbound_date;
-            document.getElementById('inboundNote').value     = r.note || '';
-            const branchSel = document.getElementById('inboundBranch');
-            if (branchSel) tsSet(branchSel, r.branch_id || '', true);
-            modalTitle.innerHTML = '<i class="bi bi-pencil me-1 text-danger"></i>স্টক সম্পাদনা';
-            updatePreview();
-            inboundModal.show();
-        } catch { showToast('ডাটা লোড হয়নি।', 'danger'); }
-    });
-});
-
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     formError.classList.add('d-none');
@@ -89,15 +65,6 @@ form?.addEventListener('submit', async (e) => {
         const data = await postForm(url, new FormData(form));
         if (data.success) { showToast(data.message, 'success'); inboundModal.hide(); setTimeout(() => location.reload(), 700); }
         else showErr(formError, data.message);
-    });
-});
-
-document.querySelectorAll('.btn-delete-inbound').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        if (!confirm(`"${btn.dataset.name}" এর এই ক্রয় রেকর্ডটি ডিলিট করবেন?`)) return;
-        const data = await postJSON(`${BASE}/api/delete_stock_inbound.php`, { id: btn.dataset.id });
-        if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 700); }
-        else showToast(data.message, 'danger');
     });
 });
 
@@ -249,28 +216,6 @@ function setTrfTitle(isEdit) {
     if (btn) btn.innerHTML = isEdit
         ? '<i class="bi bi-check-lg me-1"></i>আপডেট করুন'
         : '<i class="bi bi-check-lg me-1"></i>ট্রান্সফার করুন';
-}
-
-function openEditTransfer(id) {
-    const r = transfersCache[id];
-    if (!r) return;
-    editTrfId = id;
-    setTrfTitle(true);
-    tsSet('trfProduct', r.product_id, true);
-    tsSet('trfFrom', r.from_branch_id, true);
-    tsSet('trfTo', r.to_branch_id, true);
-    document.getElementById('trfQty').value  = parseFloat(r.quantity);
-    document.getElementById('trfNote').value = r.note || '';
-    document.getElementById('trfError').classList.add('d-none');
-    transferModal.show();
-    updateTrfFromStock();
-}
-
-async function deleteTransfer(id) {
-    if (!confirm('এই ট্রান্সফার রেকর্ডটি ডিলিট করবেন?')) return;
-    const data = await postJSON(`${BASE}/api/delete_stock_transfer.php`, { id });
-    if (data.success) { showToast(data.message, 'success'); setTimeout(() => location.reload(), 700); }
-    else showToast(data.message, 'danger');
 }
 
 document.getElementById('btnTransferStock')?.addEventListener('click', () => {
@@ -517,7 +462,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // Paginate the PHP-rendered tables (50 rows per page)
     if (typeof paginateTable === 'function') {
         paginateTable('currentStockBody', PAGE_SIZE);
-        paginateTable('inboundBody', PAGE_SIZE);
     }
 });
 
@@ -548,39 +492,6 @@ async function loadAdjustments() {
                 <td>${r.branch_name ? `<span class="badge bg-secondary">${r.branch_name}</span>` : '<span class="text-muted">গ্লোবাল</span>'}</td>
                 <td>${qtyCell}</td>
                 <td><span class="badge bg-light text-dark border">${reasonLabel[r.reason]||r.reason}</span></td>
-                <td class="text-muted small">${r.note||'—'}</td>
-                <td class="text-muted small">${r.created_by_name||'—'}</td>
-                <td class="text-center text-nowrap">${actions}</td>
-            </tr>`;
-        }).join('');
-        tbody.dataset.loaded = '1';
-        if (typeof paginateTable === 'function') paginateTable(tbody, PAGE_SIZE);
-    } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">লোড হয়নি।</td></tr>'; }
-}
-
-// ── Transfer history tab ──────────────────────────────────────────────────
-document.getElementById('btnTransferTab')?.addEventListener('shown.bs.tab', loadTransfers);
-
-async function loadTransfers() {
-    const tbody = document.getElementById('transferBody');
-    if (!tbody || tbody.dataset.loaded) return;
-    try {
-        const data = await fetchJSON(`${BASE}/api/get_stock_transfers.php`);
-        if (!data.success) { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message}</td></tr>`; return; }
-        const list = data.data || [];
-        transfersCache = {};
-        if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">কোনো ট্রান্সফার রেকর্ড নেই।</td></tr>'; return; }
-        tbody.innerHTML = list.map(r => {
-            transfersCache[r.id] = r;
-            const actions = CAN_WRITE ? `
-                <button class="btn btn-sm btn-outline-danger me-1" onclick="openEditTransfer(${r.id})" title="সম্পাদনা"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteTransfer(${r.id})" title="ডিলিট"><i class="bi bi-trash"></i></button>` : '';
-            return `<tr>
-                <td class="text-muted small">${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
-                <td class="fw-semibold">${r.product_name}</td>
-                <td><span class="badge bg-warning text-dark">${r.from_branch_name}</span></td>
-                <td><span class="badge bg-success">${r.to_branch_name}</span></td>
-                <td class="text-end fw-semibold">${parseFloat(r.quantity).toLocaleString('bn-BD',{maximumFractionDigits:2})} ${r.unit}</td>
                 <td class="text-muted small">${r.note||'—'}</td>
                 <td class="text-muted small">${r.created_by_name||'—'}</td>
                 <td class="text-center text-nowrap">${actions}</td>
