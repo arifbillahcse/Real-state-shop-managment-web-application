@@ -3,7 +3,7 @@
 let searchTimer  = null;
 let activeStatus = '';   // '' | 'pending' | 'done'
 
-const NOTES_PAGE_SIZE = 20;
+const NOTES_PAGE_SIZE = 150;
 let _allNotes  = [];
 let _notesPage = 1;
 

@@ -21,7 +21,7 @@ function loadPlans() {
     }).catch(()=>{ el.innerHTML='<div class="alert alert-danger">সমস্যা হয়েছে।</div>'; });
 }
 
-const INST_PAGE_SIZE = 50;
+const INST_PAGE_SIZE = 150;
 let _allPlans        = [];
 let _instPage        = 1;
 

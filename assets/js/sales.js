@@ -664,7 +664,7 @@ function resetSaleForm() {
 }
 
 // ---- Pagination state ----
-const PAGE_SIZE   = 50;
+const PAGE_SIZE   = 150;
 let _allSales     = [];
 let _currentPage  = 1;
 

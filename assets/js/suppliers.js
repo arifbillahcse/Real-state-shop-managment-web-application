@@ -77,7 +77,7 @@ function loadSuppliers() {
         .catch(() => showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'danger'));
 }
 
-const SUPP_PAGE_SIZE = 50;
+const SUPP_PAGE_SIZE = 150;
 let _allSuppliers    = [];
 let _filteredSupp    = [];
 let _suppPage        = 1;

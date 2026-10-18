@@ -18,10 +18,10 @@
  * hides them.
  *
  * @param {HTMLElement|string} tbody     tbody element or its id
- * @param {number}             pageSize  rows per page (default 50)
+ * @param {number}             pageSize  rows per page (default 150)
  * @param {HTMLElement[]|null} rows      pre-filtered subset to paginate; defaults to all <tr> children
  */
-function paginateTable(tbody, pageSize = 50, rows = null) {
+function paginateTable(tbody, pageSize = 150, rows = null) {
     if (typeof tbody === 'string') tbody = document.getElementById(tbody);
     if (!tbody) return;
 

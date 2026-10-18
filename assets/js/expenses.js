@@ -23,7 +23,7 @@ function showErr(el, msg) {
     el.classList.remove('d-none');
 }
 
-const EXP_PAGE_SIZE = 50;
+const EXP_PAGE_SIZE = 150;
 let _allExpenses    = [];
 let _expPage        = 1;
 

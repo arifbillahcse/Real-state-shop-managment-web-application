@@ -142,7 +142,7 @@ function goToLedger(customerId) {
 }
 
 // ---- Payment History ----
-const PAY_PAGE_SIZE = 50;
+const PAY_PAGE_SIZE = 150;
 let _allPayments    = [];
 let _payPage        = 1;
 
@@ -228,7 +228,7 @@ document.getElementById('historyTabBtn')?.addEventListener('click', () => {
 
 // Paginate server-rendered due list
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof paginateTable === 'function') paginateTable('dueListBody', 50);
+    if (typeof paginateTable === 'function') paginateTable('dueListBody', 150);
 });
 
 // ---- Due list search ----
@@ -260,7 +260,7 @@ function applyDueFilter() {
         if (nav) nav.style.display = 'none';
     } else {
         rows.forEach(r => r.classList.remove('d-none'));
-        if (typeof paginateTable === 'function') paginateTable('dueListBody', 50);
+        if (typeof paginateTable === 'function') paginateTable('dueListBody', 150);
         anyVisible = rows.length > 0;
     }
 

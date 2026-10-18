@@ -351,7 +351,7 @@ document.getElementById('btnConfirmUpgrade').addEventListener('click', () => {
 });
 
 // ---- Pagination state ----
-const CUST_PAGE_SIZE = 50;
+const CUST_PAGE_SIZE = 150;
 let _allCustomers    = [];
 let _filteredCust    = [];
 let _custPage        = 1;
