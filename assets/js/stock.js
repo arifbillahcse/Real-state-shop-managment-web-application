@@ -5,7 +5,7 @@
 const BASE = BASE_URL;
 
 // Rows shown per page across all stock tables
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 150;
 
 // ── Modal references (null if staff) ──────────────────────────────────────
 const inboundModal  = document.getElementById('inboundModal')  ? new bootstrap.Modal(document.getElementById('inboundModal'))  : null;
@@ -522,17 +522,18 @@ async function postForm(url, formData) {
     document.querySelectorAll('#stockStatusFilter input[name="stockStatus"]').forEach(radio => {
         radio.addEventListener('change', () => {
             const status = radio.value;
-            let anyVisible = false;
+            const matching = [];
             body.querySelectorAll('tr[data-status]').forEach(row => {
                 const visible = !status || row.dataset.status === status;
                 row.classList.toggle('d-none', !visible);
-                if (visible) anyVisible = true;
+                if (visible) matching.push(row);
             });
             const noMatchRow = body.querySelector('tr.row-no-match');
             if (noMatchRow) {
                 const hasAnyRows = body.querySelectorAll('tr[data-status]').length > 0;
-                noMatchRow.classList.toggle('d-none', !hasAnyRows || anyVisible);
+                noMatchRow.classList.toggle('d-none', !hasAnyRows || matching.length > 0);
             }
+            if (typeof paginateTable === 'function') paginateTable(body, PAGE_SIZE, matching);
         });
     });
 })();

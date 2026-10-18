@@ -10,10 +10,18 @@
  * Placeholder / empty-state rows (a single row) are left untouched because
  * the row count stays at or below the page size, so no nav is shown.
  *
+ * A search/dropdown filter elsewhere on the page may hide non-matching
+ * rows (typically via a `d-none` class, which Bootstrap marks !important
+ * so it always wins over the inline style this function sets). Pass that
+ * filter's matching subset as `rows` so pagination windows only those —
+ * rows left out are simply never touched here, since the filter already
+ * hides them.
+ *
  * @param {HTMLElement|string} tbody     tbody element or its id
  * @param {number}             pageSize  rows per page (default 50)
+ * @param {HTMLElement[]|null} rows      pre-filtered subset to paginate; defaults to all <tr> children
  */
-function paginateTable(tbody, pageSize = 50) {
+function paginateTable(tbody, pageSize = 50, rows = null) {
     if (typeof tbody === 'string') tbody = document.getElementById(tbody);
     if (!tbody) return;
 
@@ -28,8 +36,9 @@ function paginateTable(tbody, pageSize = 50) {
     const oldNav = host.querySelector(':scope > .table-pagination');
     if (oldNav) oldNav.remove();
 
-    const rows = Array.from(tbody.children)
-        .filter(tr => tr.tagName === 'TR');
+    if (!rows) {
+        rows = Array.from(tbody.children).filter(tr => tr.tagName === 'TR');
+    }
 
     // Nothing to paginate.
     if (rows.length <= pageSize) {

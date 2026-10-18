@@ -35,6 +35,7 @@ function fillSubcatOptions(categoryId, selectedId) {
 catSelect.addEventListener('change', () => fillSubcatOptions(catSelect.value, ''));
 
 // ── Category + Sub-category + Search filter (single products table) ────────
+const PRODUCTS_PAGE_SIZE = 150;
 const productSearch  = document.getElementById('productSearch');
 const categoryFilter = document.getElementById('categoryFilter');
 const subcatFilter   = document.getElementById('subcatFilter');
@@ -63,7 +64,7 @@ function applyProductFilter() {
     const q          = (productSearch?.value || '').trim().toLowerCase();
     const categoryId = categoryFilter?.value || '';
     const subcatId   = subcatFilter?.value || '';
-    let anyVisible   = false;
+    const matching   = [];
 
     productsTbody.querySelectorAll('tr.product-row').forEach(row => {
         const matchesText = !q
@@ -74,14 +75,16 @@ function applyProductFilter() {
         const matchesSubcat   = !subcatId || row.dataset.subcatId === subcatId;
         const visible = matchesText && matchesCategory && matchesSubcat;
         row.classList.toggle('d-none', !visible);
-        if (visible) anyVisible = true;
+        if (visible) matching.push(row);
     });
 
     const noMatchRow = productsTbody.querySelector('tr.row-no-match');
     if (noMatchRow) {
         const hasAnyRows = productsTbody.querySelectorAll('tr.product-row').length > 0;
-        noMatchRow.classList.toggle('d-none', !hasAnyRows || anyVisible);
+        noMatchRow.classList.toggle('d-none', !hasAnyRows || matching.length > 0);
     }
+
+    if (typeof paginateTable === 'function') paginateTable(productsTbody, PRODUCTS_PAGE_SIZE, matching);
 }
 
 productSearch?.addEventListener('input', applyProductFilter);
