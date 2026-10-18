@@ -331,7 +331,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 <div class="modal-body">
                     <input type="hidden" name="id" id="inboundId">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">পণ্য <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">কেন্দ্রীয় পণ্য <span class="text-danger">*</span></label>
                         <select name="product_id" id="inboundProduct" class="form-select" required>
                             <option value="">— পণ্য নির্বাচন করুন —</option>
                             <?php foreach ($productsByType as $type => $list): ?>

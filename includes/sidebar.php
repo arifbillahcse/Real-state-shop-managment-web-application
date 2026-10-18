@@ -16,7 +16,7 @@ $_isAsstManager = isAssistantManager();
 // branches, users, settings, backup, staff panel and the shared notepad.
 $menuItems = [
     ['icon' => 'bi-speedometer2',  'label' => 'ড্যাশবোর্ড',      'href' => 'dashboard.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
-    ['icon' => 'bi-box-seam',      'label' => 'পণ্য',            'href' => 'products.php',   'admin' => false, 'manager' => true,  'asst' => false, 'staff' => false],
+    ['icon' => 'bi-box-seam',      'label' => 'কেন্দ্রীয় পণ্য',   'href' => 'products.php',   'admin' => false, 'manager' => true,  'asst' => false, 'staff' => false],
     ['icon' => 'bi-stack',         'label' => 'স্টক',            'href' => 'stock.php',      'admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
     ['icon' => 'bi-arrow-left-right','label' => 'ট্রান্সফার',     'href' => 'transfers.php',  'admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
     ['icon' => 'bi-bell',          'label' => 'স্টক সতর্কতা',    'href' => 'alert_center.php','admin' => false, 'manager' => true,  'asst' => true,  'staff' => true],
