@@ -116,6 +116,18 @@ function toggleUser(id, currentlyActive, name) {
     });
 }
 
+// ---- Login as (impersonate) ----
+function impersonateUser(id, name) {
+    if (!confirm(`"${name}" হিসেবে লগইন করবেন? আপনি যেকোনো সময় হেডারের "অ্যাডমিনে ফিরে যান" বাটন থেকে ফিরে আসতে পারবেন।`)) return;
+    ajaxPost(BASE_URL + '/api/impersonate_user.php', { id }, res => {
+        if (res.success) {
+            window.location.href = BASE_URL + '/pages/dashboard.php';
+        } else {
+            showToast(res.message, 'danger');
+        }
+    });
+}
+
 // ---- Reset password ----
 function openPasswordModal(id, name) {
     document.getElementById('passwordForm').reset();
@@ -206,6 +218,12 @@ function renderUsers(list) {
                     title="পাসওয়ার্ড রিসেট">
                     <i class="bi bi-key"></i>
                 </button>
+                ${(isSelf || u.role === 'admin' || !active) ? '' : `
+                <button class="btn btn-sm btn-outline-info me-1"
+                    onclick="impersonateUser(${u.id}, '${jsEsc(u.name)}')"
+                    title="এই ব্যবহারকারী হিসেবে লগইন করুন">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                </button>`}
                 ${isSelf ? '' : `
                 <button class="btn btn-sm btn-outline-${active ? 'danger' : 'success'}"
                     onclick="toggleUser(${u.id}, ${active ? 1 : 0}, '${jsEsc(u.name)}')"

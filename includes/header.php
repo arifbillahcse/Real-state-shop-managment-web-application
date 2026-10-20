@@ -16,6 +16,7 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
         error_log('Migration check failed: ' . $e->getMessage());
     }
 }
+$_hasTopBanner = $_pendingMigrations > 0 || !empty($_SESSION['impersonator_id']);
 ?>
 <!DOCTYPE html>
 <html lang="bn">
@@ -36,7 +37,7 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
-<body class="<?= $_pendingMigrations > 0 ? 'has-migrate-banner' : '' ?>">
+<body class="<?= $_hasTopBanner ? 'has-migrate-banner' : '' ?>">
 
 <!-- TOP NAVBAR -->
 <?php
@@ -89,6 +90,40 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
     </div>
 </nav>
 
+<?php if ($_hasTopBanner): ?>
+<div id="topBanners">
+
+<?php if (!empty($_SESSION['impersonator_id'])): ?>
+<div class="alert alert-info border-0 rounded-0 mb-0 py-2 px-3 d-flex flex-wrap
+            align-items-center gap-2 migrate-banner">
+    <i class="bi bi-person-badge"></i>
+    <span class="small flex-grow-1">
+        <strong><?= e($_SESSION['impersonator_name'] ?? 'Admin') ?></strong> এখন
+        <strong><?= e($_userName) ?></strong> হিসেবে লগইন আছেন।
+    </span>
+    <button type="button" class="btn btn-sm btn-light fw-semibold" id="btnStopImpersonate">
+        <i class="bi bi-arrow-return-left me-1"></i>অ্যাডমিনে ফিরে যান
+    </button>
+</div>
+<script>
+document.getElementById('btnStopImpersonate')?.addEventListener('click', function () {
+    const btn = this;
+    btn.disabled = true;
+    fetch('<?= BASE_URL ?>/api/stop_impersonate.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                window.location.href = '<?= BASE_URL ?>/pages/users.php';
+            } else {
+                btn.disabled = false;
+                alert(res.message);
+            }
+        })
+        .catch(() => { btn.disabled = false; });
+});
+</script>
+<?php endif; ?>
+
 <?php if ($_pendingMigrations > 0): ?>
 <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 px-3 d-flex flex-wrap
             align-items-center gap-2 migrate-banner">
@@ -100,12 +135,15 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
         এখনই আপডেট করুন
     </a>
 </div>
+<?php endif; ?>
+
+</div>
 <script>
 (function () {
-    var b = document.querySelector('.migrate-banner');
-    if (!b) return;
+    var wrap = document.getElementById('topBanners');
+    if (!wrap) return;
     var apply = function () {
-        document.documentElement.style.setProperty('--banner-h', b.offsetHeight + 'px');
+        document.documentElement.style.setProperty('--banner-h', wrap.offsetHeight + 'px');
     };
     apply();
     window.addEventListener('resize', apply);

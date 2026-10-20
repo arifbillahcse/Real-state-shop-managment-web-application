@@ -214,6 +214,71 @@ class User extends BaseModel
         return true;
     }
 
+    /**
+     * Admin "login as" — switch the current session into another user's
+     * account without knowing their password (passwords are one-way
+     * hashed and genuinely unrecoverable; this is the legitimate
+     * alternative). The original admin's identity is stashed in the
+     * session so stopImpersonate() can restore it.
+     */
+    public static function impersonate(int $targetId): array|string
+    {
+        // Already impersonating someone — don't stack impersonations.
+        if (!empty($_SESSION['impersonator_id'])) return 'ALREADY_IMPERSONATING';
+
+        $adminId = (int)($_SESSION['user_id'] ?? 0);
+        if ($targetId === $adminId) return 'CANNOT_IMPERSONATE_SELF';
+
+        $target = Database::fetchOne(
+            'SELECT * FROM users WHERE id = ? AND is_active = 1 LIMIT 1', [$targetId]
+        );
+        if (!$target) return 'NOT_FOUND';
+        if ($target['role'] === 'admin') return 'CANNOT_IMPERSONATE_ADMIN';
+
+        $_SESSION['impersonator_id']       = $adminId;
+        $_SESSION['impersonator_name']     = $_SESSION['user_name'] ?? '';
+        $_SESSION['impersonator_username'] = $_SESSION['user_username'] ?? '';
+
+        session_regenerate_id(true);
+        $_SESSION['user_id']           = $target['id'];
+        $_SESSION['user_name']         = $target['name'];
+        $_SESSION['user_role']         = $target['role'];
+        $_SESSION['user_username']     = $target['username'];
+        $_SESSION['user_branch_id']    = $target['branch_id'] ?? null;
+        $_SESSION['last_regeneration'] = time();
+
+        self::log('impersonate_start', 'users', $targetId,
+            "Admin #$adminId logged in as: {$target['username']}");
+        return true;
+    }
+
+    /** Return from an impersonated session back to the original admin. */
+    public static function stopImpersonate(): array|string
+    {
+        $adminId = (int)($_SESSION['impersonator_id'] ?? 0);
+        if ($adminId <= 0) return 'NOT_IMPERSONATING';
+
+        $admin = Database::fetchOne(
+            'SELECT * FROM users WHERE id = ? AND is_active = 1 LIMIT 1', [$adminId]
+        );
+        if (!$admin) return 'NOT_FOUND';
+
+        $impersonatedId = (int)($_SESSION['user_id'] ?? 0);
+
+        session_regenerate_id(true);
+        $_SESSION['user_id']           = $admin['id'];
+        $_SESSION['user_name']         = $admin['name'];
+        $_SESSION['user_role']         = $admin['role'];
+        $_SESSION['user_username']     = $admin['username'];
+        $_SESSION['user_branch_id']    = $admin['branch_id'] ?? null;
+        $_SESSION['last_regeneration'] = time();
+        unset($_SESSION['impersonator_id'], $_SESSION['impersonator_name'], $_SESSION['impersonator_username']);
+
+        self::log('impersonate_stop', 'users', $impersonatedId,
+            "Admin #{$admin['id']} returned from impersonating user #$impersonatedId");
+        return true;
+    }
+
     public static function countActiveAdmins(): int
     {
         $row = Database::fetchOne(
@@ -233,6 +298,10 @@ class User extends BaseModel
             'LAST_ADMIN'      => 'শেষ অ্যাডমিনকে নিষ্ক্রিয় বা ডিমোট করা যাবে না।',
             'SELF_DEACTIVATE' => 'আপনি নিজের অ্যাকাউন্ট নিষ্ক্রিয় করতে পারবেন না।',
             'WEAK_PASSWORD'   => 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।',
+            'ALREADY_IMPERSONATING'     => 'আপনি ইতিমধ্যে অন্য একজন হিসেবে লগইন আছেন। আগে ফিরে যান।',
+            'CANNOT_IMPERSONATE_SELF'   => 'নিজের অ্যাকাউন্টে লগইন করা যাবে না।',
+            'CANNOT_IMPERSONATE_ADMIN'  => 'অন্য অ্যাডমিনের অ্যাকাউন্টে লগইন করা যাবে না।',
+            'NOT_IMPERSONATING'         => 'আপনি কারো হয়ে লগইন নেই।',
         ][$code] ?? 'একটি সমস্যা হয়েছে।';
     }
 }
