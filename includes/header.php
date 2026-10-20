@@ -44,6 +44,15 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
     $_roleColor = User::isAdmin() ? 'danger' : (isManager() ? 'primary' : 'secondary');
     $_userName  = $_SESSION['user_name'] ?? '';
     $_initial   = mb_substr(trim($_userName), 0, 1, 'UTF-8') ?: 'U';
+    // Branch-locked users (staff + assistant manager) — show which branch
+    // they're tied to, so it's visible on every page, not just dug up from
+    // user management.
+    $_headerBranchName = null;
+    if (lockedBranchId() !== null) {
+        require_once __DIR__ . '/../classes/Branch.php';
+        $_headerBranch = Branch::getBranchById(lockedBranchId());
+        $_headerBranchName = $_headerBranch ? $_headerBranch['name'] : null;
+    }
 ?>
 <nav class="navbar app-navbar px-3 py-2 fixed-top">
     <div class="d-flex align-items-center gap-2">
@@ -64,7 +73,14 @@ if (User::isAdmin() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'migrate.php'
             <span class="user-avatar"><?= e($_initial) ?></span>
             <span class="user-meta">
                 <span class="user-name"><?= e($_userName) ?></span>
-                <span class="badge role-badge bg-<?= $_roleColor ?>"><?= $_roleLabel ?></span>
+                <span>
+                    <span class="badge role-badge bg-<?= $_roleColor ?>"><?= $_roleLabel ?></span>
+                    <?php if ($_headerBranchName): ?>
+                    <span class="badge role-badge bg-dark border">
+                        <i class="bi bi-shop me-1"></i><?= e($_headerBranchName) ?>
+                    </span>
+                    <?php endif; ?>
+                </span>
             </span>
         </div>
         <a href="<?= BASE_URL ?>/pages/logout.php" class="btn btn-sm btn-logout">
