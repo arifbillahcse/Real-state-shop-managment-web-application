@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_guard.php';
 
 requireMethod('POST');
-requireAdminApi();
+requireStrictAdminApi();
 
 // There's no app-level data cache in this project — products/stock/etc.
 // are all read live from the DB. What CAN go stale on shared hosting is

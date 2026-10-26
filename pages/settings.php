@@ -53,7 +53,6 @@ $uploadMax    = ini_get('upload_max_filesize');
 $maxExecTime  = ini_get('max_execution_time');
 $serverSW     = $_SERVER['SERVER_SOFTWARE'] ?? '—';
 $phpExt       = implode(', ', array_intersect(['pdo_mysql','mbstring','json','curl','openssl'], get_loaded_extensions()));
-$serverIP     = $_SERVER['SERVER_ADDR'] ?? '—';
 $httpsEnabled = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'হ্যাঁ' : 'না';
 
 function fmtBytes(float $bytes): string {
